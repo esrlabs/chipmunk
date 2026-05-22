@@ -1,7 +1,3 @@
-# TODO AAZ: 
-# * Resolve all TODOs in this file before final merge.
-# * Resolve all [allow(unused)] in gui/.. Crates.
-
 [workspace]
 resolver = "3"
 
@@ -119,18 +115,13 @@ emath = { git = "https://github.com/AmmarAbouZor/egui", rev = "a9f3a3e4ce95e014d
 [workspace.lints.clippy]
 undocumented_unsafe_blocks = "deny"
 
-# Optimize all dependencies even in debug builds (does not affect workspace packages):
-# This makes initial clean build slower, but doesn't affect tests.
-# TODO: Decide if upgrading all packages compared to egui ones only.
-# [profile.dev.package."*"]
-# opt-level = 2
-
-# `insta` crate and its dependency `similar` will be compiled once and run many times, 
-# therefore it's suggested to compile them with more optimizations for faster runs.
+# Optimize frequently used dependencies in dev builds while keeping workspace packages debuggable.
 [profile.dev.package]
+# Snapshot testing dependencies.
 insta.opt-level = 3
 similar.opt-level = 3
-# NOTE: For now I'm keeping the optimizations for egui only.
+
+# UI dependencies used heavily in dev runs.
 egui.opt-level = 2
 eframe.opt-level = 2
 egui_extras.opt-level = 2
@@ -138,10 +129,11 @@ egui_table.opt-level = 2
 egui_plot.opt-level = 2
 
 [profile.test.package]
-# Proptest and its random number generator can be CPU intensive, therefore setting their optimizations level 
-# to max will have significant performance improvement for the tests.
+# Property tests and their RNG are CPU-intensive.
 proptest.opt-level = 3
 rand_chacha.opt-level = 3
+
+# Snapshot tests benefit from faster diffing and serialization.
 insta.opt-level = 3
 similar.opt-level = 3
 

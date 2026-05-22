@@ -547,7 +547,7 @@ impl Session {
                 let session_id = self.shared.get_id();
                 log::error!("Session Error: Session ID: {session_id}, error: {error}");
 
-                let notifi = AppNotification::SessionError { session_id, error };
+                let notifi = AppNotification::SessionError(error);
 
                 actions.add_notification(notifi);
 

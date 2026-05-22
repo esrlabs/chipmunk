@@ -373,14 +373,11 @@ impl From<&AppNotification> for NotificationLevel {
         match value {
             Not::HostError(HostError::InitSessionError(..)) => Level::Error,
             Not::HostError(HostError::NativeError(err))
-            | Not::SessionError {
-                error: SessionError::NativeError(err),
-                ..
-            } => match err.severity {
+            | Not::SessionError(SessionError::NativeError(err)) => match err.severity {
                 stypes::Severity::WARNING => Level::Warning,
                 stypes::Severity::ERROR => Level::Error,
             },
-            Not::SessionError { .. } => Level::Error,
+            Not::SessionError(..) => Level::Error,
             Not::Error(..) | Not::UiError(..) => Level::Error,
             Not::Warning(..) => Level::Warning,
             Not::Info(..) => Level::Info,
@@ -394,7 +391,7 @@ impl From<AppNotification> for NotificationEntry {
         let level = NotificationLevel::from(&notification);
         let message = match notification {
             AppNotification::HostError(err) => err.to_string(),
-            AppNotification::SessionError { error, .. } => error.to_string(),
+            AppNotification::SessionError(error) => error.to_string(),
             AppNotification::Error(msg)
             | AppNotification::UiError(msg)
             | AppNotification::Warning(msg)

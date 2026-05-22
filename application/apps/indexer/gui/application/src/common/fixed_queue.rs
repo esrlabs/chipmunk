@@ -29,15 +29,6 @@ impl<T> FixedQueue<T> {
         }
     }
 
-    /// Sets the max size of the queue.
-    /// This will remove the oldest items from the queue until it fits
-    /// the new size.
-    #[allow(unused)]
-    pub fn set_max_size(&mut self, max_size: usize) {
-        self.max_size = max_size;
-        self.truncate_to_limit();
-    }
-
     /// Returns all the items in the queue in the order (most recent to oldest)
     pub fn all_items(&self) -> impl Iterator<Item = &T> {
         self.queue.iter().rev()
@@ -83,33 +74,6 @@ mod tests {
         queue.add_item(4);
         assert_eq!(queue.len(), 3);
         assert_eq!(queue.all_items().collect::<Vec<_>>(), vec![&4, &3, &2]);
-    }
-
-    #[test]
-    fn test_set_max_size_shrink() {
-        let mut queue = FixedQueue::new(5);
-        for i in 1..=5 {
-            queue.add_item(i);
-        }
-        assert_eq!(queue.len(), 5);
-
-        // Shrink to 3, oldest (1, 2) should be dropped
-        queue.set_max_size(3);
-        assert_eq!(queue.len(), 3);
-        assert_eq!(queue.all_items().collect::<Vec<_>>(), vec![&5, &4, &3]);
-    }
-
-    #[test]
-    fn test_set_max_size_grow() {
-        let mut queue = FixedQueue::new(2);
-        queue.add_item(1);
-        queue.add_item(2);
-
-        queue.set_max_size(5);
-        assert_eq!(queue.len(), 2);
-        queue.add_item(3);
-        assert_eq!(queue.len(), 3);
-        assert_eq!(queue.all_items().collect::<Vec<_>>(), vec![&3, &2, &1]);
     }
 
     #[test]

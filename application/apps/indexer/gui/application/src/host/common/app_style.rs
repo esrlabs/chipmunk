@@ -24,7 +24,7 @@ pub fn global_styles(style: &mut Style) {
 
     apply_global_color_styles(&mut style.visuals);
 
-    //TODO AAZ: Workaround until issue with egui_table is fixed.
+    //NOTE: Workaround until issue with egui_table is fixed.
     // Issue Link: https://github.com/rerun-io/egui_table/issues/56
     #[cfg(debug_assertions)]
     {
