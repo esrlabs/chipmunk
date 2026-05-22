@@ -4,7 +4,6 @@ use thiserror::Error;
 
 use crate::session::InitSessionError;
 
-#[allow(unused)]
 #[derive(Debug, Error)]
 pub enum HostError {
     #[error("Session initialization error: {0}")]

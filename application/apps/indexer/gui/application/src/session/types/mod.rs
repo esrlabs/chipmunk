@@ -43,7 +43,6 @@ impl ObserveOperation {
         self.phase = phase;
     }
 
-    #[allow(unused)]
     pub fn phase(&self) -> OperationPhase {
         self.phase
     }

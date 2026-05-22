@@ -544,7 +544,7 @@ pub fn apply_log_row_colors(
 pub fn handle_grab_errors(error: SessionError, session_id: Uuid, actions: &mut UiActions) {
     log::error!("Session Error: Session ID: {session_id}, error: {error}");
 
-    let notifi = AppNotification::SessionError { session_id, error };
+    let notifi = AppNotification::SessionError(error);
 
     actions.add_notification(notifi);
 }

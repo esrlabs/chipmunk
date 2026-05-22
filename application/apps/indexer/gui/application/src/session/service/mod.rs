@@ -256,10 +256,7 @@ impl SessionService {
     }
 
     async fn send_error(&self, error: SessionError) {
-        let notifi = AppNotification::SessionError {
-            session_id: self.session_id(),
-            error,
-        };
+        let notifi = AppNotification::SessionError(error);
 
         self.senders.send_notification(notifi).await;
     }

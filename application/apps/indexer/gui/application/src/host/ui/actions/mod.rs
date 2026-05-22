@@ -13,10 +13,8 @@ pub use host_action::HostAction;
 /// shared UI functions like notifications.
 #[derive(Debug)]
 pub struct UiActions {
-    /// Handle to the tokio runtime which is running on the services threads.
-    /// This is useful to bridge between the sync UI main thread and the async
-    /// services runtime
-    #[allow(unused)]
+    /// Tokio runtime handle for UI components that need to spawn service-side work.
+    #[expect(dead_code, reason = "Reserved for upcoming UI async actions.")]
     pub tokio_handle: Handle,
     pending_notifications: Vec<AppNotification>,
     pub file_dialog: FileDialogHandle,
@@ -153,32 +151,5 @@ impl UiActions {
                 }
             }
         }
-    }
-
-    // TODO: Remove function or warning suppressing before final merge.
-    #[allow(unused)]
-    /// Sends the command with the provided sender using `blocking_send` method. In case it fails it will
-    /// log and notify the UI about the error with appropriate messages.
-    ///
-    /// # Return
-    ///
-    /// `true` if the command has been successfully sent.
-    pub fn blocking_send_command<T>(&mut self, sender: &mpsc::Sender<T>, command: T) -> bool
-    where
-        T: std::fmt::Debug,
-    {
-        if let Err(err) = sender.blocking_send(command) {
-            log::error!(
-                "Communication error while sending command from UI to core. Channel is Closed. Error: {err:?}"
-            );
-
-            let err = "Unrecoverable communication Error. Please restart the app.\n\
-                        Please consider submitting a bug report regarding this issue.";
-            self.add_notification(AppNotification::UiError(err.into()));
-
-            return false;
-        }
-
-        true
     }
 }

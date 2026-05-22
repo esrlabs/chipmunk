@@ -5,8 +5,7 @@ pub mod plugins;
 pub mod someip;
 use std::path::PathBuf;
 
-#[allow(unused)]
-pub use dlt::{DltLogLevel, DltParserConfig};
+pub use dlt::DltParserConfig;
 pub use plugins::PluginParserConfig;
 use stypes::ObserveOptions;
 

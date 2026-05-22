@@ -1,15 +1,9 @@
-use uuid::Uuid;
-
 use crate::{host::error::HostError, session::error::SessionError};
 
-#[allow(unused)]
 #[derive(Debug)]
 pub enum AppNotification {
     HostError(HostError),
-    SessionError {
-        session_id: Uuid,
-        error: SessionError,
-    },
+    SessionError(SessionError),
     UiError(String),
     /// General error notification.
     Error(String),
