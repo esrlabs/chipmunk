@@ -3,39 +3,27 @@
 ## Overview
 
 Repository AI context lives under `.ai/knowledge/`.
-Use this file only to choose the next context file to read.
+Use this file to choose the next context file to read. Do not load every context file by default.
 
-## Start Here
+## Repository Guardrails
 
-1. `.ai/knowledge/application/apps/indexer/gui/application/AGENTS.md`
-2. `.ai/knowledge/application/apps/indexer/AGENTS.md`
-3. `.ai/knowledge/application/apps/indexer/stypes/AGENTS.md`
+- Main code lives in the root Rust workspace under `crates/`.
+- `plugins/` is intentionally outside the main workspace validation path.
+- The root `justfile` is the developer entrypoint, but do not run `just` recipes unless the user explicitly asks for them.
+- Run build, test, lint, or validation commands only when the user requests validation or when needed to verify a change.
 
-## Primary Application Context
+## Primary Context
 
-- Native GUI: `.ai/knowledge/application/apps/indexer/gui/application/AGENTS.md`
-  - Use for egui/eframe desktop UI, host/session UI, filters, charts, logs, and search.
-- Rust core: `.ai/knowledge/application/apps/indexer/AGENTS.md`
-  - Use for ingestion, parsing, indexing, search, plugins host, and backend session behavior.
-- Shared types: `.ai/knowledge/application/apps/indexer/stypes/AGENTS.md`
-  - Use for shared Rust/TS type definitions and protocol-facing data models.
+- Native GUI: `.ai/knowledge/crates/chipmunk-app/AGENTS.md`
+  - Use for egui/eframe desktop UI, host/session UI, filters, charts, logs, search, plugin UI, app state, and app services.
+- Rust core: `.ai/knowledge/crates/core/AGENTS.md`
+  - Use for ingestion, parsing, indexing, search, session behavior, plugin host runtime, sources, and exports.
+- Shared types: `.ai/knowledge/crates/stypes/AGENTS.md`
+  - Use for Rust data types shared across app, core, CLI, and plugin-facing flows.
 
-## Legacy Reference Context
+## Targeted Context
 
-Load only when explicitly needed for comparison, migration, or historical behavior.
+Load only when the task explicitly targets that area.
 
-- Electron host: `.ai/knowledge/application/holder/AGENTS.md`
-- Angular client: `.ai/knowledge/application/client/AGENTS.md`
-- Shared TS platform: `.ai/knowledge/application/platform/AGENTS.md`
-- Protocol bridge: `.ai/knowledge/application/apps/protocol/AGENTS.md`
-- Native Node binding: `.ai/knowledge/application/apps/rustcore/rs-bindings/AGENTS.md`
-- TS wrapper: `.ai/knowledge/application/apps/rustcore/ts-bindings/AGENTS.md`
-- WASM bindings: `.ai/knowledge/application/apps/rustcore/wasm-bindings/AGENTS.md`
-- Legacy repo orchestration: `.ai/knowledge/cli/development-cli/AGENTS.md`
-
-## Peripheral Context
-
-Side code outside the desktop application path. Load only when the task explicitly targets that package.
-
-- CLI parser/export: `.ai/knowledge/cli/chipmunk-cli/AGENTS.md`
+- CLI parser/export: `.ai/knowledge/crates/chipmunk-cli/AGENTS.md`
 - Plugins: `.ai/knowledge/plugins/AGENTS.md`
