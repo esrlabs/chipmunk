@@ -28,10 +28,11 @@ pub const SAMPLE_SIZE_ENV_VAR: &str = "CHIPMUNK_BENCH_SAMPLE_SIZE";
 /// or can't be read.
 pub fn read_binary() -> &'static [u8] {
     let input_file = match std::env::var(INPUT_SOURCE_ENV_VAR) {
-        Ok(input) =>PathBuf::from(input),
-        Err(err) => panic!("Error while retrieving input file.\n
-Please ensure to provide the path of input file for benchmarks via command line arguments if you are using chipmunk build cli tool\
-or via the environment variable: '{INPUT_SOURCE_ENV_VAR}' if you are running the benchmark directly.\n Error Info: {err}"),
+        Ok(input) => PathBuf::from(input),
+        Err(err) => panic!(
+            "Error while retrieving input file.\nProvide the input file path via the \
+             '{INPUT_SOURCE_ENV_VAR}' environment variable.\nError Info: {err}"
+        ),
     };
 
     assert!(

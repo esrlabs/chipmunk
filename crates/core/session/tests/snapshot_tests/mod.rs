@@ -1,19 +1,12 @@
-//! Snapshot testing is set here using the crate `insta` and optionally its CLI tool `cargo-insta`.
+//! Snapshot tests for session output using `insta`.
 //!
-//! Each test will created a snapshot file for its results, which will be saved with the path
-//! './snapshots/{test_name}.snap'. These files will be used as reference for future tests then
-//! tests will fail on changes.
-//! Changes can be seen in our build CLI tool and can be accepted via CLI arguments, however it's
-//! better to use the CLI tool `cargo insta` because it's output is colored and more clear compared
-//! to the build CLI tool and it provides the possibility to review and accept each change one by
-//! one, on the contrary to our build tool than can only accept all changes at once.
+//! Snapshots are stored in `./snapshots/{test_name}.snap` and are part of the repository.
+//! Valid snapshot changes must be reviewed and committed with the code that caused them.
 //!
-//! Snapshot files are parts of the repository and valid changes in them must be committed as well.
+//! Run `just test-snapshots` to execute these tests in CI mode. CI mode fails on snapshot
+//! mismatches without writing `{name}.snap.new` files.
 //!
-//! Running the tests via `cargo test` will create temporary files with the name pattern
-//! '{name}.snap.new'. These files are used by `cargo-insta` tool and they aren't part of the
-//! repo history.
-//! Running the tests via `cargo chipmunk test` will avoid creating these temporary files.
+//! For local review of intentional changes, install `cargo-insta` and run `cargo insta review`.
 
 mod utls;
 
