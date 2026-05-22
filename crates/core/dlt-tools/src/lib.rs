@@ -130,7 +130,7 @@ mod tests {
     use super::*;
     use std::path::Path;
 
-    const DLT_FT_SAMPLE: &str = "../../../application/developing/resources/attachments.dlt";
+    const DLT_FT_SAMPLE: &str = "../../../development/resources/attachments.dlt";
 
     #[tokio::test]
     async fn test_scan_dlt_ft() {

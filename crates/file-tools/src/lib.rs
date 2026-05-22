@@ -28,9 +28,8 @@ mod test {
 
     #[test]
     fn test_fetch_starting_chunk() -> Result<()> {
-        let chunks: Vec<u8> = fetch_starting_chunk(Path::new(
-            "../../application/developing/resources/chinese_poem.txt",
-        ))?;
+        let chunks: Vec<u8> =
+            fetch_starting_chunk(Path::new("../../development/resources/chinese_poem.txt"))?;
         assert_eq!(chunks[0..5], [32, 32, 32, 32, 229]);
         Ok(())
     }
@@ -38,16 +37,18 @@ mod test {
     #[test]
     fn test_fetch_starting_chunk_when_file_is_missing() -> Result<()> {
         assert!(
-            fetch_starting_chunk(Path::new("../../developing/resources/chinese_poem.txt")).is_err()
+            fetch_starting_chunk(Path::new(
+                "../../development/resources/missing_chinese_poem.txt"
+            ))
+            .is_err()
         );
         Ok(())
     }
 
     #[test]
     fn test_fetch_starting_chunk_when_file_is_empty() -> Result<()> {
-        let chunks: Vec<u8> = fetch_starting_chunk(Path::new(
-            "../../application/developing/resources/empty.txt",
-        ))?;
+        let chunks: Vec<u8> =
+            fetch_starting_chunk(Path::new("../../development/resources/empty.txt"))?;
         assert_eq!(chunks, []);
         Ok(())
     }
@@ -55,13 +56,13 @@ mod test {
     #[test]
     fn test_is_binary_when_file_is_binary() -> Result<()> {
         assert!(is_binary(String::from(
-            "../../application/developing/resources/attachments.dlt"
+            "../../development/resources/attachments.dlt"
         ))?);
         assert!(is_binary(String::from(
-            "../../application/developing/resources/someip.pcap"
+            "../../development/resources/someip.pcap"
         ))?);
         assert!(is_binary(String::from(
-            "../../application/developing/resources/someip.pcapng"
+            "../../development/resources/someip.pcapng"
         ))?);
         Ok(())
     }
@@ -69,27 +70,27 @@ mod test {
     #[test]
     fn test_is_binary_when_file_is_not_binary() -> Result<()> {
         assert!(!is_binary(String::from(
-            "../../application/developing/resources/chinese_poem.txt"
+            "../../development/resources/chinese_poem.txt"
         ))?);
         assert!(!is_binary(String::from(
-            "../../application/developing/resources/sample_utf_8.txt"
+            "../../development/resources/sample_utf_8.txt"
         ))?);
         assert!(!is_binary(String::from(
-            "../../application/developing/resources/someip.xml"
+            "../../development/resources/someip.xml"
         ))?);
         Ok(())
     }
 
     #[test]
     fn test_is_binary_when_wrong_file_path_is_given() -> Result<()> {
-        assert!(is_binary(String::from("../../developing/resources/empty.text")).is_err());
+        assert!(is_binary(String::from("../../development/resources/empty.text")).is_err());
         Ok(())
     }
 
     #[test]
     fn test_is_binary_when_file_is_empty() -> Result<()> {
         assert!(!is_binary(String::from(
-            "../../application/developing/resources/empty.txt"
+            "../../development/resources/empty.txt"
         ))?);
         Ok(())
     }
