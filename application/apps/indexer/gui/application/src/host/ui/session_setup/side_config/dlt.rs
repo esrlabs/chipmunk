@@ -26,8 +26,6 @@ pub fn render_content(config: &mut DltParserConfig, actions: &mut UiActions, ui:
 
 fn log_level_selector(config: &mut DltParserConfig, ui: &mut Ui) {
     ui.label("Log Level");
-    ui.label(RichText::new("Select the level of logs (required)").small());
-    ui.add_space(5.0);
 
     ComboBox::from_id_salt("log_level_combo")
         .selected_text(config.log_level.to_string())
@@ -36,12 +34,12 @@ fn log_level_selector(config: &mut DltParserConfig, ui: &mut Ui) {
                 ui.selectable_value(&mut config.log_level, level, level.to_string());
             }
         });
+
+    ui.label(RichText::new("Select the level of logs (required)").small());
 }
 
 fn timezone_selector(config: &mut DltParserConfig, ui: &mut Ui) {
     ui.label("Time Zone");
-    ui.label(RichText::new("Select the utc timezone (optional)").small());
-    ui.add_space(5.0);
 
     let response = ui.text_edit_singleline(&mut config.timezone_filter);
     if response.changed() {
@@ -78,4 +76,5 @@ fn timezone_selector(config: &mut DltParserConfig, ui: &mut Ui) {
     };
 
     ui.label(content);
+    ui.label(RichText::new("Select the utc timezone (optional)").small());
 }

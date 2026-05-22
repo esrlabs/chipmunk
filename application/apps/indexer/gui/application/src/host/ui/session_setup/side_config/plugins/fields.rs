@@ -3,12 +3,16 @@
 use std::path::PathBuf;
 
 use egui::{
-    Button, Color32, ComboBox, DragValue, Frame, Label, Margin, RichText, TextStyle, Ui, Widget,
+    Button, Color32, ComboBox, DragValue, Frame, Label, Margin, RichText, TextFormat, TextStyle,
+    Ui, Widget,
 };
 use stypes::{PluginConfigSchemaItem, PluginConfigSchemaType, PluginConfigValue};
 
 use crate::{
-    common::phosphor::icons,
+    common::{
+        phosphor::{self, icons},
+        ui::buttons,
+    },
     host::ui::{
         UiActions,
         actions::{FileDialogFilter, FileDialogOptions},
@@ -84,7 +88,30 @@ fn render_directories(
         add_selected_path(paths, path);
     }
 
-    if ui.button("Add directory").clicked() {
+    let button_text_color = ui.visuals().text_color();
+    let mut add_txt = egui::text::LayoutJob::default();
+    add_txt.append(
+        icons::fill::FOLDER_PLUS,
+        0.0,
+        TextFormat {
+            font_id: egui::FontId::new(15.0, phosphor::fill_font_family()),
+            color: button_text_color,
+            ..Default::default()
+        },
+    );
+    add_txt.append(
+        "Add",
+        3.0,
+        TextFormat {
+            color: button_text_color,
+            ..Default::default()
+        },
+    );
+
+    if ui
+        .add(buttons::session_setup(add_txt, Some(60.0)))
+        .clicked()
+    {
         let title = format!("Select {} Directory", field_title(schema));
         let options = FileDialogOptions::new().title(title);
 
@@ -109,7 +136,30 @@ fn render_files(
         }
     }
 
-    if ui.button("Add files").clicked() {
+    let button_text_color = ui.visuals().text_color();
+    let mut add_txt = egui::text::LayoutJob::default();
+    add_txt.append(
+        icons::fill::FILE_PLUS,
+        0.0,
+        TextFormat {
+            font_id: egui::FontId::new(15.0, phosphor::fill_font_family()),
+            color: button_text_color,
+            ..Default::default()
+        },
+    );
+    add_txt.append(
+        "Add",
+        3.0,
+        TextFormat {
+            color: button_text_color,
+            ..Default::default()
+        },
+    );
+
+    if ui
+        .add(buttons::session_setup(add_txt, Some(60.0)))
+        .clicked()
+    {
         let title = format!("Select {} Files", field_title(schema));
         let filters = file_filters(extensions);
         let options = FileDialogOptions::new().title(title).filters(filters);
