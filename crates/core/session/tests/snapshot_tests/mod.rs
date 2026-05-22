@@ -22,7 +22,7 @@ use utls::*;
 
 #[tokio::test]
 async fn observe_dlt_session() {
-    let input = "../../../application/developing/resources/attachments.dlt";
+    let input = "../../../development/resources/attachments.dlt";
     let parser_settings = stypes::DltParserSettings::default();
     let session_main_file = run_observe_session(
         input,
@@ -45,8 +45,8 @@ async fn observe_dlt_session() {
 
 #[tokio::test]
 async fn observe_dlt_with_someip_session() {
-    let input = "../../../application/developing/resources/someip.dlt";
-    let fibex_file = "../../../application/developing/resources/someip.xml";
+    let input = "../../../development/resources/someip.dlt";
+    let fibex_file = "../../../development/resources/someip.xml";
 
     assert!(
         PathBuf::from(fibex_file).exists(),
@@ -81,8 +81,8 @@ async fn observe_dlt_with_someip_session() {
 // on CPU heavy blocks.
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn observe_someip_bcapng_session() {
-    let input = "../../../application/developing/resources/someip.pcapng";
-    let fibex_file = "../../../application/developing/resources/someip.xml";
+    let input = "../../../development/resources/someip.pcapng";
+    let fibex_file = "../../../development/resources/someip.xml";
 
     assert!(
         PathBuf::from(fibex_file).exists(),
@@ -116,8 +116,8 @@ async fn observe_someip_bcapng_session() {
 // on CPU heavy blocks.
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn observe_someip_legacy_session() {
-    let input = "../../../application/developing/resources/someip.pcap";
-    let fibex_file = "../../../application/developing/resources/someip.xml";
+    let input = "../../../development/resources/someip.pcap";
+    let fibex_file = "../../../development/resources/someip.xml";
 
     assert!(
         PathBuf::from(fibex_file).exists(),

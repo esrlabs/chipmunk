@@ -56,8 +56,8 @@ clean: clean-dist
 
 # Build and package a local release artifact.
 release:
-    {{ python }} scripts/release_app.py
+    {{ python }} development/scripts/release_app.py
 
 # Build, package, sign, notarize, and staple the macOS release when env vars are set.
 release-signed:
-    {{ python }} scripts/release_app.py --code-sign
+    {{ python }} development/scripts/release_app.py --code-sign

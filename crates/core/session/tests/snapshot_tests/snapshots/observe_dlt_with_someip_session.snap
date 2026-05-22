@@ -4,7 +4,7 @@ description: Snapshot for DLT file with SomeIP network trace.
 info:
   filter_config: ~
   fibex_file_paths:
-    - "../../../application/developing/resources/someip.xml"
+    - "../../../development/resources/someip.xml"
   with_storage_header: true
   tz: ~
 snapshot_kind: text

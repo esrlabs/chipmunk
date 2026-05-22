@@ -210,7 +210,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_general_source_reload() {
-        // This is part of the file "chipmunk/application/developing/resources".
+        // This is part of a sample file in "chipmunk/development/resources".
         // In this test we just need enough bytes to call reload twice on it, and we will not
         // call parse on any of this data.
         const SAMPLE_PCAP_DATA: &[u8] = &[
