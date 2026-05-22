@@ -2,18 +2,22 @@
 [![](https://github.com/esrlabs/chipmunk/actions/workflows/release_next.yml/badge.svg)](https://github.com/esrlabs/chipmunk/actions/workflows/release_next.yml)
 [![](https://github.com/esrlabs/chipmunk/actions/workflows/lint_master.yml/badge.svg)](https://github.com/esrlabs/chipmunk/actions/workflows/lint_master.yml)
 
-`chipmunk` is one of the fastest desktop applications for viewing log files, with no limitations on file size. 1 GB, 2 GB, 10 GB? `chipmunk` is limited only by your disk space - nothing more. With no caching and no unnecessary copying, files of any size open with the same speed. But `chipmunk` goes beyond just working with files: it also allows you to create network connections to collect logs via TCP, UDP, Serial, or from the output of a running command.
+`chipmunk` is a native desktop application, written in Rust, for viewing log files with no limitations on file size. 1 GB, 2 GB, 10 GB? `chipmunk` is limited only by your disk space - nothing more. With no unnecessary copying, files of any size open with the same speed. But `chipmunk` goes beyond just working with files: it also allows you to create network connections to collect logs via TCP, UDP, Serial, or from the output of a running command.
 
-## Chipmunk 4 Alpha
+<!-- Replace these placeholder URLs with the GitHub asset URLs after uploading. -->
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/REPLACE_WITH_LIGHT_THEME_SNAPSHOT" alt="Chipmunk light theme" width="49%">
+  <img src="https://github.com/user-attachments/assets/REPLACE_WITH_DARK_THEME_SNAPSHOT" alt="Chipmunk dark theme" width="49%">
+</p>
 
-Chipmunk 4 Alpha is now available as a preview of the next generation of Chipmunk: a native Rust application built for high-volume logs, traces, and live streams.
+<details>
+  <summary>Demo</summary>
 
-During the alpha phase, Chipmunk 4 lives on the `native-ui` branch and will continue to evolve there. Alpha builds are published as pre-releases.
-
-- [Read the Chipmunk 4 Alpha README](https://github.com/esrlabs/chipmunk/blob/native-ui/crates/chipmunk-app/README.md)
-- [Download Chipmunk 4 Alpha builds](https://github.com/esrlabs/chipmunk/releases)
-
-Look for release versions such as `4.0.0-alpha.*` on the releases page. The current stable Chipmunk documentation continues below.
+  <!-- Replace this placeholder URL with the GitHub asset URL after uploading. -->
+  <p align="center">
+    <video src="https://github.com/user-attachments/assets/REPLACE_WITH_OVERVIEW_DEMO_VIDEO" controls muted loop playsinline width="100%"></video>
+  </p>
+</details>
 
 ## Automotive and Network Traces
 
@@ -25,9 +29,9 @@ Additionally, `chipmunk` allows you to work with DLT traces both as standalone f
 
 `chipmunk` supports the following input sources out of the box:
 
-- TCP  
-- UDP  
-- Serial Port  
+- TCP
+- UDP
+- Serial Port
 - Output from a command or program
 
 For each source, you can assign a parser - for example, to collect DLT packets over a UDP connection for analysis or to save them as a standalone trace file.
@@ -38,7 +42,10 @@ Another key feature is the ability to launch any command or program and collect 
 
 At its core, `chipmunk` is a log analysis tool. It goes beyond simple search queries: you can create filter sets, save them, and reuse them across sessions. An intuitive interface allows you to label filters with different colors for more effective analysis.
 
-![filters_create](./docs/assets/search/filters_create.gif)
+<!-- Replace this placeholder URL with the GitHub asset URL after uploading. -->
+<p align="center">
+  <video src="https://github.com/user-attachments/assets/REPLACE_WITH_FILTER_CREATE_VIDEO" controls muted loop playsinline width="100%"></video>
+</p>
 
 The search engine works dynamically - results are updated in real time as new data is added. If you're connected to a live data source, your active filters will continuously update the search results as new logs arrive.
 
@@ -46,18 +53,23 @@ The search engine works dynamically - results are updated in real time as new da
 
 `chipmunk` includes a graphical tool for log analysis. You can define regular expressions to capture specific metrics and generate real-time charts to visualize their changes over time.
 
-![charts_filters](./docs/assets/charts/charts_filters.gif)
+<!-- Replace this placeholder URL with the GitHub asset URL after uploading. -->
+<p align="center">
+  <video src="https://github.com/user-attachments/assets/REPLACE_WITH_CHARTS_FILTERS_VIDEO" controls muted loop playsinline width="100%"></video>
+</p>
 
 As with search, the graphical tool updates live as new content is streamed into the application.
 
-![charts_dynamic](./docs/assets/charts/charts_dynamic.gif)
+<!-- Replace this placeholder URL with the GitHub asset URL after uploading. -->
+<p align="center">
+  <video src="https://github.com/user-attachments/assets/REPLACE_WITH_CHARTS_DYNAMIC_VIDEO" controls muted loop playsinline width="100%"></video>
+</p>
 
 ## Documentation / User Manual / Developer Manual
 
-See more details in the [documentation](https://esrlabs.github.io/chipmunk/) about how tests are performed and what they mean.
+See the [documentation](https://esrlabs.github.io/chipmunk/) for user guides, installation notes, and development information.
 
 ## Contributing
 
 We welcome contributions of all kinds - bug reports, performance improvements, documentation fixes, or new features.
-
-[Click here to view it](https://esrlabs.github.io/chipmunk/contributing/welcome/)
+See the [contributing guide](https://esrlabs.github.io/chipmunk/contributing/welcome/) to get started.

@@ -1,12 +1,18 @@
-# Chipmunk 4 Alpha
+# Chipmunk
 
-Chipmunk 4 Alpha is the next generation of Chipmunk: a native Rust rewrite for high-volume logs, traces, and live streams.
+Chipmunk is a native Rust desktop application for high-volume logs, traces, and live streams.
+
+The UI is built with egui and integrates directly with Chipmunk's Rust indexing, parsing, streaming, and search engine. The application is designed for responsive workflows on large files and continuously updating sources.
+
+<!-- Replace these placeholder URLs with the GitHub asset URLs after uploading. -->
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/REPLACE_WITH_LIGHT_THEME_SNAPSHOT" alt="Chipmunk light theme" width="49%">
+  <img src="https://github.com/user-attachments/assets/REPLACE_WITH_DARK_THEME_SNAPSHOT" alt="Chipmunk dark theme" width="49%">
+</p>
 
 ## Table of Contents
 
-- [What is different](#what-is-different)
-- [Alpha status](#alpha-status)
-- [Compatibility](#compatibility)
+- [Overview](#overview)
 - [Features](#features)
     - [Sources](#sources)
     - [Parsers](#parsers)
@@ -16,37 +22,12 @@ Chipmunk 4 Alpha is the next generation of Chipmunk: a native Rust rewrite for h
     - [Presets](#presets)
     - [Plugins](#plugins)
 - [Installation](#installation)
-    - [Install nightly from source](#install-nightly-from-source)
+    - [Install from source](#install-from-source)
 - [CLI usage](#cli-usage)
-- [Alpha roadmap](#alpha-roadmap)
 
-## What is different
+## Overview
 
-Chipmunk 4 keeps the same focus as Chipmunk today: fast analysis of large logs, traces, and live streams.
-
-The difference is the application stack:
-
-- Native Rust UI instead of Electron and Angular.
-- Direct integration with Chipmunk's Rust indexing, parsing, streaming, and search engine.
-- Fewer runtime layers between the UI and the data-processing core.
-- Built for responsive workflows on large files and continuously updating sources.
-
-## Alpha status
-
-Chipmunk 4 is currently in alpha.
-
-The core workflows needed for daily use are already available: opening data, configuring parsers, searching, filtering, charting, saving presets, and restoring recent work. During alpha, expect ongoing UI polish, packaging updates, and some secondary features to keep evolving.
-
-Alpha builds are published as pre-releases. Look for versions such as `4.0.0-alpha.1` on the release page.
-
-## Compatibility
-
-Chipmunk 4 is designed to stay compatible with current Chipmunk workflows.
-
-- Existing file, stream, search, filter, chart, and preset workflows are supported.
-- Filters and presets are available in the native app.
-- Preset import supports current and legacy Chipmunk preset exports.
-- Supported files and streams use the same Rust parsing and indexing core.
+Chipmunk focuses on fast analysis of large logs, traces, and live streams. It provides a native desktop interface over Chipmunk's Rust data-processing core, with fewer runtime layers between the UI and indexing, parsing, streaming, and search.
 
 ## Features
 
@@ -107,9 +88,7 @@ Chipmunk 4 is designed to stay compatible with current Chipmunk workflows.
 
 Download binaries from the [Chipmunk releases page](https://github.com/esrlabs/chipmunk/releases).
 
-During alpha, use pre-release builds and look for versions like `4.0.0-alpha.1`.
-
-### Install nightly from source
+### Install from source
 
 From the repository root:
 
@@ -140,15 +119,3 @@ For available options:
 ```sh
 chipmunk --help
 ```
-
-## Alpha roadmap
-
-- [x] Built-in sources and parsers
-- [x] Multi-source sessions
-- [x] Filters and charts
-- [x] Filter and preset import/export
-- [x] Recent session restore
-- [x] Attachment support and preview
-- [ ] Log import/export
-- [x] Plugin support
-- [x] Command palette and keyboard shortcuts
