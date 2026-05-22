@@ -7,8 +7,9 @@ alias f := fmt-check
 alias pr := validate
 alias v := validate
 
-# Show available recipes when running `just` without arguments.
-default:
+# Command kept first so bare `just` shows this list.
+# Show available recipes.
+list:
     @just --list
 
 # Run the full local validation suite.
@@ -25,6 +26,10 @@ clippy:
 # Run workspace tests without benchmark targets.
 test:
     cargo test --workspace --all-features --locked
+
+# Run session snapshot tests without writing .snap.new files.
+test-snapshots:
+    CI=true cargo test -p session --test lib --locked snapshot_tests
 
 # Check Rust formatting without changing files.
 fmt-check:
