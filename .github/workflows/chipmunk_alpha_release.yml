@@ -72,6 +72,8 @@ jobs:
         with:
           workspaces: |
             . -> target
+      - name: Install just
+        run: cargo install just --locked
       - name: Setup keychain for signing and notarizing
         if: runner.os == 'macOS'
         run: |
@@ -96,9 +98,9 @@ jobs:
         shell: bash
         run: |
           if [ "${{ runner.os }}" = "macOS" ]; then
-            python3 scripts/release_app.py --code-sign
+            just release-signed
           else
-            python3 scripts/release_app.py
+            just release
           fi
       - name: List app release files
         working-directory: ./target/dist
