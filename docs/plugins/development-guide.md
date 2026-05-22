@@ -41,8 +41,8 @@ rustup target list --installed
 To add the necessary targets, run:
 
 ```sh
-# Add the wasm32-wasi target:
-rustup target add wasm32-wasi 
+# Add the wasm32-wasip1 target:
+rustup target add wasm32-wasip1
 
 # Add the wasm32-unknown-unknown target:
 rustup target add wasm32-unknown-unknown
@@ -155,34 +155,32 @@ Plugins can also be developed in any language that supports compiling to WASM wi
 
 ---
 
-## Plugins Benchmarking:
+## Plugins Benchmarking
 
-Chipmunk includes several benchmarks designed to measure the performance of various tasks within your plugins. Each benchmark requires a TOML configuration file that specifies the plugin’s path and other relevant settings. You can refer to the provided templates and examples for more details on how to structure the configuration.  
+Chipmunk includes benchmarks for measuring plugin initialization and parser throughput. Each benchmark uses a TOML configuration file that points to the compiled plugin and provides plugin-specific settings. Build the plugin before running the benchmark.
 
-To run the benchmarks, you first need to install the [Chipmunk development tool](./../contributing/dev-cli.md), which is required for managing and executing these benchmarks.  
+For a working parser configuration, see the [DLT parser config file](https://github.com/esrlabs/chipmunk/tree/master/plugins/examples/rust/dlt_parser/bench_config.toml).
 
-Once installed, you can explore the available benchmarking options with the following command to see detailed information about each benchmark:
-```sh
-cargo chipmunk bench core --help
-```
+### Plugin Initialization
 
-### Plugin Initialization  
-This benchmark measures how much time it takes to initialize the plugin with the provided configuration. This is useful for gauging the overhead of loading and setting up the plugin before it begins processing actual data.  
-
-To run this benchmark within the Chipmunk repository, use the following command, substituting `{path_to_plugin_config_file}` with the path to your configuration file:  
-```sh
-cargo chipmunk bench core plugin_parser_init -c {path_to_plugin_conig_file}.toml
-```
-
-### Parser Plugin:
-This benchmark is designed to evaluate the performance of parser plugins when processing input files. It simulates the real-world scenario of parsing data and allows you to measure how well the plugin performs under various conditions.  
-
-Run the benchmark with the following command, replacing `{path_to_input_file}` with the path to the file you want to parse, and `{path_to_plugin_config_file}` with the path to the corresponding configuration file:  
+This benchmark measures the overhead of loading, compiling, validating, and initializing a plugin.
 
 ```sh
-cargo chipmunk bench core plugin_praser_producer -i {path_to_input_file} -c {path_to_plugin_conig_file}.toml 
+CHIPMUNK_BENCH_CONFIG={path_to_plugin_config_file}.toml \
+just plugin-bench-init
 ```
-For a working example of a parser plugin configuration, refer to the [DLT parser config file](https://github.com/esrlabs/chipmunk/tree/master/plugins/examples/rust/dlt_parser/bench_config.toml). This example will help you understand how to structure your configuration for the parser plugin.
+
+### Parser Plugin
+
+This benchmark measures parser plugin processing for an input file.
+
+```sh
+CHIPMUNK_BENCH_SOURCE={path_to_input_file} \
+CHIPMUNK_BENCH_CONFIG={path_to_plugin_config_file}.toml \
+just plugin-bench-parser
+```
+
+You can optionally set `CHIPMUNK_BENCH_SAMPLE_SIZE` to control the Criterion sample size.
 
 ---
 
@@ -192,4 +190,4 @@ For a working example of a parser plugin configuration, refer to the [DLT parser
 - **Cargo Component:** [cargo component GitHub Repository](https://github.com/bytecodealliance/cargo-component)
 - **Wasm-tools:** [Wasm-tools GitHub Repository](https://github.com/bytecodealliance/wasm-tools)
 - **Plugins API Crate Documentation:** [Plugins API](./plugins-api.md)
-- **Chipmiunk Contribution:** [Contribution Page](../contributing/welcome.md)
+- **Chipmunk Contribution:** [Contribution Page](../contributing/welcome.md)

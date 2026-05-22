@@ -1,4 +1,4 @@
-[![LICENSE](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE.txt)
+[![LICENSE](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://github.com/esrlabs/chipmunk/blob/master/LICENSE.txt)
 [![](https://github.com/esrlabs/chipmunk/actions/workflows/release_next.yml/badge.svg)](https://github.com/esrlabs/chipmunk/actions/workflows/release_next.yml)
 [![](https://github.com/esrlabs/chipmunk/actions/workflows/lint_master.yml/badge.svg)](https://github.com/esrlabs/chipmunk/actions/workflows/lint_master.yml)
 
@@ -27,7 +27,9 @@ Another key feature is the ability to launch any command or program and collect 
 
 At its core, `chipmunk` is a log analysis tool. It goes beyond simple search queries: you can create filter sets, save them, and reuse them across sessions. An intuitive interface allows you to label filters with different colors for more effective analysis.
 
-![filters_create](assets/search/filters_create.gif)
+<p align="center">
+  <video src="assets/filters/filter_create.mp4" controls muted loop playsinline width="100%"></video>
+</p>
 
 The search engine works dynamically - results are updated in real time as new data is added. If you're connected to a live data source, your active filters will continuously update the search results as new logs arrive.
 
@@ -35,8 +37,12 @@ The search engine works dynamically - results are updated in real time as new da
 
 `chipmunk` includes a graphical tool for log analysis. You can define regular expressions to capture specific metrics and generate real-time charts to visualize their changes over time.
 
-![charts_filters](assets/charts/charts_filters.gif)
+<p align="center">
+  <video src="assets/charts/charts_filters.mp4" controls muted loop playsinline width="100%"></video>
+</p>
 
 As with search, the graphical tool updates live as new content is streamed into the application.
 
-![charts_dynamic](assets/charts/charts_dynamic.gif)
+<p align="center">
+  <video src="assets/charts/charts_dynamic.mp4" controls muted loop playsinline width="100%"></video>
+</p>

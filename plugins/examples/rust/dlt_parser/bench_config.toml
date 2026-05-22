@@ -4,7 +4,7 @@
 # ```sh
 # CHIPMUNK_BENCH_SOURCE={input_file_path}.dlt \
 # CHIPMUNK_BENCH_CONFIG={path_to_this_file}.toml \
-# cargo bench -p processor --bench plugin_praser_producer --locked
+# just plugin-bench-parser
 # ```
 
 # Path to the plugin WebAssembly (WASM) file.

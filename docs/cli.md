@@ -1,4 +1,4 @@
-[![LICENSE](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE.txt)
+[![LICENSE](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://github.com/esrlabs/chipmunk/blob/master/LICENSE.txt)
 [![](https://github.com/esrlabs/chipmunk/actions/workflows/lint_master.yml/badge.svg)](https://github.com/esrlabs/chipmunk/actions/workflows/lint_master.yml)  
 
 In addition to the powerful GUI application, `chipmunk` is also available as a CLI tool.

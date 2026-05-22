@@ -66,3 +66,11 @@ release:
 # Build, package, sign, notarize, and staple the macOS release when env vars are set.
 release-signed:
     {{ python }} development/scripts/release_app.py --code-sign
+
+# Benchmark plugin initialization. Requires CHIPMUNK_BENCH_CONFIG.
+plugin-bench-init:
+    cargo bench -p plugins_host --bench plugin_parser_init --locked
+
+# Benchmark parser plugin processing. Requires CHIPMUNK_BENCH_CONFIG and CHIPMUNK_BENCH_SOURCE.
+plugin-bench-parser:
+    cargo bench -p processor --bench plugin_praser_producer --locked
