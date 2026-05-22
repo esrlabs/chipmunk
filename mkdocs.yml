@@ -3,13 +3,27 @@ site_url: https://esrlabs.github.io/chipmunk/
 docs_dir: docs
 theme:
   name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: blue grey
+      accent: blue
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: blue grey
+      accent: blue
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
 nav:
   - Overview: index.md
   - Installation: installation.md
   - Search: search.md
   - Charts: charts.md
   - Navigation: navigation.md
-  - Teamwork: teamwork.md
   - Chipmunk CLI Tool: cli.md
   - Plugins:
     - Development Guide: plugins/development-guide.md
@@ -24,7 +38,6 @@ nav:
   - Contributing: 
     - Welcome: contributing/welcome.md
     - Getting Started: contributing/getting-started.md
+    - Repository Structure: contributing/repository-structure.md
     - Development Guide: contributing/development-guide.md
-    - Debugging: contributing/debugging.md
-    - Developer CLI Tool: contributing/dev-cli.md
 

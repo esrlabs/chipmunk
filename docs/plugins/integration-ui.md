@@ -16,4 +16,6 @@ To use a parser plugin, first choose your data source (such as files, network st
 
 Here is a small overview of the Plugins Manager and how to start a session using a parser plugin:
 
-![Plugins in Chipmunk UI](../assets/plugins/parser.gif)
+<p align="center">
+  <video src="../../assets/plugins/plugins_parser.mp4" controls muted loop playsinline width="100%"></video>
+</p>

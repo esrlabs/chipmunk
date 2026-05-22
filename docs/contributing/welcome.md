@@ -1,13 +1,13 @@
 # Contributing to Chipmunk
 
-Thank you for your interest in contributing to Chipmunk! This document provides a guide to setting up your development environment and making contributions. Chipmunk is developed using [Rust](https://www.rust-lang.org/) for the backend processing and [ElectronJS](https://www.electronjs.org/) for the frontend application.
+Thank you for your interest in contributing to Chipmunk. This section explains how to set up a local development environment, understand the repository layout, and run the common development tasks.
+
+Chipmunk is developed as a Rust native desktop application with supporting crates for the CLI, core log processing, shared types, and plugins.
 
 ## Where to Start
 
-To make the process as smooth as possible, we've split the documentation into several key areas. If you are a new contributor, we recommend reading them in order.
+If you are a new contributor, we recommend reading these pages in order:
 
-* **[1. Getting Started](./getting-started.md)** Your first stop. This guide walks you through installing all the necessary tools and dependencies to set up your local development environment.
-
-* **[2. Development Guide](./development-guide.md)** Once you're set up, this guide covers the daily workflow. Learn how to build, run, test, and lint the application. It also explains our process for submitting a pull request.
-
-* **[3. Debugging](./debugging.md)** If you run into issues or need to understand what's happening under the hood, this guide provides information on log files, configurations, and common troubleshooting steps.
+* **[1. Getting Started](./getting-started.md)** Install the tools needed for local development.
+* **[2. Repository Structure](./repository-structure.md)** Learn where the main application, core crates, CLI, and plugin code live.
+* **[3. Development Guide](./development-guide.md)** Build habits for running, formatting, checking, and testing changes.

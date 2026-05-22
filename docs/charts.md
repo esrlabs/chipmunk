@@ -1,23 +1,19 @@
-In addition to search, `chipmunk` provides tools for analyzing metrics and any kind of numerical data. Users can define regular expressions to extract specific values, which are then used to generate charts.
+In addition to search, `chipmunk` provides tools for analyzing metrics and numerical data. Regular expressions can extract values from logs and turn them into charts.
 
 A key advantage of `chipmunk` is its near insensitivity to data volume - it performs equally well when processing a few hundred values or several million.
 
-### Chart creating
+### Charts from filters
 
-To create a chart:
+The Charts tab can visualize filter matches and compare their frequency during analysis.
 
-- focus in search input
-- enter search condition as regex and group with digits value, for example `cpu=(\d{1,})`
-- press "Enter" to activate the condition
-- click on the chart icon
-- switch to the tab "Charts"
-
-![Creating of charts](assets/charts/charts_filters.gif)
-
-In tab "Charts" also renders a frequency of matches for filters
+<p align="center">
+  <video src="../assets/charts/charts_filters.mp4" controls muted loop playsinline width="100%"></video>
+</p>
 
 ### Dynamic charts
 
-As soon as the chart has been created, Chipmunk updates values and rebuilds the chart withing new values.
+Charts update as new content arrives, making them useful for live streams and command output.
 
-![Charts in stream](assets/charts/charts_dynamic.gif)
+<p align="center">
+  <video src="../assets/charts/charts_dynamic.mp4" controls muted loop playsinline width="100%"></video>
+</p>

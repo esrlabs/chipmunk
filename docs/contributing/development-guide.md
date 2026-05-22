@@ -1,81 +1,63 @@
-## Development Workflow
+# Development Guide
 
-Chipmunk consists of a Rust backend for log processing, an Electron/Angular frontend application, and smaller libraries facilitating communication between them. Development tasks across these different components are managed using the [Chipmunk Development CLI Tool](./dev-cli.md).
-
-This tool simplifies common operations such as building, linting, and running various parts of Chipmunk. It automatically handles project dependencies and tracks changes in source files, ensuring that only necessary components are rebuilt.
-For comprehensive details on all available commands and functionalities, please consult the documentation for the development CLI tool.
-
-### Building the Application
-
-Use the development CLI tool to build the Chipmunk application:
+Use `just` from the repository root for common development tasks. To see all available recipes, run:
 
 ```sh
-# For development build
-cargo chipmunk build app
-
-# For production build
-cargo chipmunk build app -p
-```
-These commands automatically determine and build only the components that have changed since the last build, optimizing build times.
-
-### Running the Application
-
-You can similarly use the run command to start the Chipmunk application:
-
-```sh
-# Run in development
-cargo chipmunk run
-
-# Run in production
-cargo chipmunk run -p
-```
-The run command automatically performs any necessary builds of modified components before launching the application interface.
-
-### Development CLI Help
-
-To explore the full range of commands and options available with the `cargo chipmunk` development tool, use the `--help` flag:
-
-To list all top-level commands:
-```sh
-cargo chipmunk --help
+just --list
 ```
 
-To view options for a specific command (for example, the `build` command):
+## Running the Application
+
+Start the native application with:
+
 ```sh
-cargo chipmunk build --help
+just run
 ```
 
-## Code Quality Checks
+You can pass additional Cargo or application arguments after the recipe:
 
-Before submitting a Pull Request (PR), please run the linters and tests using the development CLI tool. This helps ensure your changes follow the project's coding style and pass basic automated checks.
-
-To check for formatting issues, code smells, or potential errors, run the linters:
-
-Run linters for the entire project:
 ```sh
-cargo chipmunk lint
+just run -r -- path/to/file
 ```
 
-To run linting for the backend only you can use
+## Formatting and Checks
+
+Check Rust formatting without changing files:
 
 ```sh
-cargo chipmunk lint core binding
+just fmt-check
 ```
 
-To run linting for the frontend only you can use
+Format the Rust workspace:
 
 ```sh
-cargo chipmunk lint shared wrapper client app
+just fmt
 ```
 
-Ensure your changes are covered by appropriate test cases. Run all test cases to verify that everything is working as expected:
+Compile all workspace targets without producing final binaries:
 
 ```sh
-cargo chipmunk test
+just check
+```
+
+Run Clippy for the workspace:
+
+```sh
+just clippy
+```
+
+Run workspace tests:
+
+```sh
+just test
+```
+
+Before submitting a pull request, run the full local validation recipe:
+
+```sh
+just validate
 ```
 
 ## Reporting Issues
 
-Your contributions through bug reports and suggestions are greatly appreciated!
-
-If you discover any bugs, have suggestions for improvements, or identify potential issues within Chipmunk, please report them by opening a new issue on the project's GitHub repository. When reporting bugs, providing a clear description and steps to reproduce the issue is very helpful.
+Bug reports and suggestions are welcome. When opening an issue, include a clear description, the expected behavior, the actual behavior, and steps to reproduce when possible.

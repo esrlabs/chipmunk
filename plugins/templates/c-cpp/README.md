@@ -5,7 +5,7 @@ Plugin developers can simply copy a template directory to quickly start a new pl
 
 ## Step-by-Step Guide
 
-1. **Prerequisites**: Ensure all necessary tools, SDKs, and Chipmunk WIT files are available locally. Refer to the [C/C++ Plugins Development Guide](https://esrlabs.github.io/chipmunk/plugins/development-guide/) for detailed setup instructions.
+1. **Prerequisites**: Ensure all necessary tools, SDKs, and Chipmunk WIT files are available locally. Refer to the [C/C++ Plugins Development Guide](https://esrlabs.github.io/chipmunk/plugins/c-cpp/) for detailed setup instructions.
 
 2. **Configuration**: Provide required paths either directly within the `Makefile` or by passing them as arguments to the `make` CLI command.
 
