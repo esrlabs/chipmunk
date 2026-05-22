@@ -281,16 +281,22 @@ impl FiltersUi {
             SelectedSidebarItem::Filter(row.id),
             |ui, side_action| {
                 let action = if let Some(edit_state) = edit_state.as_mut() {
-                    Self::render_text_edit_row(
-                        ui,
-                        row.id,
-                        edit_state,
-                        |draft| validate_filter_text(row.flags, draft),
-                        FilterPanelAction::ApplyFilterText,
-                        FilterPanelAction::CancelFilterEdit,
-                    )
+                    ui.push_id((row.id, "filter_edit"), |ui| {
+                        Self::render_text_edit_row(
+                            ui,
+                            row.id,
+                            edit_state,
+                            |draft| validate_filter_text(row.flags, draft),
+                            FilterPanelAction::ApplyFilterText,
+                            FilterPanelAction::CancelFilterEdit,
+                        )
+                    })
+                    .inner
                 } else {
-                    Self::render_filter_display_row(ui, row)
+                    ui.push_id((row.id, "filter_display"), |ui| {
+                        Self::render_filter_display_row(ui, row)
+                    })
+                    .inner
                 };
 
                 if let Some(action) = action {
@@ -369,16 +375,22 @@ impl FiltersUi {
             SelectedSidebarItem::SearchValue(row.id),
             |ui, side_action| {
                 let action = if let Some(edit_state) = edit_state.as_mut() {
-                    Self::render_text_edit_row(
-                        ui,
-                        row.id,
-                        edit_state,
-                        |draft| validate_search_value_text(&row.filter, draft),
-                        FilterPanelAction::ApplySearchValueText,
-                        FilterPanelAction::CancelSearchValueEdit,
-                    )
+                    ui.push_id((row.id, "search_value_edit"), |ui| {
+                        Self::render_text_edit_row(
+                            ui,
+                            row.id,
+                            edit_state,
+                            |draft| validate_search_value_text(&row.filter, draft),
+                            FilterPanelAction::ApplySearchValueText,
+                            FilterPanelAction::CancelSearchValueEdit,
+                        )
+                    })
+                    .inner
                 } else {
-                    Self::render_search_value_display_row(ui, row)
+                    ui.push_id((row.id, "search_value_display"), |ui| {
+                        Self::render_search_value_display_row(ui, row)
+                    })
+                    .inner
                 };
 
                 if let Some(action) = action {
