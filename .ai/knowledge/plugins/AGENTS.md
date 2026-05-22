@@ -9,8 +9,8 @@ The plugin system extends Chipmunk with sandboxed WASM parser and bytesource com
 2. `plugins/plugins_api/src/` (parser/bytesource traits, export macros, shared helpers)
 3. `plugins/plugins_api/wit/v0.1.0/` (WIT contracts and worlds)
 4. `plugins/examples/rust/` and `plugins/templates/rust/parser/` (reference and starter implementations)
-4. `application/apps/indexer/plugins_host/src/`
-5. `.ai/knowledge/application/apps/indexer/AGENTS.md`
+5. `application/apps/indexer/plugins_host/src/`
+6. `.ai/knowledge/application/apps/indexer/AGENTS.md`
 
 ## If You Need X, Go to Y
 
@@ -42,6 +42,6 @@ The plugin system extends Chipmunk with sandboxed WASM parser and bytesource com
 
 ## Build and Installation
 
-- Build (Rust component): `cargo component build -r`
+- Build (Rust component, from the plugin crate): `cargo component build -r`
 - Install parser plugin: `~/.chipmunk/plugins/parsers/<plugin_name>/`
 - Install bytesource plugin: `~/.chipmunk/plugins/bytesources/<plugin_name>/`

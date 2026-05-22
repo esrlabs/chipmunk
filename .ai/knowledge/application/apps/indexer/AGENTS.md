@@ -1,81 +1,67 @@
-# Indexer (Rust Core) Context
+# Indexer Rust Core Context
 
 ## Overview
 
 Indexer is the Rust backend core for parsing, ingestion, indexing, search, merging, and plugin execution.
+The native GUI uses this workspace directly through Rust crates, not through the legacy Node/TS binding path.
 
-## Start Here (First Files to Open)
+## Start Here
 
 1. `application/apps/indexer/Cargo.toml`
-2. `application/apps/indexer/processor/src/lib.rs`
-3. `application/apps/indexer/processor/src/producer/`
-4. `application/apps/indexer/processor/src/search/`
-5. `application/apps/indexer/sources/src/`
-6. `application/apps/indexer/parsers/src/`
-7. `application/apps/indexer/session/src/`
-8. `application/apps/indexer/plugins_host/src/`
-9. `.ai/knowledge/application/apps/indexer/stypes/AGENTS.md`
-10. `application/apps/indexer/indexer_base/src/`
+2. `application/apps/indexer/session/src/`
+3. `application/apps/indexer/processor/src/`
+4. `application/apps/indexer/stypes/src/`
 
-## Architecture & Crates (Condensed)
+## Crate Map
 
+- `session`: Rust API boundary used by the native GUI and legacy bindings.
 - `processor`: ingestion/search pipeline; `MessageProducer` coordinates `ByteSource` + `Parser`.
 - `sources`: byte ingestion from File/TCP/UDP/Serial/Process/Pcap.
 - `parsers`: DLT/SOME-IP/Text parsing.
 - `indexer_base`: shared chunk/time/progress primitives.
-- `session`: Rust API boundary consumed by Node bindings.
-- `stypes`: Rust/TS shared type source (`ts-rs` generation).
-- `plugins_host`: `wasmtime` runtime for parser/bytesource plugins.
+- `stypes`: shared type source; see `.ai/knowledge/application/apps/indexer/stypes/AGENTS.md` before changing it.
+- `plugins_host`: runtime support for loading and executing plugins.
 - `merging`: multi-source chronological merge logic.
 
 ## If You Need X, Go to Y
 
-- Add or modify ingestion sources: `application/apps/indexer/sources/src/` + `application/apps/indexer/processor/src/producer/`.
-- Add or modify parser formats: `application/apps/indexer/parsers/src/` + `application/apps/indexer/processor/src/`.
+- Change native GUI/backend coordination: `application/apps/indexer/session/src/`.
+- Add or modify ingestion sources: `application/apps/indexer/sources/src/` and `application/apps/indexer/processor/src/producer/`.
+- Add or modify parser formats: `application/apps/indexer/parsers/src/` and `application/apps/indexer/processor/src/`.
 - Change search/filter behavior: `application/apps/indexer/processor/src/search/`.
-- Adjust random-access/file-windowing: `application/apps/indexer/processor/src/grabber/` + `application/apps/indexer/indexer_base/src/`.
-- Change Node-facing Rust API: `application/apps/indexer/session/src/` then `application/apps/rustcore/rs-bindings`.
-- Change plugin runtime/lifecycle: `application/apps/indexer/plugins_host/src/` + `plugins/`.
-- Add shared Rust/TS type: `application/apps/indexer/stypes` -> `application/apps/protocol` -> `application/apps/rustcore/ts-bindings` -> `application/platform/types`.
+- Adjust random-access/file-windowing: `application/apps/indexer/processor/src/grabber/` and `application/apps/indexer/indexer_base/src/`.
+- Change plugin runtime/lifecycle: `application/apps/indexer/plugins_host/src/`.
+- Change plugin contracts or package artifacts: `.ai/knowledge/plugins/AGENTS.md`.
+- Add or change shared data types: `.ai/knowledge/application/apps/indexer/stypes/AGENTS.md`.
 - Investigate pipeline failures: start in `application/apps/indexer/processor/src/producer/`.
 
-## Cross-Module Dependency Map
+## Native GUI Integration
 
-- Core path: `indexer` -> `application/apps/rustcore/rs-bindings` -> `application/apps/rustcore/ts-bindings` -> `application/holder` / `application/client`.
-- Shared type path: `application/apps/indexer/stypes` -> `application/apps/protocol` -> `application/platform/types`.
-- Plugin path: `plugins/` contracts/artifacts -> `application/apps/indexer/plugins_host`.
+The native GUI crate lives at `application/apps/indexer/gui/application` and depends directly on `session`, `processor`, and `stypes`.
+Prefer this Rust-to-Rust flow over the legacy Node/TS binding flow.
 
 ## Landmarks and Hotspots
 
-- `MessageProducer` in `processor` (pipeline orchestration).
-- `PluginsManager` and plugin host wrappers in `plugins_host`.
-- `Session` APIs in `session` and FFI alignment with bindings.
+- `MessageProducer` in `processor` for pipeline orchestration.
+- `Session` APIs in `session` for frontend/backend coordination.
 - `spawn_blocking` boundaries in parse/search-heavy paths.
 - `TimedLine` and chunk/progress types in `indexer_base`.
-- High-context boundaries:
-    - `session` -> `rs-bindings` -> `ts-bindings`
-    - `stypes` -> `protocol` -> `platform/types`
-    - `plugins_host` runtime contract alignment with `plugins/`
+- `PluginsManager` and plugin host wrappers in `plugins_host`.
 
-## Generated Artifacts and Source of Truth
+## Legacy Reference
 
-- Shared Rust/TS messages:
-    - Source: `application/apps/indexer/stypes/src/`
-    - Generation: `application/apps/indexer/stypes/generate.sh`
-    - Output: `application/apps/indexer/stypes/bindings/`
-    - Consumer copy target: `application/platform/types/`
+The old desktop stack consumed this core through `session` -> `rs-bindings` -> `ts-bindings` -> Electron/Angular.
+Use those context files only when explicitly comparing behavior or migrating old semantics.
 
-## Development & Tech Stack
+## Validation
 
-- Target: `core`
-- Build: `cargo build`
-- Test: `cargo test`
-- Lint: `cargo clippy`
-- Async runtime: `tokio` (`spawn_blocking` for CPU-heavy work)
-- Errors: `anyhow` + `thiserror`
-- Safety: `undocumented_unsafe_blocks` denied
+Run commands from the repository root:
 
-## Testing
+- Build a crate: `cargo build --manifest-path application/apps/indexer/Cargo.toml -p <crate>`
+- Test a crate: `cargo test --manifest-path application/apps/indexer/Cargo.toml -p <crate>`
+- Lint a crate: `cargo clippy --manifest-path application/apps/indexer/Cargo.toml -p <crate>`
 
-- Snapshots: `insta` (set `CI=true` in CI runs)
-- Fuzz/property testing: `proptest`
+Testing notes:
+
+- Snapshots use `insta`; set `CI=true` in CI-style runs.
+- Property/fuzz-style tests use `proptest`.

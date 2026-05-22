@@ -1,0 +1,86 @@
+pub mod file;
+pub mod process;
+pub mod serial;
+pub mod tcp;
+pub mod udp;
+
+pub use file::SourceFileInfo;
+pub use process::ProcessConfig;
+pub use serial::{BaudRate, NamedValue, SerialConfig};
+use std::path::PathBuf;
+use stypes::{FileFormat, Transport};
+pub use tcp::TcpConfig;
+pub use udp::{MulticastItem, UdpConfig};
+
+#[derive(Debug, Clone)]
+pub enum ByteSourceConfig {
+    File(SourceFileInfo),
+    Concat(Vec<SourceFileInfo>),
+    Stream(StreamConfig),
+}
+
+impl ByteSourceConfig {
+    /// Checks if the source with the configurations is valid
+    ///
+    /// # Note:
+    /// Function will be called in rendering loop and should be lightweight.
+    pub fn is_valid(&self) -> bool {
+        match self {
+            ByteSourceConfig::File(file) => file.is_valid(),
+            ByteSourceConfig::Concat(files) => files.iter().all(|f| f.is_valid()),
+            ByteSourceConfig::Stream(stream) => stream.is_valid(),
+        }
+    }
+
+    pub fn validation_errors(&self) -> Vec<&str> {
+        match self {
+            ByteSourceConfig::File(file) => file.validation_errors(),
+            ByteSourceConfig::Concat(files) => {
+                files.iter().flat_map(|f| f.validation_errors()).collect()
+            }
+            ByteSourceConfig::Stream(stream) => stream.validation_errors(),
+        }
+    }
+
+    pub fn from_file(path: PathBuf, format: FileFormat) -> Self {
+        Self::File(SourceFileInfo::new(path, format))
+    }
+
+    pub fn from_transport(transport: &Transport) -> Self {
+        let config = match transport {
+            Transport::Process(config) => StreamConfig::Process(config.into()),
+            Transport::TCP(config) => StreamConfig::Tcp(config.into()),
+            Transport::UDP(config) => StreamConfig::Udp(config.into()),
+            Transport::Serial(config) => StreamConfig::Serial(config.into()),
+        };
+        Self::Stream(config)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum StreamConfig {
+    Process(ProcessConfig),
+    Tcp(TcpConfig),
+    Udp(UdpConfig),
+    Serial(SerialConfig),
+}
+
+impl StreamConfig {
+    pub fn is_valid(&self) -> bool {
+        match self {
+            StreamConfig::Process(config) => config.is_valid(),
+            StreamConfig::Tcp(config) => config.is_valid(),
+            StreamConfig::Udp(config) => config.is_valid(),
+            StreamConfig::Serial(config) => config.is_valid(),
+        }
+    }
+
+    pub fn validation_errors(&self) -> Vec<&str> {
+        match self {
+            StreamConfig::Process(config) => config.validation_errors(),
+            StreamConfig::Tcp(config) => config.validation_errors(),
+            StreamConfig::Udp(config) => config.validation_errors(),
+            StreamConfig::Serial(config) => config.validation_errors(),
+        }
+    }
+}

@@ -15,7 +15,7 @@ use crate::{
 pub mod plugin_parse_message;
 
 /// Marker for a column separator in the output string.
-pub const COLUMN_SEP: &str = "\u{0004}";
+pub const COLUMN_SEP: &str = parsers::COLUMN_SEPARATOR;
 
 /// Uses [`WasmHost`](crate::wasm_host::WasmHost) to communicate with WASM parser plugin.
 pub struct PluginsParser {

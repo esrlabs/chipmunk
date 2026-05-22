@@ -31,7 +31,7 @@ pub struct MsgTextFormatter {
     origin_msg_buffer: String,
     replaced_msg_buffer: String,
     /// The separator used for message columns in the parser used in indexer crates originally.
-    indexer_cols_sep: char,
+    indexer_cols_sep: &'static str,
     /// The separator used for message payload arguments in the parser used in indexer
     /// crates originally.
     indexer_args_sep: char,
@@ -52,7 +52,7 @@ impl MsgTextFormatter {
     /// * `argument_separator`: Separator to be used for message payload arguments in the output of
     ///   this session.
     pub fn new(
-        indexer_cols_sep: char,
+        indexer_cols_sep: &'static str,
         indexer_args_sep: char,
         columns_separator: String,
         argument_separator: String,

@@ -38,6 +38,7 @@ pub(crate) mod values;
 pub use api::{Api, SessionStateAPI};
 pub use attachments::{Attachments, AttachmentsError};
 pub use indexes::{
+    IndexedNavigation,
     controller::{Controller as Indexes, Mode as IndexesMode},
     frame::Frame,
     map::Map,
@@ -45,8 +46,10 @@ pub use indexes::{
 };
 use observed::Observed;
 use searchers::{SearchRequest, SearchResponse};
-pub use session_file::{SessionFile, SessionFileOrigin, SessionFileState};
 use stypes::{FilterMatch, GrabbedElement};
+
+pub use observed::is_raw_export_available_for;
+pub use session_file::{SessionFile, SessionFileOrigin, SessionFileState};
 pub use values::{Values, ValuesError};
 
 /// Status of session state.
@@ -398,7 +401,8 @@ impl SessionState {
                     Some(|s: String| {
                         s.split(spliter.as_str())
                             .enumerate()
-                            .filter(|(n, _)| columns.contains(n))
+                            // Empty columns mean re-delimit every emitted column.
+                            .filter(|(n, _)| columns.is_empty() || columns.contains(n))
                             .map(|(_, s)| s)
                             .collect::<Vec<&str>>()
                             .join(delimiter.as_str())
@@ -687,6 +691,17 @@ async fn handle_api_msg(
             tx_response.send(state.indexes.len()).map_err(|_| {
                 stypes::NativeError::channel("Failed to respond to Api::GetIndexedMapLen")
             })?;
+        }
+        Api::GetIndexedNeighbor {
+            anchor,
+            direction,
+            tx_response,
+        } => {
+            tx_response
+                .send(state.indexes.indexed_neighbor(anchor, direction))
+                .map_err(|_| {
+                    stypes::NativeError::channel("Failed to respond to Api::GetIndexedNeighbor")
+                })?;
         }
         Api::GetDistancesAroundIndex((position, tx_response)) => {
             tx_response

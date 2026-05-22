@@ -1,5 +1,7 @@
 use std::ops::RangeInclusive;
 
+use super::IndexedNavigation;
+
 /// A struct to collect the line keys (indices) to match the keys in map
 /// in search controller.
 ///
@@ -145,6 +147,40 @@ impl Keys {
         Ok((before, after))
     }
 
+    pub fn neighbor(&mut self, anchor: Option<u64>, direction: IndexedNavigation) -> Option<u64> {
+        if self.keys.is_empty() {
+            return None;
+        }
+
+        self.sort();
+
+        let Some(anchor) = anchor else {
+            return self.keys.first().copied();
+        };
+
+        match direction {
+            IndexedNavigation::Next => {
+                let index = match self.keys.binary_search(&anchor) {
+                    Ok(index) => index + 1,
+                    Err(index) => index,
+                };
+                self.keys
+                    .get(index)
+                    .copied()
+                    .or_else(|| self.keys.first().copied())
+            }
+            IndexedNavigation::Previous => {
+                let index = match self.keys.binary_search(&anchor) {
+                    Ok(index) | Err(index) => index,
+                };
+                index
+                    .checked_sub(1)
+                    .and_then(|index| self.keys.get(index).copied())
+                    .or_else(|| self.keys.last().copied())
+            }
+        }
+    }
+
     pub fn first(&mut self) -> Option<&u64> {
         self.sort();
         self.keys.first()
@@ -161,7 +197,17 @@ impl Keys {
     }
 }
 
+#[cfg(test)]
 mod test {
+    use super::{IndexedNavigation, Keys};
+
+    fn keys_with_rows(rows: impl IntoIterator<Item = u64>) -> Keys {
+        let mut keys = Keys::new();
+        for row in rows {
+            keys.add(row);
+        }
+        keys
+    }
 
     #[test]
     fn test_keys_001() {
@@ -256,5 +302,58 @@ mod test {
         assert_eq!(ranges[0], RangeInclusive::new(1, 5));
         assert_eq!(ranges[1], RangeInclusive::new(10, 13));
         assert_eq!(ranges[2], RangeInclusive::new(100, 105));
+    }
+
+    #[test]
+    fn neighbor_empty_returns_none() {
+        let mut keys = Keys::new();
+
+        assert_eq!(keys.neighbor(Some(10), IndexedNavigation::Next), None);
+        assert_eq!(keys.neighbor(Some(10), IndexedNavigation::Previous), None);
+        assert_eq!(keys.neighbor(None, IndexedNavigation::Next), None);
+    }
+
+    #[test]
+    fn neighbor_without_anchor_returns_first_for_both_directions() {
+        let mut keys = keys_with_rows([9, 1, 5]);
+
+        assert_eq!(keys.neighbor(None, IndexedNavigation::Next), Some(1));
+        assert_eq!(keys.neighbor(None, IndexedNavigation::Previous), Some(1));
+    }
+
+    #[test]
+    fn neighbor_next_from_middle() {
+        let mut keys = keys_with_rows([1, 5, 9]);
+
+        assert_eq!(keys.neighbor(Some(5), IndexedNavigation::Next), Some(9));
+    }
+
+    #[test]
+    fn neighbor_previous_from_middle() {
+        let mut keys = keys_with_rows([1, 5, 9]);
+
+        assert_eq!(keys.neighbor(Some(5), IndexedNavigation::Previous), Some(1));
+    }
+
+    #[test]
+    fn neighbor_next_wraps_to_first() {
+        let mut keys = keys_with_rows([1, 5, 9]);
+
+        assert_eq!(keys.neighbor(Some(9), IndexedNavigation::Next), Some(1));
+    }
+
+    #[test]
+    fn neighbor_previous_wraps_to_last() {
+        let mut keys = keys_with_rows([1, 5, 9]);
+
+        assert_eq!(keys.neighbor(Some(1), IndexedNavigation::Previous), Some(9));
+    }
+
+    #[test]
+    fn neighbor_anchor_not_present_uses_adjacent_rows() {
+        let mut keys = keys_with_rows([1, 5, 9]);
+
+        assert_eq!(keys.neighbor(Some(4), IndexedNavigation::Next), Some(5));
+        assert_eq!(keys.neighbor(Some(4), IndexedNavigation::Previous), Some(1));
     }
 }

@@ -1,7 +1,7 @@
 [package]
 name = "text_grep"
-version = "0.1.0"
-edition = "2024"
+version.workspace = true
+edition.workspace = true
 
 [lib]
 name = "text_grep"
@@ -14,7 +14,7 @@ workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
 tokio = { workspace = true, features = ["full"] }
-bufread = { path = "../bufread" }
+bufread.workspace = true
 tokio-util.workspace = true
 grep-searcher.workspace = true
 grep-regex.workspace = true

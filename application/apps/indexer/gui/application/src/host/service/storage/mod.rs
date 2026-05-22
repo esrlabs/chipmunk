@@ -1,0 +1,122 @@
+//! Host-side storage worker.
+//!
+//! This module owns background storage tasks and the shared storage root path,
+//! while domain-specific persistence lives in submodules such as `recent`.
+
+use std::{
+    path::{Path, PathBuf},
+    sync::mpsc::Sender as StdSender,
+};
+
+use log::warn;
+use tokio::sync::mpsc;
+
+use crate::host::{
+    service::HostAsyncEvent,
+    ui::storage::types::{StorageError, StorageErrorKind, StorageEvent, StorageSaveData},
+};
+
+pub mod app_version;
+mod file_explorer;
+pub mod recent;
+pub mod settings;
+
+const STORAGE_DIR: &str = "storage_2";
+
+#[derive(Debug)]
+pub struct StorageService {
+    event_tx: mpsc::Sender<HostAsyncEvent>,
+}
+
+impl StorageService {
+    /// Initializes storage and starts background domain loads.
+    pub fn init(event_tx: mpsc::Sender<HostAsyncEvent>) -> Self {
+        let service = Self { event_tx };
+
+        file_explorer::spawn_load(service.event_tx.clone());
+
+        service
+    }
+
+    /// Persists the provided storage snapshot without blocking the host loop.
+    pub fn save_storage(
+        &self,
+        data: Box<StorageSaveData>,
+        confirm_tx: StdSender<Result<(), StorageError>>,
+    ) {
+        tokio::task::spawn_blocking(move || {
+            let result = save_storage(&data);
+            if let Err(err) = confirm_tx.send(result) {
+                warn!("Failed to send storage save confirmation: {err:?}");
+            }
+        });
+    }
+
+    /// Scans the provided favorite folders without blocking the host loop.
+    pub fn scan_favorite_folders(&self, request_id: u64, paths: Vec<PathBuf>) {
+        let event_tx = self.event_tx.clone();
+
+        tokio::task::spawn_blocking(move || {
+            let favorite_folders = file_explorer::scan_favorite_folders(&paths, &event_tx);
+
+            let event = StorageEvent::FavoriteFoldersScanned {
+                request_id,
+                result: Ok(favorite_folders),
+            };
+
+            if event_tx
+                .blocking_send(HostAsyncEvent::Storage(event))
+                .is_err()
+            {
+                warn!("Failed to send favorite-folder scan result");
+            }
+        });
+    }
+}
+
+/// Saves all storage domains present in the aggregate payload.
+fn save_storage(data: &StorageSaveData) -> Result<(), StorageError> {
+    let StorageSaveData {
+        recent_sessions,
+        file_explorer,
+        app_settings,
+    } = data;
+
+    if let Some(file_explorer) = file_explorer {
+        file_explorer::save(file_explorer)?;
+    }
+
+    if let Some(recent_sessions) = recent_sessions {
+        recent::save(recent_sessions)?;
+    }
+
+    if let Some(app_settings) = app_settings {
+        settings::save_settings(app_settings)?;
+    }
+
+    Ok(())
+}
+
+/// Resolves the shared storage root under the Chipmunk home directory.
+fn storage_path() -> Result<PathBuf, StorageError> {
+    let home_dir = session_core::paths::get_home_dir().map_err(|err| StorageError {
+        kind: StorageErrorKind::Path,
+        message: err
+            .message
+            .unwrap_or_else(|| "Failed to resolve Chipmunk home directory.".into()),
+    })?;
+
+    storage_path_from_home(&home_dir)
+}
+
+/// Ensures the shared storage root exists for the provided home directory.
+fn storage_path_from_home(home_dir: &Path) -> Result<PathBuf, StorageError> {
+    let storage_dir = home_dir.join(STORAGE_DIR);
+
+    std::fs::create_dir_all(&storage_dir).map_err(|err| StorageError {
+        kind: StorageErrorKind::Path,
+        message: format!("Failed to create '{}': {err}", storage_dir.display()),
+    })?;
+
+    Ok(storage_dir)
+}

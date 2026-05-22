@@ -1,6 +1,6 @@
 //! Includes the definitions and implementation of controller of search results view.
 
-use super::{frame::Frame, map::Map, nature::Nature};
+use super::{IndexedNavigation, frame::Frame, map::Map, nature::Nature};
 use log::error;
 use std::ops::RangeInclusive;
 use tokio::sync::mpsc::UnboundedSender;
@@ -178,6 +178,14 @@ impl Controller {
         position: &u64,
     ) -> Result<(Option<u64>, Option<u64>), stypes::NativeError> {
         self.map.get_around_indexes(position)
+    }
+
+    pub(crate) fn indexed_neighbor(
+        &mut self,
+        anchor: Option<u64>,
+        direction: IndexedNavigation,
+    ) -> Option<u64> {
+        self.map.indexed_neighbor(anchor, direction)
     }
 
     pub(crate) fn naturalize(&self, elements: &mut [stypes::GrabbedElement]) {

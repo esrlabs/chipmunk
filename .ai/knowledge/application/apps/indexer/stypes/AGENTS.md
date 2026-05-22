@@ -2,48 +2,46 @@
 
 ## Overview
 
-`stypes` is the source of truth for data structures shared between Rust core and TypeScript surfaces.
+`stypes` is the source of truth for shared data structures used by the Rust core and native GUI.
+It also contains legacy TypeScript export support for old Electron/Node surfaces.
 
-## Start Here (First Files to Open)
+## Start Here
 
 1. `application/apps/indexer/stypes/Cargo.toml`
 2. `application/apps/indexer/stypes/src/`
-3. `application/apps/indexer/stypes/generate.sh`
-4. `application/apps/indexer/stypes/bindings/`
-5. `application/apps/protocol/src/lib.rs`
-6. `application/apps/rustcore/ts-bindings/spec/session.protocol.spec.ts`
-7. `application/platform/types/`
+
+## Native Rust Use
+
+- Consumed directly by `application/apps/indexer` crates.
+- Consumed directly by the native GUI through Rust dependencies.
+- Treat type changes as cross-crate API changes even when they do not affect generated TypeScript.
 
 ## If You Need X, Go to Y
 
 - Add or modify a shared type: `application/apps/indexer/stypes/src/`.
-- Control TS export shape: Rust derives/attributes (`TS`, `#[ts(export)]`) in `application/apps/indexer/stypes/src/`.
-- Regenerate TS bindings: `./generate.sh` in `stypes`.
-- Validate encode/decode compatibility: `application/apps/protocol` and `application/apps/rustcore/ts-bindings` protocol specs.
-- Update consumed TS contracts: `application/platform/types/`.
+- Change serialization behavior: serde/bincode implementations and derives in `application/apps/indexer/stypes/src/`.
+- Add robustness coverage for new types: `proptest` tests near the relevant type or module.
+- Change TypeScript export shape: legacy `TS` derives/attributes in `application/apps/indexer/stypes/src/`.
+- Regenerate legacy TS bindings: `application/apps/indexer/stypes/generate.sh`.
 
-## Cross-Module Dependency Map
+## Legacy TS Export
 
-- Source of truth: `application/apps/indexer/stypes/src/`.
-- Consumed directly by Rust indexer crates.
-- Exported to TS via generated bindings and via `application/apps/protocol`.
-- Downstream consumers include `application/apps/rustcore/ts-bindings`, `application/holder`, `application/client`, and shared `application/platform/types`.
-
-## Landmarks and Hotspots
-
-- `TS` derivations and serde traits on core structs/enums.
-- `proptest` coverage for new types and serialization edges.
-- Type changes with optional/enum evolution are high-context because they affect protocol and frontend contracts.
-
-## Generated Artifacts and Source of Truth
+Use only when explicitly changing TypeScript compatibility or old Electron/Node contracts.
 
 - Source: `application/apps/indexer/stypes/src/`
-- Generation: `application/apps/indexer/stypes/generate.sh`
+- Generation script: `application/apps/indexer/stypes/generate.sh`
 - Generated output: `application/apps/indexer/stypes/bindings/`
-- Consumer copy target: `application/platform/types/`
+- Protocol bridge: `.ai/knowledge/application/apps/protocol/AGENTS.md`
+- Platform copy target: `application/platform/types/`
+
+## Feature Notes
+
+- `rustcore`: enables dependencies used by Rust core/native GUI integration.
+- `nodejs`: legacy Node binding support.
+- `test_and_gen`: generation/test support.
 
 ## Tech Stack
 
-- `ts-rs` for TypeScript derivation.
+- `serde` and `bincode` for Rust serialization.
 - `proptest` for property-based robustness.
-- `serde` for JSON/Bincode serialization.
+- `ts-rs` for legacy TypeScript generation.

@@ -1,0 +1,190 @@
+use egui::{Align, Button, Label, Layout, Popup, RectAlign, RichText, TextStyle, Ui, Widget, vec2};
+
+use crate::common::ui::visibility_tracker::VisibilityTracker;
+
+use super::RenderOutcome;
+use crate::host::{
+    common::ui_utls::{sized_singleline_text_edit, truncate_path_to_width},
+    ui::{
+        UiActions,
+        actions::FileDialogOptions,
+        session_setup::{start_session_on_enter, state::sources::ProcessConfig},
+    },
+};
+
+const CWD_DIALOG_ID: &str = "cwd_for_shell";
+
+pub fn render_connection(
+    config: &mut ProcessConfig,
+    input_visibility: &mut VisibilityTracker,
+    actions: &mut UiActions,
+    ui: &mut Ui,
+) -> RenderOutcome {
+    let mut outcome = RenderOutcome::None;
+    let row_height = 25.0;
+    ui.allocate_ui_with_layout(
+        vec2(ui.available_width(), row_height),
+        Layout::right_to_left(Align::Center),
+        |ui| command_and_shell(config, input_visibility, &mut outcome, None, ui),
+    );
+
+    ui.add_space(10.);
+
+    ui.allocate_ui_with_layout(
+        vec2(ui.available_width(), row_height),
+        Layout::left_to_right(Align::Center),
+        |ui| working_dir(ui, config, actions, true),
+    );
+
+    outcome
+}
+
+/// Renders the process command input together with the shell picker.
+///
+/// - `config` stores the editable command text, selected shell, and validation state.
+/// - `input_visibility` tracks when this form becomes visible so the command field can be focused.
+/// - `outcome` is updated when pressing Enter should start the session.
+/// - `shell_max_width` optionally caps the shell picker width and truncates its inline label.
+/// - `ui` is the current egui scope used to render the controls.
+pub fn command_and_shell(
+    config: &mut ProcessConfig,
+    input_visibility: &mut VisibilityTracker,
+    outcome: &mut RenderOutcome,
+    shell_max_width: Option<f32>,
+    ui: &mut Ui,
+) {
+    let height = ui.available_height();
+    let shell_name = config
+        .shell
+        .as_ref()
+        .map(|s| s.shell.to_string())
+        .unwrap_or_else(|| String::from("Default Shell"));
+
+    let shell_txt = RichText::new(format!(
+        "{} {}",
+        egui_phosphor::regular::TERMINAL,
+        shell_name
+    ))
+    .text_style(egui::TextStyle::Button);
+    let button = Button::new(shell_txt).min_size(vec2(0., height)).truncate();
+
+    let button_res = if let Some(shell_max_width) = shell_max_width {
+        ui.add_sized(vec2(shell_max_width, height), button)
+            .on_hover_ui(|ui| {
+                ui.set_max_width(ui.spacing().tooltip_width);
+                ui.label(format!("Current shell: {shell_name}"));
+            })
+    } else {
+        button.ui(ui)
+    };
+
+    let pop_id = egui::Id::new("shells");
+
+    Popup::menu(&button_res)
+        .id(pop_id)
+        .align(RectAlign::BOTTOM_START)
+        .show(|ui| {
+            ui.selectable_value(&mut config.shell, None, "Default Shell");
+            ui.separator();
+            for shell in &config.available_shells {
+                ui.selectable_value(
+                    &mut config.shell,
+                    Some(shell.to_owned()),
+                    shell.shell.to_string(),
+                );
+            }
+        });
+
+    let text_res = sized_singleline_text_edit(
+        ui,
+        &mut config.command,
+        vec2(ui.available_width(), height),
+        4,
+    )
+    .hint_text("Terminal command")
+    .show(ui)
+    .response;
+
+    if input_visibility.is_newly_visible(ui) {
+        text_res.request_focus();
+    }
+
+    if text_res.changed() {
+        config.validate();
+    };
+
+    start_session_on_enter(&text_res, || config.is_valid(), outcome);
+}
+
+/// Render the area to specify the working directory.
+pub fn working_dir(
+    ui: &mut Ui,
+    config: &mut ProcessConfig,
+    actions: &mut UiActions,
+    show_label: bool,
+) {
+    if let Some(paths) = actions.file_dialog.take_output(CWD_DIALOG_ID)
+        && let Some(cwd) = paths.into_iter().next()
+    {
+        config.cwd = cwd;
+    }
+
+    let height = ui.available_height() - 2.;
+    let current_cwd = config.cwd.clone();
+
+    egui::Sides::new().shrink_left().truncate().show(
+        ui,
+        |ui| {
+            if show_label {
+                ui.label("Working Folder:");
+            }
+            let path_txt =
+                truncate_path_to_width(ui, &current_cwd, ui.available_width(), TextStyle::Body);
+            let response = Label::new(path_txt.text)
+                .truncate()
+                .show_tooltip_when_elided(false)
+                .selectable(true)
+                .ui(ui);
+            if path_txt.truncated {
+                response.on_hover_ui(|ui| {
+                    ui.set_max_width(ui.spacing().tooltip_width);
+                    ui.label(current_cwd.to_string_lossy());
+                });
+            }
+        },
+        |ui| {
+            let btn_size = vec2(12., height);
+
+            let open_txt = RichText::new(egui_phosphor::regular::FOLDER_OPEN)
+                .size(16.)
+                .text_style(egui::TextStyle::Button);
+            let open_btn = Button::new(open_txt)
+                .min_size(btn_size)
+                .ui(ui)
+                .on_hover_text("Browse");
+
+            if open_btn.clicked() {
+                actions.file_dialog.pick_folder(
+                    CWD_DIALOG_ID,
+                    FileDialogOptions::new()
+                        .title("Select Working Folder")
+                        .directory(config.cwd.clone()),
+                );
+            }
+
+            let home_txt = RichText::new(egui_phosphor::regular::HOUSE)
+                .size(16.)
+                .text_style(egui::TextStyle::Button);
+            let home_btn = Button::new(home_txt)
+                .min_size(btn_size)
+                .ui(ui)
+                .on_hover_text("Set to Home Directory");
+
+            if home_btn.clicked()
+                && let Some(home) = dirs::home_dir()
+            {
+                config.cwd = home;
+            }
+        },
+    );
+}

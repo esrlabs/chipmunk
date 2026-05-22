@@ -158,7 +158,7 @@ dependencies = [
 
 [[package]]
 name = "bufread"
-version = "0.1.1"
+version = "4.0.0-alpha.1"
 
 [[package]]
 name = "bumpalo"
@@ -659,7 +659,7 @@ checksum = "b9e0384b61958566e926dc50660321d12159025e767c18e043daf26b70104c39"
 
 [[package]]
 name = "indexer_base"
-version = "0.1.0"
+version = "4.0.0-alpha.1"
 dependencies = [
  "log",
  "serde",
@@ -684,9 +684,9 @@ checksum = "7943c866cc5cd64cbc25b2e01621d07fa8eb2a1a23160ee81ce38704e97b8ecf"
 
 [[package]]
 name = "itertools"
-version = "0.13.0"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "413ee7dfc52ee1a4949ceeb7dbc8a33f2d6c088194d9f922fb8318faf1f01186"
+checksum = "2b192c782037fadd9cfa75548310488aabdbf3d2da73885b31bd0abd03351285"
 dependencies = [
  "either",
 ]
@@ -902,7 +902,7 @@ dependencies = [
 
 [[package]]
 name = "parsers"
-version = "0.1.0"
+version = "4.0.0-alpha.1"
 dependencies = [
  "byteorder",
  "chrono",
@@ -1001,7 +1001,7 @@ dependencies = [
 
 [[package]]
 name = "processor"
-version = "0.2.0"
+version = "4.0.0-alpha.1"
 dependencies = [
  "bincode",
  "bufread",
@@ -1331,7 +1331,7 @@ dependencies = [
 
 [[package]]
 name = "someip-tools"
-version = "0.1.0"
+version = "4.0.0-alpha.1"
 dependencies = [
  "nom",
  "thiserror 2.0.12",
@@ -1339,7 +1339,7 @@ dependencies = [
 
 [[package]]
 name = "sources"
-version = "0.1.0"
+version = "4.0.0-alpha.1"
 dependencies = [
  "bufread",
  "bytes",
@@ -1373,7 +1373,7 @@ checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
 
 [[package]]
 name = "stypes"
-version = "0.1.0"
+version = "4.0.0-alpha.1"
 dependencies = [
  "anyhow",
  "bincode",
@@ -1399,7 +1399,7 @@ dependencies = [
 
 [[package]]
 name = "text_grep"
-version = "0.1.0"
+version = "4.0.0-alpha.1"
 dependencies = [
  "bufread",
  "grep-regex",

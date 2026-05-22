@@ -10,15 +10,14 @@
 2. `application/apps/rustcore/wasm-bindings/src/lib.rs`
 3. `application/apps/rustcore/wasm-bindings/src/`
 4. `application/apps/rustcore/wasm-bindings/spec/`
-5. `application/apps/rustcore/wasm-bindings/pkg/`
-6. `application/apps/rustcore/wasm-bindings/package.json`
-7. `.ai/knowledge/application/client/AGENTS.md`
+5. `application/apps/rustcore/wasm-bindings/package.json`
+6. `.ai/knowledge/application/client/AGENTS.md`
 
 ## If You Need X, Go to Y
 
 - Tune fuzzy matching output/scoring: matcher code in `application/apps/rustcore/wasm-bindings/src/`.
 - Change ANSI conversion or stripping behavior: ANSI conversion code in `application/apps/rustcore/wasm-bindings/src/`.
-- Update regex/filter validation messages: filter validation code in `application/apps/rustcore/wasm-bindings/src/`.
+- Update regex/filter validation behavior/results: filter validation code in `application/apps/rustcore/wasm-bindings/src/`.
 - Validate browser compatibility regressions: WASM-facing specs in `application/apps/rustcore/wasm-bindings/spec/`.
 
 ## Cross-Module Dependency Map
@@ -38,3 +37,7 @@
 - Build: `cargo chipmunk build wasm -u print`
 - Test: `cargo chipmunk test wasm -u print`
 - Lint: `cargo chipmunk lint wasm -u print`
+
+## Additional Notes
+
+- `application/apps/rustcore/wasm-bindings/pkg/` contains generated package output; inspect it only for packaging or runtime artifact issues.

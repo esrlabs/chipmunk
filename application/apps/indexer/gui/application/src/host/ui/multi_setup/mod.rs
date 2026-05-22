@@ -1,0 +1,124 @@
+use egui::{Align, CentralPanel, Frame, Layout, Panel, Ui};
+use tokio::sync::mpsc;
+use uuid::Uuid;
+
+use crate::{
+    common::ui::{
+        RESIZABLE_PANEL_DEFAULT_SIZE, RESIZABLE_PANEL_MAX_SIZE, RESIZABLE_PANEL_MIN_SIZE, buttons,
+    },
+    host::{
+        command::HostCommand,
+        ui::{UiActions, multi_setup::state::MultiFileState, state::HostPreferences},
+    },
+};
+
+use side_panel::MultiSidePanel;
+
+mod main_table;
+mod side_panel;
+pub mod state;
+
+#[derive(Debug)]
+pub struct MultiFileSetup {
+    pub state: MultiFileState,
+    cmd_tx: mpsc::Sender<HostCommand>,
+    side_panel: MultiSidePanel,
+}
+
+impl MultiFileSetup {
+    pub fn new(state: MultiFileState, cmd_tx: mpsc::Sender<HostCommand>) -> Self {
+        Self {
+            state,
+            cmd_tx,
+            side_panel: MultiSidePanel::default(),
+        }
+    }
+
+    pub fn id(&self) -> Uuid {
+        self.state.id()
+    }
+
+    pub fn close(&self, actions: &mut UiActions) {
+        actions.try_send_command(&self.cmd_tx, HostCommand::CloseMultiSetup(self.id()));
+    }
+
+    pub fn render_content(
+        &mut self,
+        actions: &mut UiActions,
+        preferences: &mut HostPreferences,
+        ui: &mut Ui,
+    ) {
+        Panel::top("actions panel")
+            .exact_size(40.)
+            .show_inside(ui, |ui| {
+                ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                    self.top_panel(actions, ui);
+                });
+            });
+
+        Panel::right("side info")
+            .frame(Frame::central_panel(ui.style()))
+            .size_range(RESIZABLE_PANEL_MIN_SIZE..=RESIZABLE_PANEL_MAX_SIZE)
+            .default_size(RESIZABLE_PANEL_DEFAULT_SIZE)
+            .resizable(true)
+            .show_animated_inside(ui, preferences.panels_visibility.right, |ui| {
+                ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {
+                    self.side_panel.render_content(ui, &mut self.state);
+                });
+            });
+
+        CentralPanel::default().show_inside(ui, |ui| {
+            main_table::render_content(ui, &mut self.state);
+        });
+    }
+
+    fn top_panel(&mut self, actions: &mut UiActions, ui: &mut Ui) {
+        if ui.add(buttons::session_setup("Cancel", None)).clicked() {
+            self.close(actions);
+        }
+
+        let active_count = self
+            .state
+            .files
+            .iter()
+            .filter(|f| f.included)
+            .take(2) // No need to continue if we already have two.
+            .count();
+
+        if ui
+            .add_enabled(active_count > 1, buttons::session_setup("Concat", None))
+            .clicked()
+        {
+            let files = self
+                .state
+                .files
+                .iter()
+                .filter(|f| f.included)
+                .map(|f| (f.path.to_owned(), f.format))
+                .collect();
+
+            let cmd = HostCommand::ConcatFiles(files);
+
+            if actions.try_send_command(&self.cmd_tx, cmd) {
+                self.close(actions);
+            }
+        }
+
+        if ui
+            .add_enabled(active_count > 0, buttons::session_setup("Open Each", None))
+            .clicked()
+        {
+            let files = self
+                .state
+                .files
+                .iter()
+                .filter(|f| f.included)
+                .map(|f| f.path.to_owned())
+                .collect();
+            let cmd = HostCommand::OpenAsSessions(files);
+            if actions.try_send_command(&self.cmd_tx, cmd) {
+                self.close(actions);
+            }
+        }
+    }
+}

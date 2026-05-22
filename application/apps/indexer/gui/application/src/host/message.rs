@@ -1,0 +1,108 @@
+use std::path::PathBuf;
+
+use semver::Version;
+use uuid::Uuid;
+
+use crate::{
+    host::{
+        common::dlt_stats::DltStatistics,
+        ui::{
+            multi_setup::state::MultiFileState, registry::presets::Preset,
+            session_setup::state::SessionSetupState, state::plugin::PluginsState,
+            storage::types::StorageEvent,
+        },
+    },
+    session::SpawnedSession,
+};
+
+/// Messages sent from the host service to the UI.
+#[derive(Debug)]
+pub enum HostMessage {
+    /// Open Session Setup with the provided state.
+    SessionSetupOpened(Box<SessionSetupState>),
+    /// Close session setup with the provided id.
+    SessionSetupClosed { id: Uuid },
+    /// Close multiple files setup with the provided id.
+    MultiSetupClose { id: Uuid },
+    /// The collected DLT statistics on a file for a SessionSetup
+    DltStatistics {
+        setup_session_id: Uuid,
+        statistics: Option<Box<DltStatistics>>,
+    },
+    /// A new session has been successfully created.
+    SessionCreated {
+        session: Box<SpawnedSession>,
+        /// ID for session_setup used to create this session to replace its tab
+        /// instead of creating a new tab for the session.
+        session_setup_id: Option<Uuid>,
+    },
+    /// Open Session Setup for concatenating files.
+    MultiFilesSetup(Box<MultiFileState>),
+    /// Presets loaded from a file and ready for UI-side registry import.
+    PresetsImported(Box<PresetsImported>),
+    /// Presets were exported successfully to the provided file path.
+    PresetsExported { path: PathBuf, count: usize },
+    /// A newer application version is available.
+    AppVersionUpdate(Box<AppVersionUpdate>),
+    /// Release notes for the first launch after an application update.
+    AppChangelog(Box<AppChangelog>),
+    /// Storage-related async events.
+    Storage(StorageEvent),
+    /// Plugin manager state published by the host service.
+    PluginsStateChanged(Box<PluginsState>),
+    /// README loading result for a Plugin Manager request.
+    PluginReadmeLoaded(Box<PluginReadmeLoaded>),
+}
+
+/// Backend import result for named presets.
+#[derive(Debug)]
+pub struct PresetsImported {
+    /// Source file used for the import.
+    pub path: PathBuf,
+    /// Parsed presets ready to be inserted into the registry.
+    pub presets: Vec<Preset>,
+    /// True when the file was parsed through the legacy compatibility path.
+    pub used_legacy_format: bool,
+}
+
+/// Message payload for a newer application version.
+#[derive(Debug)]
+pub struct AppVersionUpdate {
+    /// Newer version returned by the release source.
+    pub latest_version: Version,
+    /// Release page URL.
+    pub release_url: String,
+}
+
+/// Message payload for release notes shown after an application update.
+#[derive(Debug)]
+pub struct AppChangelog {
+    /// Version whose release notes are being shown.
+    pub version: Version,
+    /// Markdown release notes.
+    pub release_notes: String,
+    /// Release page URL.
+    pub release_url: String,
+}
+
+/// README loading result for a Plugin Manager request.
+#[derive(Debug)]
+pub struct PluginReadmeLoaded {
+    /// UI-owned request id used to reject stale responses.
+    pub request_id: u64,
+    /// Plugin directory path used for the request.
+    pub plugin_path: PathBuf,
+    /// Loaded README state.
+    pub result: PluginReadmeLoadResult,
+}
+
+/// Result of loading plugin README markdown.
+#[derive(Debug)]
+pub enum PluginReadmeLoadResult {
+    /// README markdown content.
+    Loaded(String),
+    /// README path is unavailable or no longer exists.
+    Missing,
+    /// README loading failed.
+    Error(String),
+}

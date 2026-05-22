@@ -1,4 +1,4 @@
-use super::{frame::Frame, keys::Keys, nature::Nature};
+use super::{IndexedNavigation, frame::Frame, keys::Keys, nature::Nature};
 use log::error;
 use rustc_hash::FxHashMap;
 use std::{cmp, ops::RangeInclusive};
@@ -182,6 +182,14 @@ impl Map {
         position: &u64,
     ) -> Result<(Option<u64>, Option<u64>), stypes::NativeError> {
         self.keys.get_positions_around(position)
+    }
+
+    pub fn indexed_neighbor(
+        &mut self,
+        anchor: Option<u64>,
+        direction: IndexedNavigation,
+    ) -> Option<u64> {
+        self.keys.neighbor(anchor, direction)
     }
 
     fn breadcrumbs_insert_between(

@@ -1,0 +1,673 @@
+use rustc_hash::FxHashSet;
+
+#[derive(Debug)]
+pub struct LogsState {
+    /// Number of logs currently known for this session.
+    logs_count: u64,
+    /// Digits needed to display the largest zero-based row number.
+    row_number_digits: usize,
+    /// Pending request for the main logs table to bring a row into view.
+    main_row_focus: Option<MainRowFocus>,
+    /// Selected rows keyed by original stream position.
+    selected_rows: FxHashSet<u64>,
+    /// Most recent row explicitly selected by the user.
+    last_selected_row: Option<u64>,
+    /// Bookmarked rows keyed by original stream position.
+    pub bookmarked_rows: FxHashSet<u64>,
+}
+
+/// Describes which UI actions should happen after a selection change is applied.
+///
+/// `LogsState` updates the selected rows first, then returns this value so callers
+/// can trigger side effects such as loading details or syncing the other table.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SelectionChange {
+    /// Single row to load in the details panel.
+    pub details_row: Option<u64>,
+    /// Single row to align in the peer table after an exclusive selection.
+    pub jump_to_row: Option<u64>,
+}
+
+/// Request consumed by the main logs table to focus a row and apply table-owned side effects.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct MainRowFocus {
+    /// Stream row to bring into view in the main logs table.
+    pub row: u64,
+    /// Whether the search table should align to this row when it is visible.
+    pub search_table_sync: SearchTableSync,
+}
+
+/// Controls whether focusing a main row also aligns the search table.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SearchTableSync {
+    /// Do not request search-table alignment.
+    Skip,
+    /// Align the visible search table to the focused main row.
+    Sync,
+}
+
+/// Direction for navigating bookmarked rows.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BookmarkNavigation {
+    Previous,
+    Next,
+}
+
+/// Describes how a row should affect the current selection.
+///
+/// The UI layer maps raw input state such as keyboard modifiers into one of these
+/// intents before applying selection semantics in `LogsState`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SelectionIntent {
+    /// Applies exclusive selection semantics for this row.
+    ///
+    /// This may select only this row, collapse a multi-selection to this row,
+    /// or clear the selection if this row is already selected exclusively.
+    /// This is the only intent that may request peer-table alignment.
+    Exclusive,
+    /// Toggles whether this row belongs to the current selection.
+    ///
+    /// If the row is not selected, it is added.
+    /// If the row is already selected, it is removed.
+    /// Other selected rows stay selected.
+    /// This intent never requests peer-table alignment.
+    ToggleRow,
+    /// Adds the inclusive range from the current anchor to this row.
+    ///
+    /// Existing selected rows stay selected.
+    /// This intent never requests peer-table alignment.
+    ExtendRange,
+}
+
+impl Default for LogsState {
+    fn default() -> Self {
+        Self {
+            logs_count: 0,
+            row_number_digits: 1,
+            main_row_focus: None,
+            selected_rows: FxHashSet::default(),
+            last_selected_row: None,
+            bookmarked_rows: FxHashSet::default(),
+        }
+    }
+}
+
+impl LogsState {
+    /// Returns the number of known logs in the session.
+    pub fn logs_count(&self) -> u64 {
+        self.logs_count
+    }
+
+    /// Updates the number of known logs and its derived row-number width metadata.
+    pub fn set_logs_count(&mut self, logs_count: u64) {
+        self.logs_count = logs_count;
+        let largest_row = logs_count.saturating_sub(1);
+        self.row_number_digits = largest_row
+            .checked_ilog10()
+            .map_or(1, |digits| digits as usize + 1);
+    }
+
+    /// Returns the digit count needed to display any known zero-based row number.
+    pub fn row_number_digits(&self) -> usize {
+        self.row_number_digits
+    }
+
+    /// Returns whether `row` is part of the current selection.
+    pub fn is_selected(&self, row: u64) -> bool {
+        self.selected_rows.contains(&row)
+    }
+
+    /// Returns the number of selected rows.
+    pub fn selected_count(&self) -> usize {
+        self.selected_rows.len()
+    }
+
+    /// Clears all selected rows.
+    pub fn clear_selection(&mut self) {
+        self.selected_rows.clear();
+        self.last_selected_row = None;
+    }
+
+    /// Returns selected stream positions without export-specific normalization.
+    pub fn selected_rows(&self) -> Vec<u64> {
+        // Export range preparation sorts and dedups in the session service.
+        // No need to sort in UI thread.
+        self.selected_rows.iter().copied().collect()
+    }
+
+    /// Returns the selected row only when the selection is singular.
+    pub fn single_selected_row(&self) -> Option<u64> {
+        if self.selected_rows.len() == 1 {
+            self.selected_rows.iter().next().copied()
+        } else {
+            None
+        }
+    }
+
+    /// Replaces the current selection with exactly `row`.
+    pub fn replace_selection_with(&mut self, row: u64) -> SelectionChange {
+        self.selected_rows.clear();
+        self.selected_rows.insert(row);
+        self.last_selected_row = Some(row);
+        self.selection_change(SelectionIntent::Exclusive)
+    }
+
+    /// Replaces the current selection with `rows`.
+    pub fn replace_selection_with_rows(&mut self, rows: &[u64]) -> SelectionChange {
+        self.selected_rows.clear();
+        self.selected_rows.extend(rows.iter().copied());
+        self.last_selected_row = rows.last().copied();
+        self.selection_change(SelectionIntent::Exclusive)
+    }
+
+    /// Selects `row` and requests the main logs table to focus it.
+    pub fn focus_main_row(
+        &mut self,
+        row: u64,
+        search_table_sync: SearchTableSync,
+    ) -> SelectionChange {
+        self.request_main_row_focus(row, search_table_sync);
+        self.replace_selection_with(row)
+    }
+
+    /// Requests main-table focus without changing the current selection.
+    pub fn request_main_row_focus(&mut self, row: u64, search_table_sync: SearchTableSync) {
+        self.main_row_focus = Some(MainRowFocus {
+            row,
+            search_table_sync,
+        });
+    }
+
+    /// Selects `rows` and requests the main logs table to scroll to the first one.
+    pub fn focus_main_rows(&mut self, rows: &[u64]) -> SelectionChange {
+        self.main_row_focus = rows.first().map(|&row| MainRowFocus {
+            row,
+            search_table_sync: SearchTableSync::Skip,
+        });
+        self.replace_selection_with_rows(rows)
+    }
+
+    /// Takes the pending main-table focus request.
+    pub fn take_main_row_focus(&mut self) -> Option<MainRowFocus> {
+        self.main_row_focus.take()
+    }
+
+    /// Applies a click mode and returns the resulting selection side effects.
+    pub fn select_from_click(
+        &mut self,
+        row: u64,
+        selection_intent: SelectionIntent,
+    ) -> SelectionChange {
+        let was_selected = self.is_selected(row);
+
+        match selection_intent {
+            SelectionIntent::ExtendRange if was_selected => {
+                return SelectionChange {
+                    details_row: None,
+                    jump_to_row: None,
+                };
+            }
+            SelectionIntent::ExtendRange => {
+                if let Some(anchor_row) = self.last_selected_row {
+                    for pos in anchor_row.min(row)..=anchor_row.max(row) {
+                        self.selected_rows.insert(pos);
+                    }
+                } else {
+                    self.selected_rows.clear();
+                    self.selected_rows.insert(row);
+                }
+            }
+            SelectionIntent::Exclusive => {
+                if was_selected && self.selected_rows.len() == 1 {
+                    self.selected_rows.clear();
+                } else {
+                    self.selected_rows.clear();
+                    self.selected_rows.insert(row);
+                }
+            }
+            SelectionIntent::ToggleRow => {
+                if !self.selected_rows.remove(&row) {
+                    self.selected_rows.insert(row);
+                }
+            }
+        }
+
+        self.last_selected_row = if self.selected_rows.is_empty() {
+            None
+        } else {
+            Some(row)
+        };
+        self.selection_change(selection_intent)
+    }
+
+    /// Derives follow-up actions from the current selection state and intent.
+    fn selection_change(&self, selection_intent: SelectionIntent) -> SelectionChange {
+        let selected_row = self.single_selected_row();
+        SelectionChange {
+            details_row: selected_row,
+            jump_to_row: matches!(selection_intent, SelectionIntent::Exclusive)
+                .then_some(selected_row)
+                .flatten(),
+        }
+    }
+
+    /// Returns whether `row` is bookmarked.
+    #[inline]
+    pub fn is_bookmarked(&self, row: u64) -> bool {
+        self.bookmarked_rows.contains(&row)
+    }
+
+    pub fn focus_bookmark_neighbor(&mut self, direction: BookmarkNavigation) -> bool {
+        let Some(row) = self.bookmark_neighbor(direction) else {
+            return false;
+        };
+
+        self.focus_main_row(row, SearchTableSync::Sync);
+        true
+    }
+
+    pub fn bookmark_neighbor(&self, direction: BookmarkNavigation) -> Option<u64> {
+        if self.bookmarked_rows.is_empty() {
+            return None;
+        }
+
+        let mut bookmarks: Vec<u64> = self.bookmarked_rows.iter().copied().collect();
+        bookmarks.sort_unstable();
+
+        let Some(anchor) = self.single_selected_row() else {
+            return bookmarks.first().copied();
+        };
+
+        match direction {
+            BookmarkNavigation::Next => {
+                let index = match bookmarks.binary_search(&anchor) {
+                    Ok(index) => index + 1,
+                    Err(index) => index,
+                };
+                bookmarks
+                    .get(index)
+                    .copied()
+                    .or_else(|| bookmarks.first().copied())
+            }
+            BookmarkNavigation::Previous => {
+                let index = match bookmarks.binary_search(&anchor) {
+                    Ok(index) | Err(index) => index,
+                };
+                index
+                    .checked_sub(1)
+                    .and_then(|index| bookmarks.get(index).copied())
+                    .or_else(|| bookmarks.last().copied())
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{BookmarkNavigation, LogsState, MainRowFocus, SearchTableSync, SelectionIntent};
+
+    const EXCLUSIVE: SelectionIntent = SelectionIntent::Exclusive;
+    const TOGGLE_ROW: SelectionIntent = SelectionIntent::ToggleRow;
+    const EXTEND_RANGE: SelectionIntent = SelectionIntent::ExtendRange;
+
+    #[test]
+    fn plain_click_replaces_selection() {
+        let mut state = LogsState::default();
+
+        state.replace_selection_with(3);
+        let change = state.select_from_click(8, EXCLUSIVE);
+
+        assert_eq!(state.single_selected_row(), Some(8));
+        assert_eq!(change.details_row, Some(8));
+        assert_eq!(change.jump_to_row, Some(8));
+        assert_eq!(state.selected_rows, [8].into_iter().collect());
+        assert_eq!(state.last_selected_row, Some(8));
+    }
+
+    #[test]
+    fn plain_click_on_selected_row_keeps_only_that_row() {
+        let mut state = LogsState::default();
+
+        state.replace_selection_with(3);
+        state.select_from_click(8, TOGGLE_ROW);
+        let change = state.select_from_click(8, EXCLUSIVE);
+
+        assert_eq!(state.single_selected_row(), Some(8));
+        assert_eq!(change.details_row, Some(8));
+        assert_eq!(change.jump_to_row, Some(8));
+        assert_eq!(state.selected_rows, [8].into_iter().collect());
+        assert_eq!(state.last_selected_row, Some(8));
+    }
+
+    #[test]
+    fn plain_click_on_single_selected_row_clears_selection() {
+        let mut state = LogsState::default();
+
+        state.replace_selection_with(8);
+        let change = state.select_from_click(8, EXCLUSIVE);
+
+        assert_eq!(state.single_selected_row(), None);
+        assert_eq!(change.details_row, None);
+        assert_eq!(change.jump_to_row, None);
+        assert!(state.selected_rows.is_empty());
+        assert_eq!(state.last_selected_row, None);
+    }
+
+    #[test]
+    fn command_click_toggles_row() {
+        let mut state = LogsState::default();
+
+        state.replace_selection_with(3);
+        let change = state.select_from_click(3, TOGGLE_ROW);
+
+        assert_eq!(state.single_selected_row(), None);
+        assert_eq!(change.details_row, None);
+        assert_eq!(change.jump_to_row, None);
+        assert!(state.selected_rows.is_empty());
+        assert_eq!(state.last_selected_row, None);
+    }
+
+    #[test]
+    fn clear_selection_removes_selection_anchor() {
+        let mut state = LogsState::default();
+
+        state.replace_selection_with(3);
+        state.select_from_click(5, EXTEND_RANGE);
+        state.clear_selection();
+
+        assert_eq!(state.selected_count(), 0);
+        assert_eq!(state.single_selected_row(), None);
+        assert_eq!(state.last_selected_row, None);
+    }
+
+    #[test]
+    fn toggle_row_keeps_remaining_single_selection_without_jump() {
+        let mut state = LogsState::default();
+
+        state.replace_selection_with(3);
+        state.select_from_click(8, TOGGLE_ROW);
+        let change = state.select_from_click(8, TOGGLE_ROW);
+
+        assert_eq!(state.single_selected_row(), Some(3));
+        assert_eq!(change.details_row, Some(3));
+        assert_eq!(change.jump_to_row, None);
+        assert_eq!(state.selected_rows, [3].into_iter().collect());
+        assert_eq!(state.last_selected_row, Some(8));
+    }
+
+    #[test]
+    fn toggle_row_from_empty_selects_without_jump() {
+        let mut state = LogsState::default();
+
+        let change = state.select_from_click(8, TOGGLE_ROW);
+
+        assert_eq!(state.single_selected_row(), Some(8));
+        assert_eq!(change.details_row, Some(8));
+        assert_eq!(change.jump_to_row, None);
+        assert_eq!(state.selected_rows, [8].into_iter().collect());
+        assert_eq!(state.last_selected_row, Some(8));
+    }
+
+    #[test]
+    fn shift_after_clearing_selection_uses_current_row_only() {
+        let mut state = LogsState::default();
+
+        state.replace_selection_with(10);
+        state.select_from_click(10, TOGGLE_ROW);
+        let change = state.select_from_click(20, EXTEND_RANGE);
+
+        assert_eq!(state.single_selected_row(), Some(20));
+        assert_eq!(change.details_row, Some(20));
+        assert_eq!(change.jump_to_row, None);
+        assert_eq!(state.selected_rows, [20].into_iter().collect());
+        assert_eq!(state.last_selected_row, Some(20));
+    }
+
+    #[test]
+    fn shift_without_anchor_selects_current_row() {
+        let mut state = LogsState::default();
+        state.selected_rows.extend([2, 4]);
+
+        let change = state.select_from_click(6, EXTEND_RANGE);
+
+        assert_eq!(state.single_selected_row(), Some(6));
+        assert_eq!(change.details_row, Some(6));
+        assert_eq!(change.jump_to_row, None);
+        assert_eq!(state.selected_rows, [6].into_iter().collect());
+        assert_eq!(state.last_selected_row, Some(6));
+    }
+
+    #[test]
+    fn shift_click_on_selected_row_is_ignored() {
+        let mut state = LogsState::default();
+
+        state.replace_selection_with(4);
+        state.select_from_click(7, EXTEND_RANGE);
+        let change = state.select_from_click(7, EXTEND_RANGE);
+
+        assert_eq!(state.single_selected_row(), None);
+        assert_eq!(change.details_row, None);
+        assert_eq!(change.jump_to_row, None);
+        assert_eq!(state.selected_rows, [4, 5, 6, 7].into_iter().collect());
+        assert_eq!(state.last_selected_row, Some(7));
+    }
+
+    #[test]
+    fn shift_click_preserves_existing_selection() {
+        let mut state = LogsState::default();
+
+        state.replace_selection_with(2);
+        state.select_from_click(9, TOGGLE_ROW);
+        let change = state.select_from_click(7, EXTEND_RANGE);
+
+        assert_eq!(state.single_selected_row(), None);
+        assert_eq!(change.details_row, None);
+        assert_eq!(change.jump_to_row, None);
+        assert_eq!(state.selected_rows, [2, 7, 8, 9].into_iter().collect());
+        assert_eq!(state.last_selected_row, Some(7));
+    }
+
+    #[test]
+    fn repeated_shift_click_extends_from_latest_anchor() {
+        let mut state = LogsState::default();
+
+        state.replace_selection_with(4);
+        state.select_from_click(7, EXTEND_RANGE);
+        let change = state.select_from_click(10, EXTEND_RANGE);
+
+        assert_eq!(state.single_selected_row(), None);
+        assert_eq!(change.details_row, None);
+        assert_eq!(change.jump_to_row, None);
+        assert_eq!(
+            state.selected_rows,
+            [4, 5, 6, 7, 8, 9, 10].into_iter().collect()
+        );
+        assert_eq!(state.last_selected_row, Some(10));
+    }
+
+    #[test]
+    fn command_shift_click_adds_range() {
+        let mut state = LogsState::default();
+
+        state.replace_selection_with(2);
+        state.select_from_click(9, TOGGLE_ROW);
+        let change = state.select_from_click(5, EXTEND_RANGE);
+
+        assert_eq!(state.single_selected_row(), None);
+        assert_eq!(change.details_row, None);
+        assert_eq!(change.jump_to_row, None);
+        assert_eq!(
+            state.selected_rows,
+            [2, 5, 6, 7, 8, 9].into_iter().collect()
+        );
+        assert_eq!(state.last_selected_row, Some(5));
+    }
+
+    #[test]
+    fn single_selected_row_requires_exactly_one_row() {
+        let mut state = LogsState::default();
+
+        assert_eq!(state.single_selected_row(), None);
+
+        state.replace_selection_with(11);
+        assert_eq!(state.single_selected_row(), Some(11));
+
+        state.select_from_click(14, TOGGLE_ROW);
+        assert_eq!(state.single_selected_row(), None);
+    }
+
+    #[test]
+    fn focus_main_row_selects_row_and_requests_scroll() {
+        let mut state = LogsState::default();
+
+        let change = state.focus_main_row(13, SearchTableSync::Sync);
+
+        assert_eq!(
+            state.take_main_row_focus(),
+            Some(MainRowFocus {
+                row: 13,
+                search_table_sync: SearchTableSync::Sync,
+            })
+        );
+        assert_eq!(state.take_main_row_focus(), None);
+        assert_eq!(state.single_selected_row(), Some(13));
+        assert_eq!(change.details_row, Some(13));
+        assert_eq!(change.jump_to_row, Some(13));
+    }
+
+    #[test]
+    fn focus_main_rows_selects_rows_and_requests_scroll_to_first() {
+        let mut state = LogsState::default();
+
+        let change = state.focus_main_rows(&[8, 13, 21]);
+
+        assert_eq!(
+            state.take_main_row_focus(),
+            Some(MainRowFocus {
+                row: 8,
+                search_table_sync: SearchTableSync::Skip,
+            })
+        );
+        assert_eq!(state.single_selected_row(), None);
+        assert_eq!(change.details_row, None);
+        assert_eq!(change.jump_to_row, None);
+        assert_eq!(state.selected_rows, [8, 13, 21].into_iter().collect());
+        assert_eq!(state.last_selected_row, Some(21));
+    }
+
+    #[test]
+    fn multi_row_replacement_selects_all_rows() {
+        let mut state = LogsState::default();
+
+        state.replace_selection_with(3);
+        let change = state.replace_selection_with_rows(&[8, 13, 21]);
+
+        assert_eq!(state.single_selected_row(), None);
+        assert_eq!(change.details_row, None);
+        assert_eq!(change.jump_to_row, None);
+        assert_eq!(state.selected_rows, [8, 13, 21].into_iter().collect());
+        assert_eq!(state.last_selected_row, Some(21));
+    }
+
+    #[test]
+    fn multi_row_replacement_with_one_row_keeps_single_selection_effects() {
+        let mut state = LogsState::default();
+
+        let change = state.replace_selection_with_rows(&[8]);
+
+        assert_eq!(state.single_selected_row(), Some(8));
+        assert_eq!(change.details_row, Some(8));
+        assert_eq!(change.jump_to_row, Some(8));
+        assert_eq!(state.selected_rows, [8].into_iter().collect());
+        assert_eq!(state.last_selected_row, Some(8));
+    }
+
+    #[test]
+    fn multi_row_replacement_with_empty_rows_clears_selection() {
+        let mut state = LogsState::default();
+
+        state.replace_selection_with_rows(&[8, 13]);
+        let change = state.replace_selection_with_rows(&[]);
+
+        assert_eq!(state.single_selected_row(), None);
+        assert_eq!(change.details_row, None);
+        assert_eq!(change.jump_to_row, None);
+        assert!(state.selected_rows.is_empty());
+        assert_eq!(state.last_selected_row, None);
+    }
+
+    #[test]
+    fn bookmark_neighbor_empty_returns_none() {
+        let state = LogsState::default();
+
+        assert_eq!(state.bookmark_neighbor(BookmarkNavigation::Next), None);
+        assert_eq!(state.bookmark_neighbor(BookmarkNavigation::Previous), None);
+    }
+
+    #[test]
+    fn bookmark_neighbor_without_selection_returns_first_for_both_directions() {
+        let mut state = LogsState::default();
+        state.bookmarked_rows.extend([9, 1, 5]);
+
+        assert_eq!(state.bookmark_neighbor(BookmarkNavigation::Next), Some(1));
+        assert_eq!(
+            state.bookmark_neighbor(BookmarkNavigation::Previous),
+            Some(1)
+        );
+    }
+
+    #[test]
+    fn bookmark_neighbor_next_from_middle() {
+        let mut state = LogsState::default();
+        state.bookmarked_rows.extend([1, 5, 9]);
+        state.replace_selection_with(5);
+
+        assert_eq!(state.bookmark_neighbor(BookmarkNavigation::Next), Some(9));
+    }
+
+    #[test]
+    fn bookmark_neighbor_previous_from_middle() {
+        let mut state = LogsState::default();
+        state.bookmarked_rows.extend([1, 5, 9]);
+        state.replace_selection_with(5);
+
+        assert_eq!(
+            state.bookmark_neighbor(BookmarkNavigation::Previous),
+            Some(1)
+        );
+    }
+
+    #[test]
+    fn bookmark_neighbor_next_wraps_to_first() {
+        let mut state = LogsState::default();
+        state.bookmarked_rows.extend([1, 5, 9]);
+        state.replace_selection_with(9);
+
+        assert_eq!(state.bookmark_neighbor(BookmarkNavigation::Next), Some(1));
+    }
+
+    #[test]
+    fn bookmark_neighbor_previous_wraps_to_last() {
+        let mut state = LogsState::default();
+        state.bookmarked_rows.extend([1, 5, 9]);
+        state.replace_selection_with(1);
+
+        assert_eq!(
+            state.bookmark_neighbor(BookmarkNavigation::Previous),
+            Some(9)
+        );
+    }
+
+    #[test]
+    fn bookmark_neighbor_uses_unbookmarked_selection_as_anchor() {
+        let mut state = LogsState::default();
+        state.bookmarked_rows.extend([1, 5, 9]);
+        state.replace_selection_with(4);
+
+        assert_eq!(state.bookmark_neighbor(BookmarkNavigation::Next), Some(5));
+        assert_eq!(
+            state.bookmark_neighbor(BookmarkNavigation::Previous),
+            Some(1)
+        );
+    }
+}

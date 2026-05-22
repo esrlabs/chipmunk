@@ -359,7 +359,7 @@ dependencies = [
 
 [[package]]
 name = "bufread"
-version = "0.1.1"
+version = "4.0.0-alpha.1"
 
 [[package]]
 name = "bumpalo"
@@ -563,9 +563,9 @@ dependencies = [
 
 [[package]]
 name = "core-foundation"
-version = "0.10.1"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b2a6cd9ae233e7f62ba4e9353e81a88df7fc8a5987b8d445b4d90c879bd156f6"
+checksum = "b55271e5c8c478ad3f38ad24ef34923091e0548492a266d19b3c0b4d82574c63"
 dependencies = [
  "core-foundation-sys",
  "libc",
@@ -1118,7 +1118,7 @@ dependencies = [
 
 [[package]]
 name = "file-tools"
-version = "0.1.0"
+version = "4.0.0-alpha.1"
 dependencies = [
  "anyhow",
 ]
@@ -1624,7 +1624,7 @@ dependencies = [
 
 [[package]]
 name = "indexer_base"
-version = "0.1.0"
+version = "4.0.0-alpha.1"
 dependencies = [
  "log",
  "serde",
@@ -1695,15 +1695,6 @@ name = "ipnet"
 version = "2.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "469fb0b9cefa57e3ef31275ee7cacb78f2fdca44e4765491884a2b119d4eb130"
-
-[[package]]
-name = "itertools"
-version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "413ee7dfc52ee1a4949ceeb7dbc8a33f2d6c088194d9f922fb8318faf1f01186"
-dependencies = [
- "either",
-]
 
 [[package]]
 name = "itertools"
@@ -1961,7 +1952,7 @@ dependencies = [
 
 [[package]]
 name = "merging"
-version = "0.1.0"
+version = "4.0.0-alpha.1"
 dependencies = [
  "log",
  "serde",
@@ -2325,7 +2316,7 @@ dependencies = [
 
 [[package]]
 name = "parsers"
-version = "0.1.0"
+version = "4.0.0-alpha.1"
 dependencies = [
  "byteorder",
  "chrono",
@@ -2429,7 +2420,7 @@ checksum = "7edddbd0b52d732b21ad9a5fab5c704c14cd949e5e9a1ec5929a24fded1b904c"
 
 [[package]]
 name = "plugins_host"
-version = "0.1.0"
+version = "4.0.0-alpha.1"
 dependencies = [
  "anyhow",
  "blake3",
@@ -2504,7 +2495,7 @@ dependencies = [
 
 [[package]]
 name = "processor"
-version = "0.2.0"
+version = "4.0.0-alpha.1"
 dependencies = [
  "bincode",
  "bufread",
@@ -2513,7 +2504,7 @@ dependencies = [
  "grep-regex",
  "grep-searcher",
  "indexer_base",
- "itertools 0.13.0",
+ "itertools",
  "lazy_static",
  "log",
  "parsers",
@@ -2939,26 +2930,27 @@ dependencies = [
 
 [[package]]
 name = "serialport"
-version = "4.7.2"
+version = "4.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cdb0bc984f6af6ef8bab54e6cf2071579ee75b9286aa9f2319a0d220c28b0a2b"
+checksum = "21f60a586160667241d7702c420fc223939fb3c0bb8d3fac84f78768e8970dee"
 dependencies = [
  "bitflags 2.9.1",
  "cfg-if",
- "core-foundation 0.10.1",
+ "core-foundation 0.10.0",
  "core-foundation-sys",
  "io-kit-sys",
  "libudev",
  "mach2",
  "nix 0.26.4",
+ "quote",
  "scopeguard",
  "unescaper",
- "winapi",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
 name = "session"
-version = "0.1.0"
+version = "4.0.0-alpha.1"
 dependencies = [
  "blake3",
  "dirs",
@@ -3092,7 +3084,7 @@ dependencies = [
 
 [[package]]
 name = "someip-tools"
-version = "0.1.0"
+version = "4.0.0-alpha.1"
 dependencies = [
  "nom",
  "thiserror 2.0.12",
@@ -3100,7 +3092,7 @@ dependencies = [
 
 [[package]]
 name = "sources"
-version = "0.1.0"
+version = "4.0.0-alpha.1"
 dependencies = [
  "bufread",
  "bytes",
@@ -3146,7 +3138,7 @@ checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
 
 [[package]]
 name = "stypes"
-version = "0.1.0"
+version = "4.0.0-alpha.1"
 dependencies = [
  "anyhow",
  "bincode",
@@ -3239,7 +3231,7 @@ dependencies = [
 
 [[package]]
 name = "text_grep"
-version = "0.1.0"
+version = "4.0.0-alpha.1"
 dependencies = [
  "bufread",
  "grep-regex",
@@ -3935,7 +3927,7 @@ dependencies = [
  "cranelift-frontend",
  "cranelift-native",
  "gimli",
- "itertools 0.14.0",
+ "itertools",
  "log",
  "object",
  "pulley-interpreter",

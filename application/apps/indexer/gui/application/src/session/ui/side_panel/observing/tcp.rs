@@ -1,0 +1,170 @@
+use egui::{Align, Id, Layout, RichText, Ui, Widget};
+use stypes::Transport;
+use tokio::sync::mpsc;
+use uuid::Uuid;
+
+use crate::{
+    common::{
+        phosphor::icons,
+        ui::{buttons, visibility_tracker::VisibilityTracker},
+    },
+    host::ui::{
+        UiActions,
+        session_setup::{
+            RenderOutcome, main_config,
+            state::sources::{StreamConfig, TcpConfig},
+        },
+    },
+    session::{
+        command::{AttachSource, SessionCommand},
+        types::ObserveOperation,
+        ui::shared::SessionShared,
+    },
+};
+
+#[derive(Debug)]
+pub struct TcpObserveUi {
+    id: Id,
+    cmd_tx: mpsc::Sender<SessionCommand>,
+    config: TcpConfig,
+    // Used to focus the address input when the attach-TCP form is shown again.
+    input_visibility: VisibilityTracker,
+}
+
+impl TcpObserveUi {
+    pub fn new(id_salt: Uuid, cmd_tx: mpsc::Sender<SessionCommand>) -> Self {
+        let id = Id::new(format!("side_tcp_{id_salt}"));
+        Self {
+            id,
+            cmd_tx,
+            config: TcpConfig::new(),
+            input_visibility: VisibilityTracker::default(),
+        }
+    }
+
+    pub fn render_content(
+        &mut self,
+        ui: &mut Ui,
+        shared: &mut SessionShared,
+        actions: &mut UiActions,
+    ) {
+        super::render_group_title(ui, "TCP Connections");
+
+        ui.add_space(super::SPACE_BETWEEN_GROUPS);
+
+        self.attach_tcp(ui, actions);
+
+        ui.add_space(super::SPACE_BETWEEN_GROUPS);
+
+        super::render_stream_ops(
+            ui,
+            shared.observe.operations(),
+            "Connected",
+            "Disconnected",
+            |ui, op, idx| {
+                self.render_tcp_item(ui, op, idx, actions);
+            },
+        );
+    }
+
+    fn attach_tcp(&mut self, ui: &mut Ui, actions: &mut UiActions) {
+        super::render_attach_source(ui, self.id, "New Connection", |ui| {
+            let mut outcome = main_config::render_socket_address(
+                &mut self.config,
+                &mut self.input_visibility,
+                ui,
+            );
+            ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
+                if ui
+                    .add_enabled(
+                        self.config.is_valid(),
+                        buttons::side_panel_primary("Connect"),
+                    )
+                    .clicked()
+                {
+                    outcome = RenderOutcome::StartSession;
+                }
+            });
+
+            if outcome == RenderOutcome::StartSession {
+                let cmd = SessionCommand::AttachSource {
+                    source: AttachSource::Stream(Box::new(StreamConfig::Tcp(
+                        self.config.to_owned(),
+                    ))),
+                };
+                self.config.bind_addr.clear();
+                self.config.validate();
+
+                actions.try_send_command(&self.cmd_tx, cmd);
+            }
+        });
+    }
+
+    fn render_tcp_item(
+        &self,
+        ui: &mut Ui,
+        operation: &ObserveOperation,
+        idx: usize,
+        actions: &mut UiActions,
+    ) {
+        let (source_uuid, config) = match &operation.origin {
+            stypes::ObserveOrigin::Stream(uuid, Transport::TCP(config)) => (uuid, config),
+            _ => return,
+        };
+
+        super::render_observe_item(
+            ui,
+            actions,
+            idx,
+            icons::regular::PLUGS_CONNECTED,
+            |ui| {
+                ui.label(RichText::new(&config.bind_addr).strong());
+            },
+            |ui, actions| {
+                if operation.phase().is_running() {
+                    let stop_res = super::get_item_button(icons::regular::STOP_CIRCLE)
+                        .ui(ui)
+                        .on_hover_text("Disconnect");
+                    if stop_res.clicked() {
+                        let cmd = SessionCommand::CancelOperation { id: operation.id };
+                        actions.try_send_command(&self.cmd_tx, cmd);
+                    }
+                } else {
+                    let run_res = super::get_item_button(icons::regular::PLAY_CIRCLE)
+                        .ui(ui)
+                        .on_hover_text("Reconnect");
+                    if run_res.clicked() {
+                        let to_send = TcpConfig::from(config);
+                        let cmd = SessionCommand::AttachSource {
+                            source: AttachSource::Stream(Box::new(StreamConfig::Tcp(to_send))),
+                        };
+
+                        actions.try_send_command(&self.cmd_tx, cmd);
+                    }
+                }
+            },
+            |ui, actions| {
+                let is_running = operation.phase().is_running();
+                let label = if is_running { "Disconnect" } else { "Connect" };
+
+                if ui.button(label).clicked() {
+                    let cmd = if is_running {
+                        SessionCommand::CancelOperation { id: operation.id }
+                    } else {
+                        let stream_cfg = StreamConfig::Tcp(TcpConfig::from(config));
+                        SessionCommand::AttachSource {
+                            source: AttachSource::Stream(Box::new(stream_cfg)),
+                        }
+                    };
+
+                    actions.try_send_command(&self.cmd_tx, cmd);
+                }
+
+                ui.separator();
+                if ui.button("Reopen in New Tab").clicked() {
+                    super::open_in_new_tab(source_uuid, actions, &self.cmd_tx);
+                }
+            },
+        );
+    }
+}

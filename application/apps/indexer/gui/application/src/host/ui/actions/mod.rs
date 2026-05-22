@@ -1,0 +1,155 @@
+use std::time::Duration;
+
+use crate::host::notification::AppNotification;
+use tokio::{runtime::Handle, sync::mpsc};
+
+mod file_dialog;
+mod host_action;
+
+pub use file_dialog::{FileDialogFilter, FileDialogHandle, FileDialogOptions};
+pub use host_action::HostAction;
+
+/// A handle to be passed between UI components to get access to
+/// shared UI functions like notifications.
+#[derive(Debug)]
+pub struct UiActions {
+    /// Tokio runtime handle for UI components that need to spawn service-side work.
+    #[expect(dead_code, reason = "Reserved for upcoming UI async actions.")]
+    pub tokio_handle: Handle,
+    pending_notifications: Vec<AppNotification>,
+    pub file_dialog: FileDialogHandle,
+    // Queue of actions for the Host to process next frame
+    host_actions: Vec<HostAction>,
+}
+
+impl UiActions {
+    pub fn new(tokio_handle: Handle) -> Self {
+        Self {
+            pending_notifications: Vec::new(),
+            file_dialog: FileDialogHandle::new(tokio_handle.clone()),
+            tokio_handle,
+            host_actions: Vec::new(),
+        }
+    }
+
+    pub fn add_notification(&mut self, notifi: AppNotification) {
+        self.pending_notifications.push(notifi);
+    }
+
+    pub fn drain_notifications(&mut self) -> impl Iterator<Item = AppNotification> {
+        self.pending_notifications.drain(..)
+    }
+
+    pub fn add_host_action(&mut self, action: HostAction) {
+        self.host_actions.push(action);
+    }
+
+    pub fn drain_host_actions(&mut self) -> impl Iterator<Item = HostAction> {
+        self.host_actions.drain(..)
+    }
+
+    /// Tries to send the command with the provided sender. In case it fails it will
+    /// log and notify the UI about the error with appropriate messages.
+    ///
+    /// # Return
+    ///
+    /// `true` if the command has been successfully sent.
+    pub fn try_send_command<T>(&mut self, sender: &mpsc::Sender<T>, command: T) -> bool
+    where
+        T: std::fmt::Debug,
+    {
+        use mpsc::error::TrySendError;
+        let Err(err) = sender.try_send(command) else {
+            return true;
+        };
+
+        match err {
+            TrySendError::Full(msg) => {
+                log::error!(
+                    "Communication error while sending command from UI to core. Channel is full. Message: {msg:?}"
+                );
+                let err = "Communication Error: Request can't be sent. Please try again later.";
+                self.add_notification(AppNotification::UiError(err.into()));
+            }
+            TrySendError::Closed(msg) => {
+                log::error!(
+                    "Communication error while sending command from UI to core. Channel is Closed. Message: {msg:?}"
+                );
+                let err = "Unrecoverable communication Error. Please restart the app.\n\
+                        Please consider submitting a bug report regarding this issue.";
+                self.add_notification(AppNotification::UiError(err.into()));
+            }
+        }
+
+        false
+    }
+
+    /// Attempts to send a command via the provided sender with a retry mechanism.
+    ///
+    /// # Note: Blocking Operation
+    /// This function uses `std::thread::sleep` to wait between attempts.
+    /// **Avoid high `interval` or `max_attempts` values on the main UI thread**,
+    /// as this will freeze the application interface.
+    ///
+    /// # Behavior
+    /// * **Success:** Returns `true` immediately.
+    /// * **Channel Full:** Retries up to `max_attempts`, waiting `interval` between tries.
+    /// * **Channel Closed:** Fails immediately (no retry), as the receiver is unreachable.
+    ///
+    /// # Return
+    /// * `true` if the command was successfully sent.
+    /// * `false` if the channel was closed or remained full after all attempts.
+    pub fn send_command_with_retry<T>(
+        &mut self,
+        sender: &mpsc::Sender<T>,
+        command: T,
+        interval: Duration,
+        max_attempts: u8,
+    ) -> bool
+    where
+        T: std::fmt::Debug,
+    {
+        use mpsc::error::TrySendError;
+
+        let mut cmd = command;
+        let mut attempts = 0;
+
+        loop {
+            match sender.try_send(cmd) {
+                Ok(()) => return true,
+                Err(err) => {
+                    match err {
+                        TrySendError::Full(returned_cmd) => {
+                            if attempts >= max_attempts {
+                                log::error!(
+                                    "Communication error: Channel full after {} attempts. Dropping message: {:?}",
+                                    attempts,
+                                    returned_cmd
+                                );
+                                self.add_notification(AppNotification::UiError(
+                                    "System Busy: Request timed out. Please try again.".into(),
+                                ));
+                                return false;
+                            }
+
+                            std::thread::sleep(interval);
+                            cmd = returned_cmd;
+                            attempts += 1;
+                        }
+                        TrySendError::Closed(returned_cmd) => {
+                            // Do not retry on Disconnected/Closed. It will never succeed.
+                            log::error!(
+                                "Critical error: Core service disconnected. Dropping message: {:?}",
+                                returned_cmd
+                            );
+                            let err_msg = "Critical Error: Connection to core service lost.\n\
+                                           Please restart the application.";
+                            self.add_notification(AppNotification::UiError(err_msg.into()));
+                            return false;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

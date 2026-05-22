@@ -63,6 +63,7 @@ impl OperationStat {
 #[derive(Debug)]
 pub struct Operation {
     kind: OperationKind,
+    /// ID is needed to keep track on long running processing to cancel them.
     id: Uuid,
 }
 

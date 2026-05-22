@@ -71,6 +71,7 @@ application/sandbox/serial/render/lib/views/dialog/port.available
 sandbox
 sandbox.backup
 **/holder/release
+**/apps/indexer/gui/application/release
 scripts/tools/file_checklists/*.*
 
 # CLI build tool files #

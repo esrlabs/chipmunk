@@ -2,7 +2,6 @@
 mod converting;
 #[cfg(feature = "rustcore")]
 mod extending;
-#[cfg(feature = "rustcore")]
 mod formating;
 #[cfg(feature = "nodejs")]
 mod nodejs;
@@ -125,7 +124,7 @@ pub enum ComputationError {
     #[error("Session is destroyed or not inited yet")]
     SessionUnavailable,
     /// A native error occurred. Includes the error details.
-    #[error("{0:?}")]
+    #[error("{0}")]
     NativeError(NativeError),
     /// Unable to grab content. Includes a description.
     #[error("Grabbing content not possible: {0}")]

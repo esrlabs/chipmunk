@@ -52,6 +52,16 @@ impl RustSession {
                         }
                         debug!("task is started");
                         while let Some(event) = rx_callback_events.recv().await {
+                            match &event {
+                                stypes::CallbackEvent::OperationStarted(..) => {}
+                                stypes::CallbackEvent::OperationProcessing(..) => {}
+                                stypes::CallbackEvent::OperationDone(..) => {}
+                                _ => {
+                                    println!(
+                                        "****************** DEBUG AAZ: Callback evnet: {event:?}"
+                                    );
+                                }
+                            }
                             callback(event)
                         }
                         debug!("sending SessionDestroyed event");
