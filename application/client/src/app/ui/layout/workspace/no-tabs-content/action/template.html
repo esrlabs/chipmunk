@@ -1,7 +1,0 @@
-<button mat-menu-item (click)="action.apply()">
-  <div class="wrapper">
-    <span class="left">{{action.caption()}}</span>
-    <mat-icon *ngIf="menu" [attr.data-pinned]="isPinned() ? 'yes' : 'no'" (click)="onPin($event)">star</mat-icon>
-    <mat-icon *ngIf="!menu" (click)="onPin($event)">delete</mat-icon>  
-  </div>
-</button> 

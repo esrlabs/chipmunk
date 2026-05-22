@@ -1,9 +1,0 @@
-<app-views-workspace-title [session]="session"></app-views-workspace-title>
-<div class="header" *ngIf="columns !== undefined">
-    <app-scrollarea-row-columns-headers #headers [controller]="columns" [session]="session"></app-scrollarea-row-columns-headers>
-</div>
-<div class="content">
-    <app-scrollarea class="noreset" [service]="service" [tabIndex]="5" (offset)="onHorizontalScrolling($event)"></app-scrollarea>
-    <app-views-content-map [session]="session"></app-views-content-map>
-</div>
-<app-views-sde [session]="session"></app-views-sde>

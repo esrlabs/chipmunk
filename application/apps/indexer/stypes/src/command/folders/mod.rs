@@ -1,21 +1,10 @@
-#[cfg(feature = "rustcore")]
 mod extending;
-#[cfg(feature = "nodejs")]
-mod nodejs;
-#[cfg(test)]
-mod proptest;
 
 use crate::*;
 
 /// Represents the type of a folder entity in the file system.
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Clone, Serialize, Deserialize, Debug)]
-#[extend::encode_decode]
-#[cfg_attr(
-    all(test, feature = "test_and_gen"),
-    derive(TS),
-    ts(export, export_to = "command.ts")
-)]
 pub enum FolderEntityType {
     /// A block device (e.g., a disk or partition).
     BlockDevice,
@@ -35,12 +24,6 @@ pub enum FolderEntityType {
 
 /// Contains detailed information about a folder entity.
 #[derive(Clone, Serialize, Deserialize, Debug)]
-#[extend::encode_decode]
-#[cfg_attr(
-    all(test, feature = "test_and_gen"),
-    derive(TS),
-    ts(export, export_to = "command.ts")
-)]
 pub struct FolderEntityDetails {
     /// The name of the file or folder.
     filename: String,
@@ -56,12 +39,6 @@ pub struct FolderEntityDetails {
 
 /// Represents the result of scanning a folder.
 #[derive(Clone, Serialize, Deserialize, Debug)]
-#[extend::encode_decode]
-#[cfg_attr(
-    all(test, feature = "test_and_gen"),
-    derive(TS),
-    ts(export, export_to = "command.ts")
-)]
 pub struct FoldersScanningResult {
     /// A list of folder entities found during the scan.
     pub list: Vec<FolderEntity>,
@@ -71,12 +48,6 @@ pub struct FoldersScanningResult {
 
 /// Represents a folder entity in the file system.
 #[derive(Clone, Serialize, Deserialize, Debug)]
-#[extend::encode_decode]
-#[cfg_attr(
-    all(test, feature = "test_and_gen"),
-    derive(TS),
-    ts(export, export_to = "command.ts")
-)]
 pub struct FolderEntity {
     /// The name of the entity (file or folder).
     name: String,

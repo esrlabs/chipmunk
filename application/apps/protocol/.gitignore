@@ -1,4 +1,0 @@
-./target
-!./pkg
-!*.js
-Cargo.lock

@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 which.workspace = true
 log.workspace = true
-stypes = { path = "../../stypes", features=["rustcore"]  }
+stypes = { path = "../../stypes" }
 
 [lints]
 workspace = true

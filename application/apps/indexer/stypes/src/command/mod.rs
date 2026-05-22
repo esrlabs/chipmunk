@@ -1,11 +1,4 @@
-#[cfg(feature = "rustcore")]
 mod extending;
-#[cfg(feature = "nodejs")]
-mod nodejs;
-#[cfg(test)]
-mod proptest;
-#[cfg(test)]
-mod ts;
 
 mod dltstat;
 mod folders;
@@ -24,7 +17,6 @@ use crate::*;
 /// It is only used to indicate the successful completion or interruption of a command.
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[serde(bound(deserialize = "T: DeserializeOwned"))]
-#[extend::encode_decode]
 pub enum CommandOutcome<T: Serialize + DeserializeOwned> {
     /// Indicates that the command was successfully completed.
     Finished(T),

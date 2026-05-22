@@ -1,6 +1,0 @@
-<app-views-chart-output *ngIf="state.hasData" [session]="session" [state]="state"></app-views-chart-output>
-<app-views-chart-summary *ngIf="state.hasData" [session]="session" [state]="state"></app-views-chart-summary>
-<app-views-chart-cursor *ngIf="state.hasData" [session]="session" [state]="state"></app-views-chart-cursor>
-<div *ngIf="!state.hasData" class="placeholder">
-    <p class="t-normal">As soon as some filter will be created, the frequency of matching will be shown. Also as soon as some chart term will be created, the chart will be rendered.</p>
-</div>

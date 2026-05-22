@@ -22,7 +22,7 @@ pub fn current_version() -> &'static Version {
 pub fn icon() -> egui::IconData {
     let icon_bytes = include_bytes!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/../../../../holder/resources/icons/png/icon.png"
+        "/data/icons/png/icon.png"
     ));
 
     match eframe::icon_data::from_png_bytes(icon_bytes) {

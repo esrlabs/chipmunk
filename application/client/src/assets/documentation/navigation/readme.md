@@ -1,2 +1,0 @@
-- [Favorites](./favorites.md)
-- [Recents](./recents.md)

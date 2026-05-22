@@ -1,12 +1,6 @@
-#[cfg(feature = "rustcore")]
 mod converting;
-#[cfg(feature = "rustcore")]
 mod extending;
 mod formating;
-#[cfg(feature = "nodejs")]
-mod nodejs;
-#[cfg(test)]
-mod proptest;
 
 use crate::*;
 use thiserror::Error;
@@ -14,12 +8,6 @@ use thiserror::Error;
 /// Indicates the severity level of an error.
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
-#[extend::encode_decode]
-#[cfg_attr(
-    all(test, feature = "test_and_gen"),
-    derive(TS),
-    ts(export, export_to = "error.ts")
-)]
 pub enum Severity {
     /// Warning level, indicates a recoverable issue.
     WARNING,
@@ -29,12 +17,6 @@ pub enum Severity {
 
 /// Defines the source or type of an error.
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[extend::encode_decode]
-#[cfg_attr(
-    all(test, feature = "test_and_gen"),
-    derive(TS),
-    ts(export, export_to = "error.ts")
-)]
 pub enum NativeErrorKind {
     /// The file was not found.
     FileNotFound,
@@ -63,12 +45,6 @@ pub enum NativeErrorKind {
 
 /// Describes the details of an error.
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[extend::encode_decode]
-#[cfg_attr(
-    all(test, feature = "test_and_gen"),
-    derive(TS),
-    ts(export, export_to = "error.ts")
-)]
 pub struct NativeError {
     /// The severity level of the error.
     pub severity: Severity,
@@ -80,12 +56,6 @@ pub struct NativeError {
 
 /// Describes the type and details of an error.
 #[derive(Error, Debug, Serialize, Deserialize, Clone)]
-#[extend::encode_decode]
-#[cfg_attr(
-    all(test, feature = "test_and_gen"),
-    derive(TS),
-    ts(export, export_to = "error.ts")
-)]
 pub enum ComputationError {
     /// The destination path must be defined to stream from `MessageProducer`.
     #[error("Destination path should be defined to stream from MessageProducer")]

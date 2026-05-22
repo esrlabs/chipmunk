@@ -1,6 +1,0 @@
-/target
-**/*.rs.bk
-*.out
-lineMetadata.json
-vim-markdown-preview.html
-.DS_Store

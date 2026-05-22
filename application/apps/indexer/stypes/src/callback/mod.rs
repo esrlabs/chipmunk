@@ -1,22 +1,10 @@
-#[cfg(feature = "rustcore")]
 mod extending;
-#[cfg(feature = "rustcore")]
 mod formating;
-#[cfg(feature = "nodejs")]
-mod nodejs;
-#[cfg(test)]
-mod proptest;
 
 use crate::*;
 
 /// Contains the results of an operation.
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[extend::encode_decode]
-#[cfg_attr(
-    all(test, feature = "test_and_gen"),
-    derive(TS),
-    ts(export, export_to = "callback.ts")
-)]
 pub struct OperationDone {
     /// The unique identifier of the operation.
     pub uuid: Uuid,
@@ -26,17 +14,10 @@ pub struct OperationDone {
 
 /// Represents events sent to the client.
 #[derive(Debug, Serialize, Deserialize, Clone)]
-#[extend::encode_decode]
-#[cfg_attr(
-    all(test, feature = "test_and_gen"),
-    derive(TS),
-    ts(export, export_to = "callback.ts")
-)]
 pub enum CallbackEvent {
     /// Triggered when the content of the current session is updated.
     /// - `u64`: The current number of log entries in the stream.
     /// This can be triggered with `0` when the session is created.
-    #[cfg_attr(all(test, feature = "test_and_gen"), ts(type = "number"))]
     StreamUpdated(u64),
 
     /// Triggered when a file is opened within the session.
@@ -48,12 +29,10 @@ pub enum CallbackEvent {
     /// Triggered when search results are updated.
     SearchUpdated {
         /// The number of logs with matches. Can be `0` if the search is reset on the client side.
-        #[cfg_attr(all(test, feature = "test_and_gen"), ts(type = "number"))]
         found: u64,
         /// A map of search conditions and their global match counts within the session.
         /// - `String`: The search condition.
         /// - `u64`: The count of matches.
-        #[cfg_attr(all(test, feature = "test_and_gen"), ts(type = "Map<string, number>"))]
         stat: HashMap<String, u64>,
     },
 
@@ -61,7 +40,6 @@ pub enum CallbackEvent {
     /// the number of log entries from search results that are available for reading.
     IndexedMapUpdated {
         /// The number of log entries from search results available for reading.
-        #[cfg_attr(all(test, feature = "test_and_gen"), ts(type = "number"))]
         len: u64,
     },
 
@@ -73,16 +51,11 @@ pub enum CallbackEvent {
     /// Triggered when the "value map" is updated. The "value map" is used to build charts
     /// from search results. Always triggered immediately after `SearchUpdated`.
     /// - `Option<HashMap<u8, (f64, f64)>>`: The value map.
-    #[cfg_attr(
-        all(test, feature = "test_and_gen"),
-        ts(type = "Map<number, [number, number]>")
-    )]
     SearchValuesUpdated(Option<HashMap<u8, (f64, f64)>>),
 
     /// Triggered whenever a new attachment is detected in the logs.
     AttachmentsUpdated {
         /// The size of the attachment in bytes.
-        #[cfg_attr(all(test, feature = "test_and_gen"), ts(type = "number"))]
         len: u64,
         /// The description of the attachment.
         attachment: AttachmentInfo,

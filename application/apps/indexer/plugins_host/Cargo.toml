@@ -23,8 +23,7 @@ wasmtime-wasi = "33.0"
 
 parsers.workspace = true
 stypes.workspace = true
-# TODO : Introduce shared crates and move dir_checksum to it.
-dir_checksum = { path = "../../../../cli/development-cli/dir_checksum" }
+dir_checksum = { path = "../../../../crates/dir_checksum" }
 
 [dev-dependencies]
 criterion = { workspace = true, features = ["async_tokio"] }
