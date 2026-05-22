@@ -17,7 +17,7 @@ pub struct OperationDone {
 pub enum CallbackEvent {
     /// Triggered when the content of the current session is updated.
     /// - `u64`: The current number of log entries in the stream.
-    /// This can be triggered with `0` when the session is created.
+    ///   This can be triggered with `0` when the session is created.
     StreamUpdated(u64),
 
     /// Triggered when a file is opened within the session.
