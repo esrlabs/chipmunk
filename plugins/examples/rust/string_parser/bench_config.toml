@@ -1,8 +1,8 @@
 # Configuration required to run the parser in Chipmunk benchmarks.
 
 # Path to the plugin WebAssembly (WASM) file.
-# Can be absolute or relative to the `indexer` directory within the Chipmunk repository.
-binary_path = "../../../../plugins/examples/rust/string_parser/target/wasm32-wasip1/release/string_parser.wasm"
+# Can be absolute or relative to the `crates/core/processor` directory.
+binary_path = "../../../plugins/examples/rust/string_parser/target/wasm32-wasip1/release/string_parser.wasm"
 
 # Plugin-specific configurations:
 
