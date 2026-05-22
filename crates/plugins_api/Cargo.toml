@@ -4,11 +4,11 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-log = "0.4"
-wit-bindgen = "0.42"
+log.workspace = true
+wit-bindgen.workspace = true
 
 [dev-dependencies]
-trybuild = "1.0"
+trybuild.workspace = true
 
 [features]
 default = []

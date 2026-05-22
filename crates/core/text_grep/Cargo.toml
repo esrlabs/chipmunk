@@ -13,8 +13,11 @@ workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
-tokio = { workspace = true, features = ["full"] }
+# Internal crates
 bufread.workspace = true
+
+# External crates
+tokio = { workspace = true, features = ["full"] }
 tokio-util.workspace = true
 grep-searcher.workspace = true
 grep-regex.workspace = true

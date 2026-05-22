@@ -6,14 +6,14 @@ edition = "2024"
 description = "A Library which provides methods to calculate the checksum of the files in a given path recursively considering `gitignore` rules"
 
 [dependencies]
-blake3 = { version = "1", features = ["rayon"] }
-ignore = "0.4"
-memmap2 = "0.9"
-rayon = "1"
-thiserror = "2"
-log = "0.4"
+blake3 = { workspace = true, features = ["rayon"] }
+ignore.workspace = true
+memmap2.workspace = true
+rayon.workspace = true
+thiserror.workspace = true
+log.workspace = true
 
 [dev-dependencies]
-tempdir = "0.3"
-anyhow = "1"
-pretty_assertions = "1.4"
+tempdir.workspace = true
+anyhow.workspace = true
+pretty_assertions.workspace = true

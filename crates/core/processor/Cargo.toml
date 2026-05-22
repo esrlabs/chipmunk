@@ -8,33 +8,36 @@ edition.workspace = true
 workspace = true 
 
 [dependencies]
-bincode = "1.3"
+# Internal crates
 bufread.workspace = true
-bytecount = "0.6"
+indexer_base.workspace = true
+parsers.workspace = true
+sources.workspace = true
+text_grep.workspace = true
+stypes.workspace = true
+
+# External crates
+bincode.workspace = true
+bytecount.workspace = true
 futures.workspace = true
 grep-regex.workspace = true
 grep-searcher.workspace = true
-indexer_base.workspace = true
 itertools.workspace = true
 lazy_static.workspace = true
 log.workspace = true
-parsers.workspace = true
-sources.workspace = true
 regex.workspace = true
 serde = { workspace = true , features = ["derive"] }
 serde_json.workspace = true
-text_grep.workspace = true
 thiserror.workspace = true
 tokio-util.workspace = true
-stypes.workspace = true
 
 [dev-dependencies]
+plugins_host.workspace = true
 criterion = { workspace = true, features = ["async_tokio"] }
-pretty_assertions = "1.4"
+pretty_assertions.workspace = true
 rand.workspace = true
 tempfile.workspace = true
 tokio.workspace = true
-plugins_host.workspace = true
 toml.workspace = true
 
 [[bench]]

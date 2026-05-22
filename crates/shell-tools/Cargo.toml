@@ -4,9 +4,12 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+# Internal crates
+stypes.workspace = true
+
+# External crates
 which.workspace = true
 log.workspace = true
-stypes.workspace = true
 
 [lints]
 workspace = true

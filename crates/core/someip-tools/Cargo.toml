@@ -7,7 +7,7 @@ edition.workspace = true
 workspace = true 
 
 [dependencies]
-nom = "7.1"
+nom.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]

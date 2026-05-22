@@ -7,9 +7,13 @@ edition.workspace = true
 workspace = true 
 
 [dependencies]
-byteorder = "1.5"
-chrono = "0.4"
-chrono-tz = "0.10"
+# Internal crates
+someip-tools.workspace = true
+
+# External crates
+byteorder.workspace = true
+chrono.workspace = true
+chrono-tz.workspace = true
 dlt-core = { workspace = true, features = ["serialization", "fibex"] }
 lazy_static.workspace = true
 log.workspace = true
@@ -18,13 +22,8 @@ memchr.workspace = true
 serde = { workspace = true , features = ["derive"] }
 thiserror.workspace = true
 rand.workspace = true
-someip-messages = { git = "https://github.com/esrlabs/someip" }
-
-# NOTE: Pinned to a specific commit because our unsafe code in `someip.rs`
-# depends on the internal implementation of this library.
-# Verify safety contract on update.
-someip-payload = { git = "https://github.com/esrlabs/someip-payload", rev= "b9aa52c96fcbdb0e5aa1ee5258299f0ff7e3a094" }
-someip-tools.workspace = true
+someip-messages.workspace = true
+someip-payload.workspace = true
 
 [dev-dependencies]
-stringreader = "0.1"
+stringreader.workspace = true
