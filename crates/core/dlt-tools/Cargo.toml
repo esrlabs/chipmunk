@@ -7,12 +7,15 @@ edition.workspace = true
 workspace = true 
 
 [dependencies]
-dlt-core.workspace = true
+# Internal crates
 indexer_base.workspace = true
-log.workspace = true
 parsers.workspace = true
 sources.workspace = true
 processor.workspace = true
+
+# External crates
+dlt-core.workspace = true
+log.workspace = true
 tokio = { workspace = true , features = ["full"] }
 tokio-util = { workspace = true, features = ["codec", "net"] }
 

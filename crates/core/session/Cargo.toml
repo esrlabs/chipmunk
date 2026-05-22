@@ -8,33 +8,36 @@ edition.workspace = true
 workspace = true 
 
 [dependencies]
+# Internal crates
+file-tools.workspace = true
+shell-tools.workspace = true
+indexer_base.workspace = true
+merging.workspace = true
+parsers.workspace = true
+processor.workspace = true
+stypes.workspace = true
+sources.workspace = true
+plugins_host.workspace = true
+
+# External crates
 blake3.workspace = true
 dirs.workspace = true
 dlt-core = { workspace = true, features = ["statistics", "serialization"] }
-file-tools.workspace = true
-shell-tools.workspace = true
 futures.workspace = true
-indexer_base.workspace = true
 lazy_static.workspace = true
 log.workspace = true
-merging.workspace = true
-mime_guess = "2.0"
-parsers.workspace = true
-processor.workspace = true
-rustc-hash = "2.1"
-stypes.workspace = true
+mime_guess.workspace = true
+rustc-hash.workspace = true
 serde = { workspace = true , features = ["derive"] }
-bincode = "1.3"
+bincode.workspace = true
 serde_json.workspace = true
 serialport.workspace = true
-sources.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true , features = ["full"] }
 tokio-stream.workspace = true
 tokio-util.workspace = true
 uuid = { workspace = true , features = ["serde", "v4"] }
 walkdir.workspace = true
-plugins_host.workspace = true
 
 [dev-dependencies]
 lazy_static.workspace = true

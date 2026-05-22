@@ -8,21 +8,24 @@ edition.workspace = true
 workspace = true 
 
 [dependencies]
+# Internal crates
 bufread.workspace = true
-bytes = "1.3"
-etherparse = "0.16"
+stypes.workspace = true
+
+# External crates
+bytes.workspace = true
+etherparse.workspace = true
 futures.workspace = true
 log.workspace = true
-pcap-parser = "0.16"
+pcap-parser.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
-tokio-serial = "5.4"
+tokio-serial.workspace = true
 tokio-stream.workspace = true
 tokio-util = { workspace = true , features = ["full"] }
 serde = { workspace = true, features = ["derive"] }
 uuid = { workspace = true , features = ["serde", "v4"] }
-stypes.workspace = true
-socket2 = "0.5.8"
+socket2.workspace = true
 
 [target.'cfg(windows)'.dependencies]
 shell-tools.workspace = true

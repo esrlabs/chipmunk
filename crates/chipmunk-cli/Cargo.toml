@@ -8,11 +8,14 @@ documentation = "README.md"
 readme = "README.md"
 
 [dependencies]
-anyhow = "1.0"
-clap = { version = "4.5", features = ["derive"] }
-tokio = { version = "1.45", features = ["full"] }
+# Internal crates
 parsers.workspace = true
 sources.workspace = true
 processor.workspace = true
-futures = "0.3"
-tokio-util = "0.7"
+
+# External crates
+anyhow.workspace = true
+clap.workspace = true
+tokio.workspace = true
+futures.workspace = true
+tokio-util.workspace = true
