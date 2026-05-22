@@ -1,0 +1,159 @@
+[workspace]
+resolver = "3"
+default-members = ["crates/chipmunk-app"]
+
+members = [
+    "crates/chipmunk-app",
+    "crates/chipmunk-cli",
+    "crates/plugins_api",
+
+    "crates/stypes",
+    "crates/bufread",
+    "crates/dir_checksum",
+    "crates/file-tools",
+    "crates/shell-tools",
+
+    "crates/core/dlt-tools",
+    "crates/core/someip-tools",
+    "crates/core/text_grep",
+    "crates/core/indexer_base",
+    "crates/core/merging",
+    "crates/core/parsers",
+    "crates/core/plugins_host",
+    "crates/core/processor",
+    "crates/core/session",
+    "crates/core/sources",
+]
+
+exclude = [
+    "plugins/examples/rust/dlt_parser",
+    "plugins/examples/rust/file_source",
+    "plugins/examples/rust/protobuf",
+    "plugins/examples/rust/string_parser",
+    "plugins/templates/rust/parser",
+]
+
+[workspace.package]
+edition = "2024"
+version = "4.0.0-alpha.1"
+authors = ["esrlabs.com"]
+
+[workspace.dependencies]
+
+# Internal crates
+chipmunk-app = { path = "crates/chipmunk-app" }
+plugins_api = { path = "crates/plugins_api" }
+dlt-tools = { path = "crates/core/dlt-tools" }
+someip-tools = { path = "crates/core/someip-tools" }
+file-tools = { path = "crates/file-tools" }
+shell-tools = { path = "crates/shell-tools" }
+text_grep = { path = "crates/core/text_grep" }
+bufread = { path = "crates/bufread" }
+dir_checksum = { path = "crates/dir_checksum" }
+indexer_base = { path = "crates/core/indexer_base" }
+merging = { path = "crates/core/merging" }
+parsers = { path = "crates/core/parsers" }
+plugins_host = { path = "crates/core/plugins_host" }
+processor = { path = "crates/core/processor" }
+session = { path = "crates/core/session" }
+session_core = { package = "session", path = "crates/core/session" }
+sources = { path = "crates/core/sources" }
+stypes = { path = "crates/stypes" }
+
+# External dependencies
+log = "0.4"
+serde = { version = "1.0", features = ["derive", "rc"] }
+serde_json = "1.0"
+thiserror = "2.0"
+lazy_static = "1.5"
+memchr = "2.7"
+tokio = { version = "1", features = ["full"] }
+reqwest = "0.12"
+semver = "1"
+tokio-stream = "0.1"
+dlt-core = "0.20.2"
+crossbeam-channel = "0.5"
+futures = "0.3"
+tokio-util = "0.7"
+regex = "1"
+regex-syntax = "0.8"
+grep-regex = "0.1"
+rand = "0.9"
+dirs = "6.0"
+uuid = "1.3"
+grep-searcher = "0.1"
+tempfile = "3.14"
+env_logger = "0.11"
+walkdir = "2.5"
+anyhow = "1.0"
+toml = "0.8"
+blake3 = "1.8"
+which = "8"
+itertools = "0.14"
+chrono = "0.4"
+chrono-tz = "0.8"
+serialport = "4.8"
+rustc-hash = "2.1"
+enum-iterator = "2"
+nucleo-matcher = "0.3"
+anstyle-parse = "1.0"
+unicode-segmentation = "1.13"
+
+clap = { version = "4", features = ["derive"] }
+
+egui = "0.34"
+eframe = { version = "0.34", default-features = false }
+rfd = "0.17"
+egui_extras = { version = "0.34", default-features = false }
+image = { version = "0.25", default-features = false }
+egui_table = "0.8"
+egui_plot = "0.35"
+# We don't have direct dependency to winit but we need to specify it here to activate
+# its default features which won't be activated otherwise without activating egui default
+# features.
+winit = { version = "0.30" }
+egui-phosphor = "0.12"
+egui_commonmark = "0.23"
+
+## Development Dependencies ##
+# Support for `html_reports` needs running the benchmarks via `cargo-criterion` tool.
+criterion = { version = "0.5", features = ["html_reports"] }
+insta = { version = "1.41", features = ["yaml"] }
+proptest = "1.6"
+
+[patch.crates-io]
+# Dependencies patches before they are released can be defined here.
+# These batches are used until PR is included in egui main stream `https://github.com/emilk/egui/pull/8033`
+eframe = { git = "https://github.com/AmmarAbouZor/egui", rev = "a9f3a3e4ce95e014d46bae8ab49021b3e77213c8" }
+egui = { git = "https://github.com/AmmarAbouZor/egui", rev = "a9f3a3e4ce95e014d46bae8ab49021b3e77213c8" }
+egui_extras = { git = "https://github.com/AmmarAbouZor/egui", rev = "a9f3a3e4ce95e014d46bae8ab49021b3e77213c8" }
+emath = { git = "https://github.com/AmmarAbouZor/egui", rev = "a9f3a3e4ce95e014d46bae8ab49021b3e77213c8" }
+
+[workspace.lints.clippy]
+undocumented_unsafe_blocks = "deny"
+
+# Optimize frequently used dependencies in dev builds while keeping workspace packages debuggable.
+[profile.dev.package]
+# Snapshot testing dependencies.
+insta.opt-level = 3
+similar.opt-level = 3
+
+# UI dependencies used heavily in dev runs.
+egui.opt-level = 2
+eframe.opt-level = 2
+egui_extras.opt-level = 2
+egui_table.opt-level = 2
+egui_plot.opt-level = 2
+
+[profile.test.package]
+# Property tests and their RNG are CPU-intensive.
+proptest.opt-level = 3
+rand_chacha.opt-level = 3
+
+# Snapshot tests benefit from faster diffing and serialization.
+insta.opt-level = 3
+similar.opt-level = 3
+
+# only uncomment when profiling
+# [profile.release]
+# debug = true

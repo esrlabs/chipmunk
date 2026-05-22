@@ -26,7 +26,7 @@
 
 # Logs and databases #
 ######################
-#*.log # application/apps/indexer/merging/test_samples includes logs for testing
+#*.log # crates/core/merging/test_samples includes logs for testing
 *.sql
 *.sqlite
 
@@ -52,6 +52,7 @@ Thumbs.db
 **/build
 **/.angular
 application/apps/**/target/*
+/target/
 application/apps/rustcore/ts-cli
 .vscode
 !webpack.config.js
@@ -71,7 +72,6 @@ application/sandbox/serial/render/lib/views/dialog/port.available
 sandbox
 sandbox.backup
 **/holder/release
-**/apps/indexer/gui/application/release
 scripts/tools/file_checklists/*.*
 
 # CLI build tool files #

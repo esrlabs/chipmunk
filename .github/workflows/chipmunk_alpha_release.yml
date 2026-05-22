@@ -71,7 +71,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: |
-            application/apps/indexer -> target
+            . -> target
       - name: Setup keychain for signing and notarizing
         if: runner.os == 'macOS'
         run: |
@@ -101,19 +101,19 @@ jobs:
             python3 scripts/release_app.py
           fi
       - name: List app release files
-        working-directory: ./application/apps/indexer/gui/application/release
+        working-directory: ./target/dist
         run: ls
       - name: Upload CI artifact
         uses: actions/upload-artifact@v4
         with:
           name: chipmunk-alpha-${{ matrix.os }}
           path: |
-            ./application/apps/indexer/gui/application/release/*.tgz
-            ./application/apps/indexer/gui/application/release/*.zip
+            ./target/dist/*.tgz
+            ./target/dist/*.zip
       - name: Upload release asset
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           files: |
-            ./application/apps/indexer/gui/application/release/*.tgz
-            ./application/apps/indexer/gui/application/release/*.zip
+            ./target/dist/*.tgz
+            ./target/dist/*.zip

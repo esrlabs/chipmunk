@@ -9,7 +9,7 @@ description = "Tempalte for parser plugins in Chipmunk"
 [dependencies]
 plugins_api = { git = "https://github.com/esrlabs/chipmunk", features = ["parser"]}
 # Alternatively, local path can be used to avoid cloning chipmunk multiple times.
-# plugins_api = { path = "{path_for_chipmunk}/plugins/plugins_api", features = ["parser"]}
+# plugins_api = { path = "{path_for_chipmunk}/crates/plugins_api", features = ["parser"] }
 
 [lib]
 crate-type = ["cdylib"]

@@ -13,7 +13,7 @@ Although the pre-generated C header is included in the [C/C++ templates](https:/
 
 ### Chipmunk Plugins WIT Definitions
 
-To generate the specific C/C++ functions and types that interface with Chipmunk, developers need to have the [Chipmunk plugins WIT files](https://github.com/esrlabs/chipmunk/tree/master/plugins/plugins_api/wit) available locally on their machines.
+To generate the specific C/C++ functions and types that interface with Chipmunk, developers need to have the [Chipmunk plugins WIT files](https://github.com/esrlabs/chipmunk/tree/master/crates/plugins_api/wit) available locally on their machines.
 
 ### WASI SDK
 

@@ -10,7 +10,7 @@ Chipmunk 4 Alpha is now available as a preview of the next generation of Chipmun
 
 During the alpha phase, Chipmunk 4 lives on the `native-ui` branch and will continue to evolve there. Alpha builds are published as pre-releases.
 
-- [Read the Chipmunk 4 Alpha README](https://github.com/esrlabs/chipmunk/blob/native-ui/application/apps/indexer/gui/application/README.md)
+- [Read the Chipmunk 4 Alpha README](https://github.com/esrlabs/chipmunk/blob/native-ui/crates/chipmunk-app/README.md)
 - [Download Chipmunk 4 Alpha builds](https://github.com/esrlabs/chipmunk/releases)
 
 Look for release versions such as `4.0.0-alpha.*` on the releases page. The current stable Chipmunk documentation continues below.
