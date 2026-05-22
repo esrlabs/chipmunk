@@ -95,8 +95,8 @@ Please refer to [C/C++ Plugins Development](./c-cpp.md) for detailed info develo
 ## Plugin Configuration
 
 Plugins can define their own configuration schemas. These schemas are presented to users so they can provide the necessary settings. The configuration is then delivered back to the plugin during the session initialization phase. For details on schema definitions, refer to:
-- The [WIT definitions](https://github.com/esrlabs/chipmunk/tree/master/plugins/plugins_api/wit).
-- The [`plugins-api`](https://github.com/esrlabs/chipmunk/tree/master/plugins/plugins_api/) crate documentation.
+- The [WIT definitions](https://github.com/esrlabs/chipmunk/tree/master/crates/plugins_api/wit).
+- The [`plugins-api`](https://github.com/esrlabs/chipmunk/tree/master/crates/plugins_api/) crate documentation.
 - The provided examples.
 
 ---
@@ -111,10 +111,10 @@ Chipmunk currently supports two main types of plugins:
 Parser plugins receive an array of bytes, attempt to parse them, and return the parsed items. They can also define configuration schemas and specify rendering options if needed.
 
 #### Development in Rust: 
-* Create a struct that implements to the `Parser` trait defined in the [`plugins-api`](https://github.com/esrlabs/chipmunk/tree/master/plugins/plugins_api/) crate.
+* Create a struct that implements to the `Parser` trait defined in the [`plugins-api`](https://github.com/esrlabs/chipmunk/tree/master/crates/plugins_api/) crate.
 * Use the `parser_export!()` macro to export your parser struct.
 
-The [`plugins-api`](https://github.com/esrlabs/chipmunk/tree/master/plugins/plugins_api/) crate also offers helper functions for logging, access to temp directory and configuration management.
+The [`plugins-api`](https://github.com/esrlabs/chipmunk/tree/master/crates/plugins_api/) crate also offers helper functions for logging, access to temp directory and configuration management.
 
 #### Integration:
 *  Use the "Add" function in the Chipmunk UI Plugins Manager, as described in the [Building and Integrating Plugins](#building-and-integrating-plugins) section.
@@ -130,10 +130,10 @@ For reference, see the `string_parser` and `dlt_parser` examples.
 Byte-source plugins deliver arrays of bytes of a specified length during each load call. These bytes are then processed by a selected parser. Like parser plugins, they can define configuration schemas that are provided during session initialization.
 
 #### Development in Rust:
-- Create a struct that implements to the `ByteSource` trait defined in the [`plugins-api`](https://github.com/esrlabs/chipmunk/tree/master/plugins/plugins_api/) crate.
+- Create a struct that implements to the `ByteSource` trait defined in the [`plugins-api`](https://github.com/esrlabs/chipmunk/tree/master/crates/plugins_api/) crate.
 - Use the `bytesource_export!()` macro to export your byte-source struct.
 
-The [`plugins-api`](https://github.com/esrlabs/chipmunk/tree/master/plugins/plugins_api/) crate again provides helper functions for logging, access to temp directory and configuration management.
+The [`plugins-api`](https://github.com/esrlabs/chipmunk/tree/master/crates/plugins_api/) crate again provides helper functions for logging, access to temp directory and configuration management.
 
 #### Integration:
 - Use the "Add" function in the Chipmunk UI Plugins Manager, as described in the [Building and Integrating Plugins](#building-and-integrating-plugins) section.

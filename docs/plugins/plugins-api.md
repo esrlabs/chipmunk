@@ -1,6 +1,6 @@
 # Chipmunk Plugins API Crate
 
-This crate simplifies the development of plugins for [Chipmunk](https://github.com/esrlabs/chipmunk) in Rust. Its source code can be found on GitHub: [Plugins API Crate](https://github.com/esrlabs/chipmunk/tree/master/plugins/plugins_api).
+This crate simplifies the development of plugins for [Chipmunk](https://github.com/esrlabs/chipmunk) in Rust. Its source code can be found on GitHub: [Plugins API Crate](https://github.com/esrlabs/chipmunk/tree/master/crates/plugins_api).
 
 Chipmunk supports plugins using [WebAssembly (Wasm)](https://webassembly.org/) and the [WebAssembly Component Model](https://component-model.bytecodealliance.org/). It exposes its public API via the [WASM Interface Format (WIT)](https://github.com/WebAssembly/component-model/blob/main/design/mvp/WIT.md), enabling developers to write plugins in any language that supports Wasm and the Component Model.
 

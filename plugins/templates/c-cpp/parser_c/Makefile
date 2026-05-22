@@ -7,7 +7,7 @@
 WASI_SDK_PATH ?= {PATH_TO_LOCAL_WASI_SDK}
 
 # Path for the directory where the WIT files are defined withing chipmunk repository.
-WIT_DIR ?= {PATH_OF_CHIPMUNK_REPO}/plugins/plugins_api/wit/v0.1.0/
+WIT_DIR ?= {PATH_OF_CHIPMUNK_REPO}/crates/plugins_api/wit/v0.1.0/
 
 # The path WASI Adapter file. It defaults to have the file in vendor directory and it will 
 # download the latest version of the files in case it doesn't exist and if not provided.

@@ -66,17 +66,16 @@ Arguments:
           Target to build, by default whole application will be built
 
           Possible values:
-          - core:         Represents the path `application/apps/indexer`
+          - core:         Represents the path `crates/core`
           - shared:       Represents the path `application/platform`
           - protocol:     Represents the path `application/apps/protocol`
           - binding:      Represents the path `application/apps/rustcore/rs-bindings`
           - wrapper:      Represents the path `application/apps/rustcore/ts-bindings`
           - wasm:         Represents the path `application/apps/rustcore/wasm-bindings`
           - client:       Represents the path `application/client`
-          - updater:      Represents the path `application/apps/precompiled/updater`
           - app:          Represents the path `application/holder`
           - cli-dev:      Represents the path `cli/development-cli`
-          - cli-chipmunk: Represents the path `cli/chipmunk-cli`
+          - cli-chipmunk: Represents the path `crates/chipmunk-cli`
 
 Options:
   -p, --production

@@ -58,9 +58,9 @@ def build_app():
             "--release",
             "--locked",
             "--manifest-path",
-            "gui/application/Cargo.toml",
+            str(app_manifest_path()),
         ],
-        cwd=app_workspace_root(),
+        cwd=workspace_root(),
         error="Building Chipmunk failed",
     )
 
@@ -222,7 +222,7 @@ def clean_release():
 
 
 def app_version():
-    manifest = app_workspace_root() / "Cargo.toml"
+    manifest = workspace_root() / "Cargo.toml"
     if tomllib is not None:
         with manifest.open("rb") as file:
             cargo_toml = tomllib.load(file)
@@ -286,19 +286,23 @@ def repo_root():
 
 
 def app_root():
-    return repo_root() / "application" / "apps" / "indexer" / "gui" / "application"
+    return repo_root() / "crates" / "chipmunk-app"
+
+
+def app_manifest_path():
+    return app_root() / "Cargo.toml"
 
 
 def app_release_path():
-    return app_root() / "release"
+    return repo_root() / "target" / "dist"
 
 
-def app_workspace_root():
-    return repo_root() / "application" / "apps" / "indexer"
+def workspace_root():
+    return repo_root()
 
 
 def app_binary_path():
-    path = app_workspace_root() / "target" / "release" / app_binary_name()
+    path = workspace_root() / "target" / "release" / app_binary_name()
     if not path.exists():
         raise RuntimeError("Chipmunk binary doesn't exist: {}".format(path))
     return path

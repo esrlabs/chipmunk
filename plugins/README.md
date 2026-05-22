@@ -42,4 +42,4 @@ To help you begin developing your own Chipmunk plugins, we provide comprehensive
 
 ## Developing Plugins with Rust
 
-Rust developers can use the dedicated [`plugins-api`](https://github.com/esrlabs/chipmunk/tree/master/plugins/plugins_api) crate to simplify plugin development, handling WIT interactions, type generation, and export macros. Detailed prerequisites, building instructions with `cargo component`, and integration steps are available in the [full documentation](https://esrlabs.github.io/chipmunk/plugins/development-guide/).
+Rust developers can use the dedicated [`plugins-api`](https://github.com/esrlabs/chipmunk/tree/master/crates/plugins_api) crate to simplify plugin development, handling WIT interactions, type generation, and export macros. Detailed prerequisites, building instructions with `cargo component`, and integration steps are available in the [full documentation](https://esrlabs.github.io/chipmunk/plugins/development-guide/).
