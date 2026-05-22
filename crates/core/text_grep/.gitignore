@@ -1,4 +1,0 @@
-.*
-!.gitignore
-target/
-Cargo.lock
