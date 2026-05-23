@@ -227,9 +227,9 @@ impl NotificationUi {
             .inner;
 
         if response.clicked() {
-            Popup::open_id(ui.ctx(), self.popup_id);
-            ui.ctx().request_repaint();
+            // Dismiss the banner and mark notifications as seen on click.
             self.active_banner = None;
+            self.unseen_top_level = None;
             return;
         }
 
