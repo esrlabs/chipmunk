@@ -1,0 +1,20 @@
+#!/bin/sh
+
+# postinstall runs as root. Launch Chipmunk in the active GUI user's session,
+# but keep the installer successful for CI/headless installs.
+APP_PATH="/Applications/chipmunk.app"
+CONSOLE_USER="$(/usr/bin/stat -f '%Su' /dev/console 2>/dev/null || true)"
+
+if [ -z "$CONSOLE_USER" ] || [ "$CONSOLE_USER" = "root" ] || [ "$CONSOLE_USER" = "loginwindow" ]; then
+  exit 0
+fi
+
+USER_ID="$(/usr/bin/id -u "$CONSOLE_USER" 2>/dev/null || true)"
+
+if [ -z "$USER_ID" ] || [ ! -d "$APP_PATH" ]; then
+  exit 0
+fi
+
+/bin/launchctl asuser "$USER_ID" /usr/bin/sudo -u "$CONSOLE_USER" /usr/bin/open "$APP_PATH" >/dev/null 2>&1 || true
+
+exit 0

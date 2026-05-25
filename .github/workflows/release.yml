@@ -1,15 +1,16 @@
-name: BuildAndReleaseMaster
+name: BuildAndReleaseChipmunk
 
 on:
   push:
     tags:
       - "*"
-      - "!*.*.*-alpha.*"
+
+permissions:
+  contents: write
 
 jobs:
   create_release:
-    name: Create release
-    if: ${{ !contains(github.ref_name, '-alpha.') }}
+    name: Create app release
     runs-on: ubuntu-latest
     outputs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
@@ -20,172 +21,142 @@ jobs:
       - name: Release
         if: startsWith(github.ref, 'refs/tags/')
         id: create_release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           prerelease: true
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
+
   build_release:
-    name: Build release
-    if: ${{ !contains(github.ref_name, '-alpha.') }}
+    name: Build app release
     needs: create_release
     runs-on: ${{ matrix.os }}
-    env:
-      PUBLISH_FOR_PULL_REQUEST: 1
-      CSC_FOR_PULL_REQUEST: true
     strategy:
       matrix:
         os: [ubuntu-22.04, windows-latest, macos-15-intel, macOS-latest]
         rust: [stable]
+    env:
+      APPLEID: ${{ secrets.APPLEID }}
+      APPLEIDPASS: ${{ secrets.APPLEIDPASS }}
+      # CSC_* is the Developer ID Application certificate for signing the app.
+      CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+      CSC_LINK: ${{ secrets.CSC_LINK }}
+      # INSTALLER_KEY/INSTALLER_PWD is the Developer ID Installer .p12 used for
+      # signing the macOS .pkg as pkgbuild cannot use the application identity.
+      INSTALLER_CSC_KEY_PASSWORD: ${{ secrets.INSTALLER_PWD }}
+      INSTALLER_CSC_LINK: ${{ secrets.INSTALLER_KEY }}
+      KEYCHAIN_PWD: ${{ secrets.KEYCHAIN_PWD }}
+      SIGNING_ID: ${{ secrets.SIGNING_ID }}
+      INSTALLER_SIGNING_ID: ${{ secrets.INSTALLER_SIGNING_ID }}
+      TEAMID: ${{ secrets.TEAMID }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
-      - name: libudev-dev
+        uses: actions/checkout@v4
+      - name: Install Linux build dependencies
         if: runner.os == 'Linux'
         run: |
+          # eframe/wgpu pulls in native Linux UI and input libraries that are
+          # not present on the base runner image.
           sudo apt-get update
-          sudo apt-get install -y libudev-dev
-      - name: install node
-        uses: actions/setup-node@master
+          sudo apt-get install -y \
+            libasound2-dev \
+            libgtk-3-dev \
+            libudev-dev \
+            libwayland-dev \
+            libxkbcommon-dev \
+            libxkbcommon-x11-dev \
+            libxcb-render0-dev \
+            libxcb-shape0-dev \
+            libxcb-xfixes0-dev \
+            libxcb-xkb-dev \
+            pkg-config
+      - name: Install rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Cache Rust build outputs
+        uses: Swatinem/rust-cache@v2
         with:
-          node-version: "lts/*"
-      - name: install rust
-        uses: hecrj/setup-rust-action@v1
-        with:
-          rust-version: ${{ matrix.rust }}
-      - name: Install cargo-binstall (Windows)
+          workspaces: |
+            . -> target
+      - name: Install just
+        run: cargo install just --locked
+      - name: Install Windows installer tooling
         if: runner.os == 'Windows'
+        shell: pwsh
         run: |
-          cargo install cargo-binstall --locked
-      - name: Install cargo-binstall (Unix)
-        if: runner.os != 'Windows'
-        uses: cargo-bins/cargo-binstall@v1.9.0
-      - name: set sccache env var
-        run: |
-          echo "SCCACHE_GHA_ENABLED=true" >> $GITHUB_ENV
-          echo "RUSTC_WRAPPER=sccache" >> $GITHUB_ENV
-      - name: Run sccache-cache
-        uses: mozilla-actions/sccache-action@v0.0.9
-        with:
-          version: "v0.12.0"
-      - name: cargo binstall nj-cli
-        run: cargo binstall nj-cli
-      - name: install wasm-pack
-        run: cargo binstall wasm-pack
-      - name: Install Build CLI tool
-        run: cargo install --path=cli/development-cli --locked
-        env:
-          SCCACHE_GHA_ENABLED: "true"
-          RUSTC_WRAPPER: "sccache"
-      - name: Setup Yarn
-        run: |
-          corepack enable
-          corepack prepare yarn@4.6.0 --activate
-          yarn cache clean
-      - name: setup keychain for signing and notarising
+          # release_app.py emits a WiX v3 source file and then calls candle/light
+          # to create the MSI.
+          choco install wixtoolset --no-progress -y
+          $wixRoot = Get-ChildItem "${env:ProgramFiles(x86)}" -Directory -Filter "WiX Toolset*" |
+            Sort-Object Name -Descending |
+            Select-Object -First 1
+          if ($null -eq $wixRoot) {
+            throw "WiX Toolset installation was not found"
+          }
+          $wixBin = Join-Path $wixRoot.FullName "bin"
+          Add-Content $env:GITHUB_PATH $wixBin
+      - name: Setup keychain for signing and notarizing
         if: runner.os == 'macOS'
-        env:
-          KEYCHAIN_NAME: "build.keychain"
-          CSC_LINK: ${{ secrets.CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-          KEYCHAIN_PWD: ${{ secrets.KEYCHAIN_PWD }}
         run: |
-          security create-keychain -p "$KEYCHAIN_PWD" "$KEYCHAIN_NAME"
-          security default-keychain -s "$KEYCHAIN_NAME"
+          # The CI keychain is temporary and contains only the certificates
+          # needed by this job: Developer ID Application for .app signing and
+          # Developer ID Installer for .pkg signing.
+          security create-keychain -p "$KEYCHAIN_PWD" build.keychain
+          security default-keychain -s build.keychain
           certfile="${HOME}/buildcert.p12"
           echo "$CSC_LINK" | base64 -d > "$certfile"
           security import \
             "$certfile" \
             -P "$CSC_KEY_PASSWORD" \
             -A \
-            -k "$KEYCHAIN_NAME"
+            -k build.keychain
           rm "$certfile"
+          # Import the installer certificate only when present so local test
+          # runs can still produce an unsigned .pkg.
+          if [ -n "$INSTALLER_CSC_LINK" ]; then
+            installer_certfile="${HOME}/installer-buildcert.p12"
+            installer_cert_password="${INSTALLER_CSC_KEY_PASSWORD:-$CSC_KEY_PASSWORD}"
+            echo "$INSTALLER_CSC_LINK" | base64 -d > "$installer_certfile"
+            security import \
+              "$installer_certfile" \
+              -P "$installer_cert_password" \
+              -A \
+              -k build.keychain
+            rm "$installer_certfile"
+          fi
+          # Allow non-interactive codesign/pkgbuild access to the imported
+          # private keys during the CI run.
           security set-key-partition-list \
             -S apple-tool:,apple:,codesign: \
             -s \
             -k "$KEYCHAIN_PWD" \
-            "$KEYCHAIN_NAME"
-          security set-keychain-settings "$KEYCHAIN_NAME"
-          security unlock-keychain -p "$KEYCHAIN_PWD" "$KEYCHAIN_NAME"
-      - name: build release macOS
-        if: runner.os == 'macOS'
+            build.keychain
+          security set-keychain-settings build.keychain
+          security unlock-keychain -p "$KEYCHAIN_PWD" build.keychain
+          security find-identity -v -p codesigning build.keychain
+      - name: Build app release
+        shell: bash
         run: |
-          cargo chipmunk release -c cli/development-cli/config/codesign_macos.toml
-        env:
-          KEYCHAIN_NAME: "build.keychain"
-          CSC_LINK: ${{ secrets.CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-          APPLEID: ${{ secrets.APPLEID }}
-          APPLEIDPASS: ${{ secrets.APPLEIDPASS }}
-          TEAMID: ${{ secrets.TEAMID }}
-          SIGNING_ID: ${{ secrets.SIGNING_ID }}
-          KEYCHAIN_PWD: ${{ secrets.KEYCHAIN_PWD }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: build release
-        if: runner.os != 'macOS'
-        run: |
-          cargo chipmunk release
-      - name: list release files
-        working-directory: ./application/holder/release
+          # release_app.py owns the artifact layout. macOS needs signing and
+          # notarization; Linux and Windows produce unsigned portable/installer.
+          if [ "${{ runner.os }}" = "macOS" ]; then
+            just release-signed
+          else
+            just release
+          fi
+      - name: List app release files
+        working-directory: ./target/dist
         run: ls
-      - name: upload files
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: AButler/upload-release-assets@v2.0
+      - name: Upload release asset
+        uses: softprops/action-gh-release@v2
         with:
-          files: "./application/holder/release/*.tgz;./application/holder/release/*.zip"
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          release-tag: ${{ github.ref_name }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  build_release_ubuntu20:
-    name: Build release for Ubuntu 20.04
-    if: ${{ !contains(github.ref_name, '-alpha.') }}
-    needs: create_release
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: build docker image
-        run: |
-          chmod +x ./docker/ubuntu-20.04/build.sh
-          ./docker/ubuntu-20.04/build.sh
-      - name: build chipmunk release
-        run: |
-          chmod +x ./docker/ubuntu-20.04/run.sh
-          ./docker/ubuntu-20.04/run.sh
-      - name: list release files
-        working-directory: ./application/holder/release
-        run: ls
-      - name: upload files
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: AButler/upload-release-assets@v2.0
-        with:
-          files: "./application/holder/release/*.tgz;./application/holder/release/*.zip"
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          release-tag: ${{ github.ref_name }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  invoke_package_distribution:
-    name: Invoke chipmunk package creation and distribution for different package managers
-    if: ${{ !contains(github.ref_name, '-alpha.') }}
-    needs: build_release
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout chipmunk-distribution
-        uses: actions/checkout@v2
-        with:
-          repository: esrlabs/chipmunk-distribution
-          path: './chipmunk-distribution'
-          token: ${{secrets.PUSH_TOKEN}}
-      - name: Push tag
-        working-directory: ./chipmunk-distribution
-        run: |
-          git config user.name "esrlabs"
-          git config user.email "esrlabs@gmail.com"
-          git remote set-url origin "https://esrlabs:${{secrets.PUSH_TOKEN}}@github.com/esrlabs/chipmunk-distribution"
-          git tag ${{ github.ref_name }}
-          git push origin ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+          # Portable artifacts intentionally use .tgz to match the legacy
+          # release names; installers are uploaded alongside them. Keep this
+          # list explicit so temporary signing/notarization files never become
+          # public release assets.
+          files: |
+            ./target/dist/*.tgz
+            ./target/dist/*.msi
+            ./target/dist/*.pkg
