@@ -32,7 +32,7 @@ Treat changes here as cross-crate API changes.
 - Preserve serialization behavior deliberately; `serde` shape changes can affect persisted data and cross-crate messages.
 - Prefer adding domain-specific types over passing loosely structured strings or maps across crate boundaries.
 - Keep conversion and extension helpers near the type they belong to.
-- Update call sites in `crates/chipmunk-app`, `crates/core`, and `crates/chipmunk-cli` when changing public types.
+- Update call sites in `crates/app`, `crates/core`, and `crates/cli` when changing public types.
 
 ## Technology Stack
 
@@ -45,4 +45,4 @@ Run validation only when requested or needed to verify a change.
 Use targeted Cargo commands from the repository root, for example:
 
 - Check: `cargo check -p stypes`
-- Test dependents when public contracts change, usually the directly affected `chipmunk-app`, `session`, `processor`, or `chipmunk-cli` crate.
+- Test dependents when public contracts change, usually the directly affected `app`, `session`, `processor`, or `cli` crate.

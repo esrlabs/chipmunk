@@ -41,15 +41,15 @@ fmt:
 
 # Run the native app. Pass Cargo/app args after the recipe: `just run -r -- file ...`.
 run *args:
-    cargo run -p chipmunk-app --locked {{ args }}
+    cargo run -p app --locked {{ args }}
 
 # Install the native app binary with Cargo.
 install-app:
-    cargo install --path crates/chipmunk-app --locked
+    cargo install --path crates/app --locked
 
 # Install the Chipmunk CLI with Cargo.
 install-cli:
-    cargo install --path crates/chipmunk-cli --locked
+    cargo install --path crates/cli --locked
 
 # Remove release artifacts.
 clean-dist:

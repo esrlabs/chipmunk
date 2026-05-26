@@ -24,7 +24,7 @@ The plugin API crate is part of the main Rust workspace, while plugin examples a
 - Implement C/C++ plugin bindings: generate headers from `crates/plugins_api/wit/v0.1.0/` via `wit-bindgen`.
 - Debug load/runtime issues: inspect plugin component artifacts plus host-side logic in `crates/core/plugins_host/src/`.
 - Verify install/discovery behavior: plugin output layout under `~/.chipmunk/plugins/...`.
-- Change plugin UI behavior: `crates/chipmunk-app/src/host/ui/plugin_manager/` and `crates/chipmunk-app/src/host/service/plugin/`.
+- Change plugin UI behavior: `crates/app/src/host/ui/plugin_manager/` and `crates/app/src/host/service/plugin/`.
 
 ## Cross-Module Dependency Map
 

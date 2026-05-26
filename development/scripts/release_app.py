@@ -286,7 +286,7 @@ def repo_root():
 
 
 def app_root():
-    return repo_root() / "crates" / "chipmunk-app"
+    return repo_root() / "crates" / "app"
 
 
 def app_manifest_path():

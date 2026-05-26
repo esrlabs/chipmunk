@@ -270,6 +270,57 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f202df86484c868dbad7eaa557ef785d5c66295e41b460ef922eca0723b842c"
 
 [[package]]
+name = "app"
+version = "4.0.0-alpha.2"
+dependencies = [
+ "anstyle-parse",
+ "anyhow",
+ "blake3",
+ "chrono",
+ "chrono-tz",
+ "clap",
+ "dirs",
+ "dlt-core",
+ "eframe",
+ "egui",
+ "egui-phosphor",
+ "egui_commonmark",
+ "egui_extras",
+ "egui_plot",
+ "egui_table",
+ "enum-iterator",
+ "env_logger",
+ "file-tools",
+ "image",
+ "itertools 0.14.0",
+ "log",
+ "memchr",
+ "merging",
+ "nucleo-matcher",
+ "parsers",
+ "plugins_host",
+ "processor",
+ "regex",
+ "regex-syntax",
+ "reqwest",
+ "rfd",
+ "rustc-hash 2.1.2",
+ "semver",
+ "serde",
+ "serde_json",
+ "serialport",
+ "session",
+ "shell-tools",
+ "sources",
+ "stypes",
+ "thiserror 2.0.18",
+ "tokio",
+ "unicode-segmentation",
+ "uuid",
+ "winit",
+]
+
+[[package]]
 name = "ar_archive_writer"
 version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -868,71 +919,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "chipmunk-app"
-version = "4.0.0-alpha.2"
-dependencies = [
- "anstyle-parse",
- "anyhow",
- "blake3",
- "chrono",
- "chrono-tz",
- "clap",
- "dirs",
- "dlt-core",
- "eframe",
- "egui",
- "egui-phosphor",
- "egui_commonmark",
- "egui_extras",
- "egui_plot",
- "egui_table",
- "enum-iterator",
- "env_logger",
- "file-tools",
- "image",
- "itertools 0.14.0",
- "log",
- "memchr",
- "merging",
- "nucleo-matcher",
- "parsers",
- "plugins_host",
- "processor",
- "regex",
- "regex-syntax",
- "reqwest",
- "rfd",
- "rustc-hash 2.1.2",
- "semver",
- "serde",
- "serde_json",
- "serialport",
- "session",
- "shell-tools",
- "sources",
- "stypes",
- "thiserror 2.0.18",
- "tokio",
- "unicode-segmentation",
- "uuid",
- "winit",
-]
-
-[[package]]
-name = "chipmunk-cli"
-version = "0.2.2"
-dependencies = [
- "anyhow",
- "clap",
- "futures",
- "parsers",
- "processor",
- "sources",
- "tokio",
- "tokio-util",
-]
-
-[[package]]
 name = "chrono"
 version = "0.4.44"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1027,6 +1013,20 @@ name = "clap_lex"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c8d4a3bb8b1e0c1050499d1815f5ab16d04f0959b233085fb31653fbfc9d98f9"
+
+[[package]]
+name = "cli"
+version = "0.2.2"
+dependencies = [
+ "anyhow",
+ "clap",
+ "futures",
+ "parsers",
+ "processor",
+ "sources",
+ "tokio",
+ "tokio-util",
+]
 
 [[package]]
 name = "clipboard-win"

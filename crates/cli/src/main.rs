@@ -3,7 +3,7 @@
 use tokio::signal;
 use tokio_util::sync::CancellationToken;
 
-use chipmunk_cli::run_app;
+use cli::run_app;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
