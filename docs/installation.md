@@ -3,7 +3,7 @@
 You can also install the native application from source with Cargo:
 
 ```sh
-cargo install --path crates/chipmunk-app --locked
+cargo install --path crates/app --locked
 ```
 
 If you use [`just`](https://github.com/casey/just), the same installation is available through the repository recipe:

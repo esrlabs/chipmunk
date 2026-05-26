@@ -1,5 +1,5 @@
 [package]
-name = "chipmunk-app"
+name = "app"
 authors.workspace = true
 description = "Chipmunk is one of the fastest desktop applications for viewing log files, with no limitations on data size."
 version.workspace = true

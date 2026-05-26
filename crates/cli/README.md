@@ -28,7 +28,7 @@ Ensure that **Rust** is installed on your system. If not, follow the official in
 
 Navigate to the root directory of the Chipmunk repository in your terminal and run:
 
-`cargo install --path crates/chipmunk-cli`
+`cargo install --path crates/cli`
 
 This command installs the `chipmunk-cli` tool, allowing you to execute parsing tasks using various parsers and input sources.
 

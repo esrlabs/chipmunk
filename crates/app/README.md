@@ -92,7 +92,7 @@ Download binaries from the [Chipmunk releases page](https://github.com/esrlabs/c
 From the repository root:
 
 ```sh
-cargo install --path crates/chipmunk-app
+cargo install --path crates/app
 ```
 
 From this directory:

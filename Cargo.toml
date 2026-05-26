@@ -1,10 +1,10 @@
 [workspace]
 resolver = "3"
-default-members = ["crates/chipmunk-app"]
+default-members = ["crates/app"]
 
 members = [
-    "crates/chipmunk-app",
-    "crates/chipmunk-cli",
+    "crates/app",
+    "crates/cli",
     "crates/plugins_api",
 
     "crates/stypes",
@@ -41,7 +41,6 @@ authors = ["esrlabs.com"]
 [workspace.dependencies]
 
 # Internal crates
-chipmunk-app = { path = "crates/chipmunk-app" }
 plugins_api = { path = "crates/plugins_api" }
 dlt-tools = { path = "crates/core/dlt-tools" }
 someip-tools = { path = "crates/core/someip-tools" }

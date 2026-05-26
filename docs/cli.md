@@ -26,7 +26,7 @@ Before installing the Chipmunk CLI tool, ensure that Rust is installed on your s
 Navigate to the root directory of the Chipmunk repository in your terminal and run the following command to install the Chipmunk CLI tool:
 
 ```bash
-cargo install --path crates/chipmunk-cli
+cargo install --path crates/cli
 ```
 This command installs the tool `chipmunk-cli`, allowing you to use `chipmunk-cli <ARGS> <COMMAND>` to execute parsing tasks using multiple parsers and input sources.
 

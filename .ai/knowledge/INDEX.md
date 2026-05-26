@@ -14,7 +14,7 @@ Use this file to choose the next context file to read. Do not load every context
 
 ## Primary Context
 
-- Native GUI: `.ai/knowledge/crates/chipmunk-app/AGENTS.md`
+- Native GUI: `.ai/knowledge/crates/app/AGENTS.md`
   - Use for egui/eframe desktop UI, host/session UI, filters, charts, logs, search, plugin UI, app state, and app services.
 - Rust core: `.ai/knowledge/crates/core/AGENTS.md`
   - Use for ingestion, parsing, indexing, search, session behavior, plugin host runtime, sources, and exports.
@@ -25,5 +25,5 @@ Use this file to choose the next context file to read. Do not load every context
 
 Load only when the task explicitly targets that area.
 
-- CLI parser/export: `.ai/knowledge/crates/chipmunk-cli/AGENTS.md`
+- CLI parser/export: `.ai/knowledge/crates/cli/AGENTS.md`
 - Plugins: `.ai/knowledge/plugins/AGENTS.md`
