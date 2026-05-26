@@ -9,8 +9,8 @@ workspace = true
 
 [dependencies]
 # Internal crates
-file-tools.workspace = true
-shell-tools.workspace = true
+file_tools.workspace = true
+shell_tools.workspace = true
 indexer_base.workspace = true
 merging.workspace = true
 parsers.workspace = true

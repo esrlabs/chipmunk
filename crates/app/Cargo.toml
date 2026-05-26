@@ -18,8 +18,8 @@ stypes.workspace = true
 merging.workspace = true
 processor.workspace = true
 sources.workspace = true
-file-tools.workspace = true
-shell-tools.workspace = true
+file_tools.workspace = true
+shell_tools.workspace = true
 parsers.workspace = true
 plugins_host.workspace = true
 #TODO: We need to avoid clashing with module `session` in Workaround to avoid potential merge conflict  

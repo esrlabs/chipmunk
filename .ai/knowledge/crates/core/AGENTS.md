@@ -22,8 +22,8 @@ The native app and CLI depend on these crates directly through Rust APIs.
 - `indexer_base`: shared chunk, time, progress, and indexing primitives.
 - `plugins_host`: runtime support for loading and executing WASM plugins.
 - `merging`: multi-source chronological merge logic.
-- `dlt-tools`: DLT-specific utility operations.
-- `someip-tools`: SOME/IP-specific parsing helpers.
+- `dlt_tools`: DLT-specific utility operations.
+- `someip_tools`: SOME/IP-specific parsing helpers.
 - `text_grep`: text search helpers used by processor search paths.
 
 ## If You Need X, Go to Y

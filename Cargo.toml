@@ -10,11 +10,11 @@ members = [
     "crates/stypes",
     "crates/bufread",
     "crates/dir_checksum",
-    "crates/file-tools",
-    "crates/shell-tools",
+    "crates/file_tools",
+    "crates/shell_tools",
 
-    "crates/core/dlt-tools",
-    "crates/core/someip-tools",
+    "crates/core/dlt_tools",
+    "crates/core/someip_tools",
     "crates/core/text_grep",
     "crates/core/indexer_base",
     "crates/core/merging",
@@ -42,10 +42,10 @@ authors = ["esrlabs.com"]
 
 # Internal crates
 plugins_api = { path = "crates/plugins_api" }
-dlt-tools = { path = "crates/core/dlt-tools" }
-someip-tools = { path = "crates/core/someip-tools" }
-file-tools = { path = "crates/file-tools" }
-shell-tools = { path = "crates/shell-tools" }
+dlt_tools = { path = "crates/core/dlt_tools" }
+someip_tools = { path = "crates/core/someip_tools" }
+file_tools = { path = "crates/file_tools" }
+shell_tools = { path = "crates/shell_tools" }
 text_grep = { path = "crates/core/text_grep" }
 bufread = { path = "crates/bufread" }
 dir_checksum = { path = "crates/dir_checksum" }
