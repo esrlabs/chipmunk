@@ -1,5 +1,5 @@
 [package]
-name = "dlt-tools"
+name = "dlt_tools"
 version.workspace = true
 edition.workspace = true
 

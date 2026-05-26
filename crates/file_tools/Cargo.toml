@@ -1,5 +1,5 @@
 [package]
-name = "file-tools"
+name = "file_tools"
 version.workspace = true
 edition.workspace = true
 

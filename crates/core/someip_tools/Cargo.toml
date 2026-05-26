@@ -1,5 +1,5 @@
 [package]
-name = "someip-tools"
+name = "someip_tools"
 version.workspace = true
 edition.workspace = true
 

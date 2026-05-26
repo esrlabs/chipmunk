@@ -290,7 +290,7 @@ dependencies = [
  "egui_table",
  "enum-iterator",
  "env_logger",
- "file-tools",
+ "file_tools",
  "image",
  "itertools 0.14.0",
  "log",
@@ -310,7 +310,7 @@ dependencies = [
  "serde_json",
  "serialport",
  "session",
- "shell-tools",
+ "shell_tools",
  "sources",
  "stypes",
  "thiserror 2.0.18",
@@ -1627,7 +1627,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "dlt-tools"
+name = "dlt_tools"
 version = "4.0.0-alpha.2"
 dependencies = [
  "dlt-core",
@@ -2142,7 +2142,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "file-tools"
+name = "file_tools"
 version = "4.0.0-alpha.2"
 dependencies = [
  "anyhow",
@@ -4179,7 +4179,7 @@ dependencies = [
  "serde",
  "someip-messages",
  "someip-payload",
- "someip-tools",
+ "someip_tools",
  "stringreader",
  "thiserror 2.0.18",
 ]
@@ -5398,7 +5398,7 @@ dependencies = [
  "blake3",
  "dirs",
  "dlt-core",
- "file-tools",
+ "file_tools",
  "futures",
  "indexer_base",
  "insta",
@@ -5413,7 +5413,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serialport",
- "shell-tools",
+ "shell_tools",
  "sources",
  "stypes",
  "tempfile",
@@ -5437,7 +5437,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "shell-tools"
+name = "shell_tools"
 version = "0.1.0"
 dependencies = [
  "log",
@@ -5646,7 +5646,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "someip-tools"
+name = "someip_tools"
 version = "4.0.0-alpha.2"
 dependencies = [
  "nom",
@@ -5665,7 +5665,7 @@ dependencies = [
  "log",
  "pcap-parser",
  "serde",
- "shell-tools",
+ "shell_tools",
  "socket2 0.5.10",
  "stypes",
  "thiserror 2.0.18",
