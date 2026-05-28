@@ -29,6 +29,10 @@ impl SharedSenders {
             egui_ctx,
         }
     }
+
+    pub fn get_mcp_task_subscriber(&self) -> broadcast::Receiver<Tasks> {
+        self.mcp_task_tx.subscribe()
+    }
 }
 
 /// Contains session communication channels for the UI to communicate with services.

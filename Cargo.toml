@@ -59,6 +59,7 @@ session = { path = "crates/core/session" }
 session_core = { package = "session", path = "crates/core/session" }
 sources = { path = "crates/core/sources" }
 stypes = { path = "crates/stypes" }
+mcp = { path = "crates/mcp" }
 
 # External dependencies
 log = "0.4"

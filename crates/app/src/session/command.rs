@@ -2,6 +2,7 @@ use std::{ops::RangeInclusive, path::PathBuf};
 
 use std::sync::mpsc::Sender;
 
+use mcp::config::AiConfig;
 use processor::{grabber::LineRange, search::filter::SearchFilter};
 use session_core::state::IndexedNavigation;
 use stypes::GrabbedElement;
@@ -11,7 +12,7 @@ use crate::host::ui::{
     session_setup::state::sources::StreamConfig,
     storage::recent::session::RecentSessionStateSnapshot,
 };
-use crate::session::{error::SessionError, types::attachment};
+use crate::session::{error::SessionError, message::AiMessage, types::attachment};
 
 /// Represents session specific commands to be sent from UI to session service.
 ///
@@ -124,6 +125,15 @@ pub enum SessionCommand {
 
     /// Cancel the running operation with the given id.
     CancelOperation { id: Uuid },
+
+    /// Send a chat message.
+    SendChatMessage {
+        id: Uuid,
+        message: String,
+        history: Box<Vec<AiMessage>>,
+        ai_config: AiConfig,
+    },
+
     /// Gracefully terminate the session service.
     CloseSession,
 }

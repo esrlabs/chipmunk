@@ -1,7 +1,9 @@
+use std::time::Duration;
 use std::{rc::Rc, sync::Arc};
 
 use egui::{CentralPanel, Context, Frame, Margin, Panel, Ui};
 use log::warn;
+use mcp::server::tasks::Tasks;
 use tokio::sync::mpsc::Sender;
 
 use crate::{
@@ -28,7 +30,7 @@ use crate::{
         command::SessionCommand,
         communication::{UiHandle, UiReceivers},
         error::SessionError,
-        message::{BookmarkUpdate, SessionMessage},
+        message::{AiMessage, BookmarkUpdate, SessionMessage},
         types::{OperationPhase, attachment::PreviewTarget},
         ui::shared::{SearchSyncOutcome, SearchTableSync, SessionSignal},
     },
@@ -36,6 +38,10 @@ use crate::{
 use bottom_panel::{BottomPanelUI, BottomTabType};
 use common::log_table::{LogTableKind, table::TableScroll};
 use logs_table::LogsTable;
+use mcp::{
+    tool_params::{AnalyzeAction, AnalyzeLogsResult, LogLine},
+    types::TaskResult,
+};
 use side_panel::{SidePanelUi, SideTabType};
 
 mod attachment_modal;
@@ -231,6 +237,152 @@ impl Session {
             .capture_preset(&self.shared, registry);
     }
 
+    fn handle_mcp_task(
+        &mut self,
+        task: Tasks,
+        actions: &mut UiActions,
+        registry: &mut FilterRegistry,
+    ) {
+        match task {
+            Tasks::ApplySearchFilter {
+                session_id,
+                filters,
+                task_result_tx,
+            } => {
+                if session_id == self.shared.get_id() {
+                    // filters.iter().for_each(|filter| {
+                    //     self.bottom_panel.search.bar.apply_search_filters(
+                    //         filter.clone(),
+                    //         &mut self.shared,
+                    //         actions,
+                    //         registry,
+                    //     );
+                    // });
+                    filters.into_iter().for_each(|filter| {
+                        self.shared.filters.set_temp_search(filter);
+
+                        self.shared
+                            .sync_search_pipelines(registry, SearchSyncTarget::Filter)
+                            .into_iter()
+                            .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
+                        self.handle_signals();
+                    });
+                    actions.try_send_command(
+                        &task_result_tx,
+                        Ok(TaskResult::Complete("Applied Search Filter".to_string())),
+                    );
+                }
+            }
+            Tasks::AnalyzeLogFile {
+                session_id,
+                range,
+                action,
+                filters,
+                jump_to_line,
+                note,
+                task_result_tx,
+            } => {
+                if session_id == self.shared.get_id() {
+                    const RESPONSE_TIMEOUT: Duration = Duration::from_millis(250);
+
+                    let mut lines: Vec<LogLine> = Vec::new();
+
+                    if let Some(requested_range) = range.clone() {
+                        let (lines_tx, lines_rx) = std::sync::mpsc::channel();
+
+                        let cmd = SessionCommand::GrabLinesBlocking {
+                            range: LineRange::from(requested_range.clone()),
+                            sender: lines_tx,
+                        };
+
+                        if actions.try_send_command(&self.cmd_tx, cmd) {
+                            if let Ok(Ok(grabbed)) = lines_rx.recv_timeout(RESPONSE_TIMEOUT) {
+                                lines = grabbed
+                                    .into_iter()
+                                    .map(|line| LogLine {
+                                        source_id: line.source_id,
+                                        pos: line.pos as u64,
+                                        nature: line.nature,
+                                        content: line.content,
+                                    })
+                                    .collect();
+                            }
+                        }
+                    }
+
+                    let action_status = match action {
+                        AnalyzeAction::None => None,
+                        AnalyzeAction::ApplyFilter => {
+                            if filters.is_empty() {
+                                Some("No filters provided for apply_filter action".to_string())
+                            } else {
+                                filters.iter().for_each(|filter| {
+                                    self.bottom_panel.search.bar.apply_search_filters(
+                                        filter.clone(),
+                                        &mut self.shared,
+                                        actions,
+                                        registry,
+                                    );
+                                });
+                                self.shared.filters.pin_temp_search(registry);
+                                self.shared
+                                    .sync_search_pipelines(registry, SearchSyncTarget::Filter)
+                                    .into_iter()
+                                    .for_each(|cmd| {
+                                        _ = actions.try_send_command(&self.cmd_tx, cmd)
+                                    });
+                                self.handle_signals();
+                                Some(format!("Applied {} filter(s)", filters.len()))
+                            }
+                        }
+                        AnalyzeAction::JumpToLine => {
+                            if let Some(line) = jump_to_line {
+                                self.shared.logs.scroll_main_row = Some(line);
+
+                                if self.shared.bottom_tab == bottom_panel::BottomTabType::Search {
+                                    actions.try_send_command(
+                                        &self.cmd_tx,
+                                        SessionCommand::GetNearestPosition(line),
+                                    );
+                                }
+
+                                actions.try_send_command(
+                                    &self.cmd_tx,
+                                    SessionCommand::GetSelectedLog(line),
+                                );
+                                Some(format!("Jumped to line {line}"))
+                            } else {
+                                Some("No jump_to_line provided for jump_to_line action".to_string())
+                            }
+                        }
+                    };
+
+                    let result = AnalyzeLogsResult {
+                        requested_range: range,
+                        lines,
+                        action_status,
+                        note,
+                    };
+
+                    actions.try_send_command(&task_result_tx, Ok(TaskResult::AnalyzeLogs(result)));
+                }
+            }
+            Tasks::GenericTask {
+                session_id,
+                task_result_tx,
+            } => {
+                if session_id == self.shared.get_id() {
+                    println!("****** DEBUG: Received GenericTask for session_id: {session_id}");
+                    actions.try_send_command(
+                        &task_result_tx,
+                        Ok(TaskResult::Complete("Generic Task Completed".to_string())),
+                    );
+                }
+            }
+            _ => {}
+        }
+    }
+
     /// Check incoming messages and handle them.
     pub fn handle_messages(
         &mut self,
@@ -413,6 +565,13 @@ impl Session {
                         }
                     },
                 },
+                SessionMessage::ChatResponseReceived(response) => {
+                    self.side_panel
+                        .update_chat(AiMessage::Response(response.clone()));
+                }
+                SessionMessage::MCPTaskReceived(task) => {
+                    self.handle_mcp_task(task, actions, registry);
+                }
             }
         }
 
