@@ -2,6 +2,8 @@
 
 mod render;
 
+use std::time::{Duration, Instant};
+
 use tokio::sync::mpsc::Sender;
 use uuid::Uuid;
 
@@ -184,6 +186,35 @@ impl HostTabs {
         self.active_idx = self.tabs.len() - 1;
     }
 
+    /// Gracefully closes all live session services during application shutdown.
+    pub fn close_sessions_for_shutdown(&mut self, timeout: Duration) {
+        let deadline = Instant::now() + timeout;
+        let mut confirmations = Vec::new();
+        let mut failed = 0;
+
+        for tab in &mut self.tabs {
+            let HostTab::Session(session) = tab else {
+                continue;
+            };
+
+            match session.request_shutdown_with_ack() {
+                Some(confirmation) => confirmations.push(confirmation),
+                None => failed += 1,
+            }
+        }
+
+        for confirmation in confirmations {
+            let remaining = deadline.saturating_duration_since(Instant::now());
+            if remaining.is_zero() || confirmation.recv_timeout(remaining).is_err() {
+                failed += 1;
+            }
+        }
+
+        if failed > 0 {
+            log::warn!("{failed} session(s) did not confirm shutdown cleanup");
+        }
+    }
+
     /// Requests close behavior for the active tab.
     pub fn close_active_tab(
         &mut self,
@@ -261,7 +292,7 @@ impl HostTabs {
         let HostTab::Session(session) = tab else {
             return;
         };
-        session.on_close_session(actions);
+        session.request_tab_close(actions);
     }
 
     /// Removes the setup tab identified by `setup_id`.

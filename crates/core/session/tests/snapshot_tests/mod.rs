@@ -17,14 +17,12 @@ use utls::*;
 async fn observe_dlt_session() {
     let input = "../../../development/resources/attachments.dlt";
     let parser_settings = stypes::DltParserSettings::default();
-    let session_main_file = run_observe_session(
+    let session_files = run_observe_session(
         input,
         stypes::FileFormat::Binary,
         stypes::ParserType::Dlt(parser_settings.clone()),
     )
     .await;
-
-    let session_files = SessionFiles::from_session_file(&session_main_file);
 
     insta::with_settings!({
         description => "Snapshot for DLT file with text attachments.",
@@ -51,14 +49,12 @@ async fn observe_dlt_with_someip_session() {
         ..Default::default()
     };
 
-    let session_main_file = run_observe_session(
+    let session_files = run_observe_session(
         input,
         stypes::FileFormat::Binary,
         stypes::ParserType::Dlt(parser_settings.clone()),
     )
     .await;
-
-    let session_files = SessionFiles::from_session_file(&session_main_file);
 
     insta::with_settings!({
         description => "Snapshot for DLT file with SomeIP network trace.",
@@ -86,14 +82,12 @@ async fn observe_someip_bcapng_session() {
         fibex_file_paths: Some(vec![String::from(fibex_file)]),
     };
 
-    let session_main_file = run_observe_session(
+    let session_files = run_observe_session(
         input,
         stypes::FileFormat::PcapNG,
         stypes::ParserType::SomeIp(parser_settings.clone()),
     )
     .await;
-
-    let session_files = SessionFiles::from_session_file(&session_main_file);
 
     insta::with_settings!({
         description => "Snapshot for SomeIP file with Pcapng byte source.",
@@ -121,14 +115,12 @@ async fn observe_someip_legacy_session() {
         fibex_file_paths: Some(vec![String::from(fibex_file)]),
     };
 
-    let session_main_file = run_observe_session(
+    let session_files = run_observe_session(
         input,
         stypes::FileFormat::PcapLegacy,
         stypes::ParserType::SomeIp(parser_settings.clone()),
     )
     .await;
-
-    let session_files = SessionFiles::from_session_file(&session_main_file);
 
     insta::with_settings!({
         description => "Snapshot for SomeIP file with Pcap Legacy byte source.",

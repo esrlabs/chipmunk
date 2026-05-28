@@ -273,29 +273,28 @@ impl SessionFile {
             })
     }
 
-    /// Cleans up the temporary generated files and for the session on its attachments if exist
-    /// for none-linked sessions.
+    /// Cleans up temporary generated files and attachments for non-linked sessions.
     pub fn cleanup(&mut self) -> Result<(), stypes::NativeError> {
-        if self.writer.is_none() {
-            // Session is linked. No temporary files has been generated.
+        let Some(SessionFileOrigin::Generated(filename)) = &self.filename else {
             return Ok(());
-        }
+        };
 
-        // Remove session main file.
-        let filename = self.filename()?;
+        // Close file handles before removing files. Windows rejects removing open files.
+        self.writer.take();
+        self.grabber.take();
+
         debug!("cleaning up files: {filename:?}");
         if filename.exists() {
             std::fs::remove_file(&filename).map_err(|e| stypes::NativeError {
                 severity: stypes::Severity::ERROR,
                 kind: stypes::NativeErrorKind::Io,
                 message: Some(format!(
-                    "Removing session main file fialed. Error: {e}. Path: {}",
+                    "Removing session main file failed. Error: {e}. Path: {}",
                     filename.display()
                 )),
             })?;
         }
 
-        // Remove attachments directory if exists.
         let attachments_dir = filename
             .to_str()
             .and_then(|file| file.strip_suffix(&format!(".{SESSION_FILE_EXTENSION}")))
@@ -308,7 +307,7 @@ impl SessionFile {
 
         if attachments_dir.exists() {
             debug!(
-                "Cleaning up attachments direcotry: {}",
+                "Cleaning up attachments directory: {}",
                 attachments_dir.display()
             );
 
@@ -329,5 +328,47 @@ impl SessionFile {
 impl Default for SessionFile {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{
+        fs::{self, File},
+        io::BufWriter,
+    };
+
+    use super::{SessionFile, SessionFileOrigin};
+
+    #[test]
+    fn cleanup_removes_generated_file_and_attachments() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let session_path = temp_dir.path().join("generated.session");
+        let attachments_dir = temp_dir.path().join("generated");
+        fs::create_dir(&attachments_dir).unwrap();
+        fs::write(attachments_dir.join("attachment.txt"), "content").unwrap();
+
+        let mut session_file = SessionFile::new();
+        session_file.filename = Some(SessionFileOrigin::Generated(session_path.clone()));
+        session_file.writer = Some(BufWriter::new(File::create(&session_path).unwrap()));
+
+        session_file.cleanup().unwrap();
+
+        assert!(!session_path.exists());
+        assert!(!attachments_dir.exists());
+    }
+
+    #[test]
+    fn cleanup_keeps_linked_file() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let session_path = temp_dir.path().join("linked.session");
+        fs::write(&session_path, "content").unwrap();
+
+        let mut session_file = SessionFile::new();
+        session_file.filename = Some(SessionFileOrigin::Linked(session_path.clone()));
+
+        session_file.cleanup().unwrap();
+
+        assert!(session_path.exists());
     }
 }
