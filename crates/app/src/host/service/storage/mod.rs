@@ -99,14 +99,18 @@ fn save_storage(data: &StorageSaveData) -> Result<(), StorageError> {
 
 /// Resolves the shared storage root under the Chipmunk home directory.
 fn storage_path() -> Result<PathBuf, StorageError> {
-    let home_dir = session_core::paths::get_home_dir().map_err(|err| StorageError {
+    let home_dir = chipmunk_home_dir()?;
+
+    storage_path_from_home(&home_dir)
+}
+
+fn chipmunk_home_dir() -> Result<PathBuf, StorageError> {
+    session_core::paths::get_home_dir().map_err(|err| StorageError {
         kind: StorageErrorKind::Path,
         message: err
             .message
             .unwrap_or_else(|| "Failed to resolve Chipmunk home directory.".into()),
-    })?;
-
-    storage_path_from_home(&home_dir)
+    })
 }
 
 /// Ensures the shared storage root exists for the provided home directory.
