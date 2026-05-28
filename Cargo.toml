@@ -12,6 +12,7 @@ members = [
     "crates/dir_checksum",
     "crates/file_tools",
     "crates/shell_tools",
+    "crates/mcp",
 
     "crates/core/dlt_tools",
     "crates/core/someip_tools",
@@ -58,6 +59,7 @@ session = { path = "crates/core/session" }
 session_core = { package = "session", path = "crates/core/session" }
 sources = { path = "crates/core/sources" }
 stypes = { path = "crates/stypes" }
+mcp = { path = "crates/mcp" }
 
 # External dependencies
 log = "0.4"

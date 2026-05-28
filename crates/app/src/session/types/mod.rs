@@ -1,10 +1,11 @@
+use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
 pub mod attachment;
 
 use uuid::Uuid;
 
-use stypes::ObserveOrigin;
+use stypes::{FileFormat, ObserveOrigin};
 
 /// Represents a running observe operations with its info.
 #[derive(Debug, Clone)]
@@ -97,5 +98,37 @@ impl OperationPhase {
             | OperationPhase::Failed
             | OperationPhase::Skipped => false,
         }
+    }
+}
+
+/// Metadata about a file or source loaded in the session.
+#[allow(dead_code)]
+#[derive(Debug, Clone)]
+pub struct FileMetadata {
+    /// Display name of the source.
+    pub name: String,
+    /// The file format (Text, Binary, PcapNG, PcapLegacy) or "Stream" for live sources.
+    pub file_type: String,
+    /// Absolute path of the file, if applicable.
+    pub path: Option<PathBuf>,
+    /// Total number of log lines currently loaded.
+    pub total_lines: u64,
+}
+
+impl FileMetadata {
+    pub fn file_format_label(format: &FileFormat) -> &'static str {
+        match format {
+            FileFormat::Text => "Text",
+            FileFormat::Binary => "Binary",
+            FileFormat::PcapNG => "PcapNG",
+            FileFormat::PcapLegacy => "PcapLegacy",
+        }
+    }
+
+    pub fn as_chat_message(&self) -> String {
+        format!(
+            "name => {}\nfile type => {}\ntotal lines in the file => {}",
+            self.name, self.file_type, self.total_lines
+        )
     }
 }

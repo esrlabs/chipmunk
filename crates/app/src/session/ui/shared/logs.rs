@@ -3,7 +3,7 @@ use rustc_hash::FxHashSet;
 #[derive(Debug)]
 pub struct LogsState {
     /// Number of logs currently known for this session.
-    logs_count: u64,
+    pub logs_count: u64,
     /// Digits needed to display the largest zero-based row number.
     row_number_digits: usize,
     /// Pending request for the main logs table to bring a row into view.

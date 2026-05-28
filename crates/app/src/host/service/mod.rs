@@ -8,6 +8,7 @@ use std::{
 use anyhow::Result;
 use itertools::Itertools;
 use log::trace;
+use mcp::server::McpServer;
 use tokio::{runtime::Handle, select, sync::mpsc};
 use uuid::Uuid;
 
@@ -94,7 +95,10 @@ impl HostService {
     /// Spawns tokio runtime to run host services and loads startup storage domains.
     #[must_use]
     pub fn spawn(communication: ServiceHandle) -> HostServiceInit {
+        let mcp_task_tx = communication.senders.mcp_task_tx.clone();
         let (handle_tx, handle_rx) = std::sync::mpsc::channel();
+
+        let mcp_server = McpServer::new(mcp_task_tx);
 
         thread::spawn(move || {
             let rt = tokio::runtime::Builder::new_multi_thread()
@@ -153,6 +157,9 @@ impl HostService {
                     previous_version,
                     update_settings,
                 );
+                if let Err(err) = mcp_server.start().await {
+                    log::error!("MCP Server error: {:?}", err);
+                }
                 host.run().await;
             });
         });
