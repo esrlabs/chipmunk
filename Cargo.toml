@@ -12,6 +12,7 @@ members = [
     "crates/dir_checksum",
     "crates/file_tools",
     "crates/shell_tools",
+    "crates/mcp",
 
     "crates/core/dlt_tools",
     "crates/core/someip_tools",
