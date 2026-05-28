@@ -285,7 +285,7 @@ impl SessionFile {
 
         debug!("cleaning up files: {filename:?}");
         if filename.exists() {
-            std::fs::remove_file(&filename).map_err(|e| stypes::NativeError {
+            std::fs::remove_file(filename).map_err(|e| stypes::NativeError {
                 severity: stypes::Severity::ERROR,
                 kind: stypes::NativeErrorKind::Io,
                 message: Some(format!(

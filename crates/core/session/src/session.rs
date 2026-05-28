@@ -344,10 +344,22 @@ impl Session {
         destroyed: Option<&CancellationToken>,
         destroying: &CancellationToken,
     ) -> Result<(), stypes::ComputationError> {
+        // Mark shutdown before sending End so racing callers can wait on the same completion.
         destroying.cancel();
-        tx_operations
-            .send(Operation::new(operation_id, operations::OperationKind::End))
-            .map_err(|e| stypes::ComputationError::Communication(e.to_string()))?;
+
+        let stop_signal =
+            tx_operations.send(Operation::new(operation_id, operations::OperationKind::End));
+
+        if let Err(error) = stop_signal {
+            if let Some(destroyed) = destroyed {
+                // The operations loop may already be closing; wait for cleanup confirmation.
+                destroyed.cancelled().await;
+                return Ok(());
+            }
+
+            return Err(stypes::ComputationError::Communication(error.to_string()));
+        }
+
         if let Some(destroyed) = destroyed {
             destroyed.cancelled().await;
         }
@@ -356,6 +368,12 @@ impl Session {
 
     pub async fn stop(&self, operation_id: Uuid) -> Result<(), stypes::ComputationError> {
         if self.destroyed.is_cancelled() {
+            return Ok(());
+        }
+
+        if self.destroying.is_cancelled() {
+            // Shutdown was already requested by another caller; still await cleanup.
+            self.destroyed.cancelled().await;
             return Ok(());
         }
 
