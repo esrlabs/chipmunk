@@ -125,7 +125,10 @@ pub enum SessionCommand {
     /// Cancel the running operation with the given id.
     CancelOperation { id: Uuid },
     /// Gracefully terminate the session service.
-    CloseSession,
+    CloseSession {
+        /// Notifies synchronous shutdown callers after service-owned cleanup finished.
+        confirm_tx: Option<Sender<()>>,
+    },
 }
 
 #[derive(Debug)]

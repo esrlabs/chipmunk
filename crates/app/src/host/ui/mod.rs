@@ -571,6 +571,11 @@ impl eframe::App for Host {
 
     fn on_exit(&mut self) {
         trace!("App Shutdown requested.");
+
+        const SESSION_SHUTDOWN_GRACE: Duration =
+            Duration::from_millis(session_core::session::SHUTDOWN_TIMEOUT_IN_MS + 500);
+        self.tabs
+            .close_sessions_for_shutdown(SESSION_SHUTDOWN_GRACE);
         self.storage.wait_until_save(&mut self.ui_actions);
 
         let (confirm_tx, confirm_rx) = std::sync::mpsc::channel();

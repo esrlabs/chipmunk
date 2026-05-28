@@ -2,7 +2,7 @@ use std::{
     fs,
     ops::ControlFlow,
     path::{Path, PathBuf},
-    sync::Arc,
+    sync::{Arc, mpsc::Sender as StdSender},
 };
 
 use image::ImageError;
@@ -66,6 +66,8 @@ pub struct SessionService {
     tracker: OperationTracker,
     /// Temp sources owned and cleaned up when this service closes.
     owned_temp_sources: Vec<PathBuf>,
+    /// Optional shutdown confirmation sent after service-owned cleanup runs.
+    shutdown_ack: Option<StdSender<()>>,
 }
 
 /// Inputs required to start one running session service.
@@ -195,6 +197,7 @@ impl SessionService {
             callback_rx,
             tracker: OperationTracker::default(),
             owned_temp_sources,
+            shutdown_ack: None,
         };
 
         tokio::spawn(async move {
@@ -231,7 +234,13 @@ impl SessionService {
 
         loop {
             select! {
-                Some(cmd) = self.cmd_rx.recv() => {
+                cmd = self.cmd_rx.recv() => {
+                    let Some(cmd) = cmd else {
+                        log::trace!("Session command channel closed for {}", self.session_id());
+                        self.stop_session().await;
+                        break;
+                    };
+
                     match self.handle_command(cmd).await {
                         Ok(ControlFlow::Break(())) => break,
                         Ok(ControlFlow::Continue(())) => {},
@@ -241,14 +250,17 @@ impl SessionService {
                         }
                     }
                 },
-                // Callback receiver won't be dropped when session is dropped.
-                Some(event) = self.callback_rx.recv() => {
+                event = self.callback_rx.recv() => {
+                    let Some(event) = event else {
+                        log::trace!("Session callback channel closed for {}", self.session_id());
+                        break;
+                    };
+
                     if let Err(error)= self.handle_callbacks(event).await {
                         log::error!("Error while handling session callback event: {error:?}");
                         self.send_error(error).await;
                     }
                 }
-                else => { break; }
             }
         }
 
@@ -259,6 +271,16 @@ impl SessionService {
         let notifi = AppNotification::SessionError(error);
 
         self.senders.send_notification(notifi).await;
+    }
+
+    async fn stop_session(&self) -> bool {
+        match self.session.stop(Uuid::new_v4()).await {
+            Ok(()) => true,
+            Err(err) => {
+                log::error!("Stopping session failed. {err:?}");
+                false
+            }
+        }
     }
 
     async fn handle_command(
@@ -568,12 +590,11 @@ impl SessionService {
             SessionCommand::CancelOperation { id } => {
                 self.session.abort(Uuid::new_v4(), id)?;
             }
-            SessionCommand::CloseSession => {
+            SessionCommand::CloseSession { confirm_tx } => {
                 // Session UI can be already dropped at this point, therefore
                 // we don't need to send errors to UI in this case.
-
-                if let Err(err) = self.session.stop(Uuid::new_v4()).await {
-                    log::error!("Stopping session failed. {err:?}");
+                if self.stop_session().await {
+                    self.shutdown_ack = confirm_tx;
                 }
 
                 return Ok(ControlFlow::Break(()));
@@ -817,6 +838,10 @@ impl Drop for SessionService {
 
         if let Some(operation) = self.tracker.search_results_tab.take() {
             cleanup_temp_source(&operation.destination);
+        }
+
+        if let Some(confirm_tx) = self.shutdown_ack.take() {
+            let _ = confirm_tx.send(());
         }
     }
 }

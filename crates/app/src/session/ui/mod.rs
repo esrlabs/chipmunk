@@ -1,8 +1,11 @@
-use std::{rc::Rc, sync::Arc};
+use std::{
+    rc::Rc,
+    sync::{Arc, mpsc::Receiver as StdReceiver},
+};
 
 use egui::{CentralPanel, Context, Frame, Margin, Panel, Ui};
 use log::warn;
-use tokio::sync::mpsc::Sender;
+use tokio::sync::mpsc::{Sender, error::TrySendError};
 
 use crate::{
     common::ui::{
@@ -454,8 +457,41 @@ impl Session {
             .take_state_update(&self.shared, registry)
     }
 
-    pub fn on_close_session(&self, actions: &mut UiActions) {
-        actions.try_send_command(&self.cmd_tx, SessionCommand::CloseSession);
+    /// Requests normal tab close without waiting for cleanup confirmation.
+    pub fn request_tab_close(&self, actions: &mut UiActions) {
+        actions.try_send_command(
+            &self.cmd_tx,
+            SessionCommand::CloseSession { confirm_tx: None },
+        );
+    }
+
+    /// Requests service shutdown from the synchronous eframe shutdown path.
+    pub fn request_shutdown_with_ack(&mut self) -> Option<StdReceiver<()>> {
+        self.receivers.message_rx.close();
+        while self.receivers.message_rx.try_recv().is_ok() {}
+
+        let (confirm_tx, confirm_rx) = std::sync::mpsc::channel();
+        let command = SessionCommand::CloseSession {
+            confirm_tx: Some(confirm_tx),
+        };
+
+        match self.cmd_tx.try_send(command) {
+            Ok(()) => Some(confirm_rx),
+            Err(TrySendError::Closed(_)) => {
+                warn!(
+                    "Session shutdown command channel is closed for {}",
+                    self.shared.get_id()
+                );
+                None
+            }
+            Err(TrySendError::Full(_)) => {
+                warn!(
+                    "Session shutdown command channel is full for {}",
+                    self.shared.get_id()
+                );
+                None
+            }
+        }
     }
 
     pub fn handle_shortcuts(

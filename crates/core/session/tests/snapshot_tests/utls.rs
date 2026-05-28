@@ -85,15 +85,14 @@ fn session_dir_form_file(session_file: &Path) -> PathBuf {
         .expect("Session path can't fail while converting to string")
 }
 
-/// Runs a processor observe session generating the session files in Chipmunk temporary directory
-/// and returning the path of the main session file.
+/// Runs a processor observe session and returns the generated files.
 /// # Note:
 /// This function it made for test purposes with snapshots.
 pub async fn run_observe_session<P: Into<PathBuf>>(
     input: P,
     file_format: stypes::FileFormat,
     parser_type: stypes::ParserType,
-) -> PathBuf {
+) -> SessionFiles {
     let input: PathBuf = input.into();
 
     assert!(
@@ -123,9 +122,17 @@ pub async fn run_observe_session<P: Into<PathBuf>>(
         }
     }
 
-    session
+    let session_file = session
         .get_state()
         .get_session_file()
         .await
-        .expect("We must have a session file after observe session is done")
+        .expect("We must have a session file after observe session is done");
+    let session_files = SessionFiles::from_session_file(&session_file);
+
+    session
+        .stop(Uuid::new_v4())
+        .await
+        .expect("Session should stop after snapshot files are captured");
+
+    session_files
 }

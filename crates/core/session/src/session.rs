@@ -355,6 +355,10 @@ impl Session {
     }
 
     pub async fn stop(&self, operation_id: Uuid) -> Result<(), stypes::ComputationError> {
+        if self.destroyed.is_cancelled() {
+            return Ok(());
+        }
+
         Session::send_stop_signal(
             operation_id,
             &self.tx_operations,
@@ -594,5 +598,23 @@ impl Session {
         self.tracker
             .shutdown_with_error()
             .map_err(stypes::ComputationError::NativeError)
+    }
+}
+
+impl Drop for Session {
+    fn drop(&mut self) {
+        // This is fallback mechanism to ensure even dropping session without calling stop
+        // will still destroy the session and call the cleanup functions.
+        if self.destroyed.is_cancelled() {
+            return;
+        }
+
+        // Drop cannot await the shutdown token; send the same request as `Self::stop()`
+        // but don't wait for await callbacks.
+        self.destroying.cancel();
+        let _ = self.tx_operations.send(Operation::new(
+            Uuid::new_v4(),
+            operations::OperationKind::End,
+        ));
     }
 }
