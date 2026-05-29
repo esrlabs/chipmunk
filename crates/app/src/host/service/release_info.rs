@@ -40,11 +40,11 @@ async fn check_for_updates(
     settings: UpdateSettings,
 ) {
     let current_version = app_info::current_version();
-    let should_show_changelog = previous_version
+    let show_changelog = previous_version
         .as_ref()
-        .is_some_and(|previous_version| previous_version < current_version);
+        .is_none_or(|previous_version| previous_version < current_version);
 
-    if !settings.check_for_updates && !should_show_changelog {
+    if !settings.check_for_updates && !show_changelog {
         trace!("Skipping release check because it is disabled in application settings.");
         return;
     }
@@ -57,7 +57,7 @@ async fn check_for_updates(
         }
     };
 
-    if should_show_changelog {
+    if show_changelog {
         send_current_changelog(&senders, &releases, current_version).await;
     }
 
@@ -105,10 +105,12 @@ async fn send_current_changelog(
     current_version: &Version,
 ) {
     let Some(release) = current_release(releases, current_version) else {
+        warn!("Release notes for current Chipmunk version {current_version} were not found.");
         return;
     };
 
     let Some(release_notes) = release.body.as_ref().filter(|body| !body.trim().is_empty()) else {
+        warn!("Release notes for current Chipmunk version {current_version} are empty.");
         return;
     };
 
