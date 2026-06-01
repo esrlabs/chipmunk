@@ -53,6 +53,17 @@ impl ServiceSenders {
         evaluate_send_res(&self.egui_ctx, res)
     }
 
+    /// Send a message from a blocking worker and wake up the host UI.
+    ///
+    /// # Return
+    /// Returns `true` if the message is sent successfully. On send errors
+    /// it will log the error and return `false`.
+    pub fn send_message_blocking(&self, message: HostMessage) -> bool {
+        let res = self.message_tx.blocking_send(message);
+
+        evaluate_send_res(&self.egui_ctx, res)
+    }
+
     /// Send notification to host and waking up UI.
     ///
     /// # Return

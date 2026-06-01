@@ -3,17 +3,27 @@
 use egui::{
     Align, Area, Button, Frame, Grid, Id, Layout, OpenUrl, Order, Stroke, Ui, Widget, vec2,
 };
+use tokio::sync::mpsc;
 
 use crate::{
     common::app_info,
-    host::{common::colors, ui::state::info::AppInfoState},
+    host::{
+        command::HostCommand,
+        common::colors,
+        ui::{UiActions, state::info::AppInfoState, update::DownloadUpdateParam},
+    },
 };
 
 const UPDATE_CARD_MARGIN: f32 = 16.0;
-const UPDATE_CARD_MAX_WIDTH: f32 = 250.0;
+const UPDATE_CARD_MAX_WIDTH: f32 = 320.0;
 
 /// Renders the update banner when update information is available and not dismissed.
-pub fn render(info_state: &mut AppInfoState, ui: &mut Ui) {
+pub fn render(
+    info_state: &mut AppInfoState,
+    cmd_tx: &mpsc::Sender<HostCommand>,
+    ui_actions: &mut UiActions,
+    ui: &mut Ui,
+) {
     let Some(update) = info_state.update_info() else {
         return;
     };
@@ -42,6 +52,10 @@ pub fn render(info_state: &mut AppInfoState, ui: &mut Ui) {
 
                     ui.add_space(4.0);
                     ui.label("A newer Chipmunk version is available.");
+                    if update.plan.is_none() {
+                        ui.add_space(4.0);
+                        ui.label("Built-in update is not available for this installation.");
+                    }
                     ui.add_space(8.0);
 
                     Grid::new("app_version_update_versions")
@@ -58,11 +72,35 @@ pub fn render(info_state: &mut AppInfoState, ui: &mut Ui) {
 
                     ui.add_space(8.0);
                     ui.vertical_centered(|ui| {
+                        let actions_width = if update.plan.is_some() {
+                            ui.available_width()
+                        } else {
+                            205.0
+                        };
                         ui.allocate_ui_with_layout(
-                            vec2(205.0, 25.0),
+                            vec2(actions_width, 25.0),
                             Layout::left_to_right(Align::Center),
                             |ui| {
                                 let button_size = vec2(100.0, 25.0);
+
+                                if let Some(plan) = update.plan.as_ref()
+                                    && Button::new("Download")
+                                        .min_size(button_size)
+                                        .ui(ui)
+                                        .clicked()
+                                {
+                                    let params = DownloadUpdateParam {
+                                        latest_version: update.latest_version.clone(),
+                                        release_url: update.release_url.clone(),
+                                        plan: plan.clone(),
+                                    };
+                                    ui_actions.try_send_command(
+                                        cmd_tx,
+                                        HostCommand::DownloadAppUpdate(Box::new(params)),
+                                    );
+
+                                    dismiss = true;
+                                }
                                 if Button::new("Open release")
                                     .min_size(button_size)
                                     .ui(ui)

@@ -1,9 +1,11 @@
 use std::{path::PathBuf, sync::mpsc::Sender as StdSender};
+
 use stypes::FileFormat;
 use uuid::Uuid;
 
 use crate::host::{
     common::{parsers::ParserNames, sources::StreamNames},
+    ui::update::{DownloadUpdateParam, DownloadedUpdate},
     ui::{
         registry::presets::Preset,
         session_setup::state::{parsers::ParserConfig, sources::ByteSourceConfig},
@@ -48,6 +50,10 @@ pub enum HostCommand {
     ImportPresets(PathBuf),
     /// Exports the provided named presets to the target file.
     ExportPresets(Box<ExportPresetsParam>),
+    /// Starts the built-in app update download workflow.
+    DownloadAppUpdate(Box<DownloadUpdateParam>),
+    /// Runs downloaded built-in app update install-on-exit work.
+    InstallAppUpdate(Box<DownloadedUpdate>),
     /// Persists storage and notifies the caller when it finishes.
     SaveStorage {
         data: Box<StorageSaveData>,

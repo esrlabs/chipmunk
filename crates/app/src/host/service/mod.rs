@@ -57,8 +57,8 @@ use storage::StorageService;
 pub mod file;
 mod plugin;
 mod presets_io;
-mod release_info;
 mod storage;
+mod update;
 
 const ASYNC_EVENT_CHANNEL_CAPACITY: usize = 64;
 
@@ -148,7 +148,7 @@ impl HostService {
 
                 Self::spawn_startup_cleanup();
                 let previous_version = storage::app_version::sync_current_version();
-                release_info::spawn_update_check(
+                update::spawn_check(
                     host.communication.senders.clone(),
                     previous_version,
                     update_settings,
@@ -251,6 +251,15 @@ impl HostService {
             }
             HostCommand::ExportPresets(params) => {
                 self.export_presets(*params).await?;
+            }
+            HostCommand::DownloadAppUpdate(params) => {
+                update::spawn_download_update(self.communication.senders.clone(), *params);
+            }
+            HostCommand::InstallAppUpdate(downloaded_update) => {
+                update::spawn_install_update(
+                    self.communication.senders.clone(),
+                    *downloaded_update,
+                );
             }
             HostCommand::SaveStorage { data, confirm_tx } => {
                 self.storage.save_storage(data, confirm_tx);
