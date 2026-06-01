@@ -109,8 +109,10 @@ nucleo-matcher = "0.3"
 anstyle-parse = "1.0"
 unicode-segmentation = "1.13"
 rayon = "1"
-socket2 = "0.5.8"
+socket2 = "0.5"
 someip-messages = { git = "https://github.com/esrlabs/someip" }
+tar = "0.4"
+flate2 = "1.1"
 
 # NOTE: Pinned to a specific commit because our unsafe code in `someip.rs`
 # depends on the internal implementation of this library.

@@ -73,6 +73,11 @@ egui_table.workspace = true
 egui_plot.workspace = true
 egui-phosphor = { workspace = true, features = ["regular", "fill"] }
 egui_commonmark.workspace = true
+tar.workspace = true
+flate2.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
 
 [lints]
 workspace = true

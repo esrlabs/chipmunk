@@ -1,15 +1,17 @@
 use std::path::PathBuf;
 
-use semver::Version;
 use uuid::Uuid;
 
 use crate::{
     host::{
         common::dlt_stats::DltStatistics,
         ui::{
-            multi_setup::state::MultiFileState, registry::presets::Preset,
-            session_setup::state::SessionSetupState, state::plugin::PluginsState,
+            multi_setup::state::MultiFileState,
+            registry::presets::Preset,
+            session_setup::state::SessionSetupState,
+            state::plugin::PluginsState,
             storage::types::StorageEvent,
+            update::{AppChangelog, AppVersionUpdate, DownloadedUpdate},
         },
     },
     session::SpawnedSession,
@@ -44,6 +46,10 @@ pub enum HostMessage {
     PresetsExported { path: PathBuf, count: usize },
     /// A newer application version is available.
     AppVersionUpdate(Box<AppVersionUpdate>),
+    /// Built-in app update download result.
+    AppUpdateDownload(Box<Result<DownloadedUpdate, String>>),
+    /// Built-in app update install-on-exit result.
+    AppUpdateInstall(Result<(), String>),
     /// Release notes for the first launch after an application update.
     AppChangelog(Box<AppChangelog>),
     /// Storage-related async events.
@@ -63,26 +69,6 @@ pub struct PresetsImported {
     pub presets: Vec<Preset>,
     /// True when the file was parsed through the legacy compatibility path.
     pub used_legacy_format: bool,
-}
-
-/// Message payload for a newer application version.
-#[derive(Debug)]
-pub struct AppVersionUpdate {
-    /// Newer version returned by the release source.
-    pub latest_version: Version,
-    /// Release page URL.
-    pub release_url: String,
-}
-
-/// Message payload for release notes shown after an application update.
-#[derive(Debug)]
-pub struct AppChangelog {
-    /// Version whose release notes are being shown.
-    pub version: Version,
-    /// Markdown release notes.
-    pub release_notes: String,
-    /// Release page URL.
-    pub release_url: String,
 }
 
 /// README loading result for a Plugin Manager request.

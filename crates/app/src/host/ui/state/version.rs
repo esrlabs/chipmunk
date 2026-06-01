@@ -1,4 +1,4 @@
-use crate::host::message::AppVersionUpdate;
+use crate::host::ui::update::AppVersionUpdate;
 
 /// UI state for application version information.
 #[derive(Debug, Default)]

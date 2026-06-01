@@ -61,6 +61,7 @@ pub mod shortcuts;
 pub mod state;
 pub mod storage;
 mod tabs;
+pub mod update;
 
 #[derive(Debug)]
 pub struct Host {
@@ -166,7 +167,7 @@ impl Host {
         Ok(())
     }
 
-    fn handle_message(&mut self, message: HostMessage) {
+    fn handle_message(&mut self, message: HostMessage, ctx: &Context) {
         match message {
             HostMessage::SessionSetupOpened(setup_state) => {
                 self.tabs.add_session_setup(*setup_state);
@@ -224,14 +225,17 @@ impl Host {
                 self.state
                     .handle_presets_exported(path, count, &mut self.ui_actions)
             }
-            HostMessage::AppVersionUpdate(update) => {
-                self.state.app_info.set_update_info(*update);
+            HostMessage::AppVersionUpdate(update) => self.state.app_info.set_update_info(*update),
+            HostMessage::AppUpdateDownload(update) => self
+                .state
+                .app_info
+                .handle_update_download(*update, &mut self.ui_actions),
+            HostMessage::AppUpdateInstall(result) => {
+                self.state
+                    .app_info
+                    .handle_update_install(result, &mut self.ui_actions, ctx)
             }
-            HostMessage::AppChangelog(changelog) => {
-                if self.state.modals.open(HostModal::Changelog) {
-                    self.state.app_info.set_changelog(*changelog);
-                }
-            }
+            HostMessage::AppChangelog(changelog) => self.handle_update_changelog(*changelog),
             HostMessage::Storage(event) => self.storage.handle_event(event, &mut self.ui_actions),
             HostMessage::PluginsStateChanged(plugins) => {
                 self.state.plugins.set(*plugins);
@@ -283,11 +287,17 @@ impl Host {
                 self.render_main(ui);
 
                 if self.state.app_info.show_update_banner {
-                    banners::update::render(&mut self.state.app_info, ui);
+                    banners::update::render(
+                        &mut self.state.app_info,
+                        &self.senders.cmd_tx,
+                        &mut self.ui_actions,
+                        ui,
+                    );
                 }
             });
 
         self.render_active_modal(ui);
+        self.render_update_busy(ui);
     }
 
     fn render_active_modal(&mut self, ui: &Ui) {
@@ -432,6 +442,15 @@ impl Host {
         }
     }
 
+    /// Handles close-request preflight work that may delay or cancel shutdown.
+    fn handle_close_requested(&mut self, ui: &mut Ui) {
+        if !ui.input(|input| input.viewport().close_requested()) {
+            return;
+        }
+
+        self.handle_update_close_requested(ui);
+    }
+
     fn file_dialog_overlay(&mut self, parent_ui: &Ui) {
         show_modal(
             parent_ui,
@@ -515,9 +534,9 @@ fn render_panel_toggle(ui: &mut Ui, visible: &mut bool, icon: &str, panel_name: 
 }
 
 impl eframe::App for Host {
-    fn logic(&mut self, _ctx: &Context, _frame: &mut eframe::Frame) {
+    fn logic(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
         while let Ok(msg) = self.receivers.message_rx.try_recv() {
-            self.handle_message(msg);
+            self.handle_message(msg, ctx);
         }
 
         while let Ok(notification) = self.receivers.notification_rx.try_recv() {
@@ -555,6 +574,8 @@ impl eframe::App for Host {
         if !overlay_was_open && !quick_open.is_open() && !command_palette.is_open() {
             shortcuts::handler::handle(self, ui.ctx());
         }
+
+        self.handle_close_requested(ui);
 
         self.render_ui(ui, frame);
         self.handle_confirmation_results();
