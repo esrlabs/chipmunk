@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build and package the Chipmunk app.
+"""Build and package the Chipmunk app and CLI.
 
 This script is the release artifact's source of truth for CI and local builds.
 It deliberately keeps the public portable artifact names compatible with the
@@ -40,7 +40,7 @@ DEFAULT_WINDOWS_TIMESTAMP_URL = "http://timestamp.digicert.com"
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Build and package the Chipmunk native app."
+        description="Build and package the Chipmunk native app and CLI."
     )
     parser.add_argument(
         "--code-sign",
@@ -51,14 +51,18 @@ def main():
 
     clean_release()
     build_app()
+    build_cli()
 
     version = app_version()
+    cli_version_value = cli_version()
     if is_macos():
         artifacts = package_macos(version, code_sign=args.code_sign)
     elif is_windows():
         artifacts = [package_portable(version), package_windows_msi(version)]
     else:
         artifacts = [package_portable(version)]
+
+    artifacts.append(package_cli_portable(cli_version_value))
 
     for artifact in artifacts:
         print("Chipmunk release artifact created: {}".format(artifact))
@@ -81,6 +85,22 @@ def build_app():
     )
 
 
+def build_cli():
+    """Build the standalone CLI binary that ships as its own release artifact."""
+    run(
+        [
+            "cargo",
+            "build",
+            "--release",
+            "--locked",
+            "--manifest-path",
+            str(cli_manifest_path()),
+        ],
+        cwd=workspace_root(),
+        error="Building Chipmunk CLI failed",
+    )
+
+
 def package_portable(version):
     """Create the Linux/Windows portable archive.
 
@@ -92,15 +112,35 @@ def package_portable(version):
     archive_root = "chipmunk@{}-{}-portable".format(version, platform_name())
     staging_dir = app_release_path() / archive_root
 
-    staging_dir.mkdir(parents=True, exist_ok=True)
+    reset_staging_dir(staging_dir)
     shutil.copy2(app_binary_path(), staging_dir / app_binary_name())
-    shutil.copy2(repo_readme_path(), staging_dir / "README.md")
     write_release_manifest(staging_dir)
 
     archive = app_release_path() / "{}.tgz".format(archive_root)
     write_flat_tgz_archive(staging_dir, archive)
 
     return archive
+
+
+def package_cli_portable(version):
+    """Create the portable CLI archive using the legacy flat layout."""
+    archive_root = "chipmunk-cli@{}-{}-portable".format(version, platform_name())
+    staging_dir = app_release_path() / archive_root
+
+    reset_staging_dir(staging_dir)
+    shutil.copy2(cli_binary_path(), staging_dir / cli_binary_name())
+
+    archive = app_release_path() / "{}.tgz".format(archive_root)
+    write_flat_tgz_archive(staging_dir, archive)
+
+    return archive
+
+
+def reset_staging_dir(staging_dir):
+    """Create a fresh staging directory so stale files never enter an archive."""
+    if staging_dir.exists():
+        shutil.rmtree(staging_dir)
+    staging_dir.mkdir(parents=True)
 
 
 def write_release_manifest(staging_dir):
@@ -408,8 +448,24 @@ def app_version():
     return read_workspace_package_version(manifest)
 
 
+def cli_version():
+    """Read the CLI artifact version from crates/cli/Cargo.toml."""
+    manifest = cli_manifest_path()
+    if tomllib is not None:
+        with manifest.open("rb") as file:
+            cargo_toml = tomllib.load(file)
+        return cargo_toml["package"]["version"]
+
+    return read_package_version(manifest)
+
+
 def read_workspace_package_version(manifest):
     """Fallback TOML reader for Python versions without tomllib."""
+    return read_package_version(manifest, section="workspace.package")
+
+
+def read_package_version(manifest, section="package"):
+    """Fallback TOML version reader for simple package tables."""
     current_section = ""
     for raw_line in manifest.read_text(encoding="utf-8").splitlines():
         line = raw_line.strip()
@@ -418,10 +474,10 @@ def read_workspace_package_version(manifest):
         if line.startswith("[") and line.endswith("]"):
             current_section = line[1:-1]
             continue
-        if current_section == "workspace.package" and line.startswith("version"):
+        if current_section == section and line.startswith("version"):
             _, value = line.split("=", 1)
             return value.strip().strip('"')
-    raise RuntimeError("Could not find workspace.package.version in {}".format(manifest))
+    raise RuntimeError("Could not find {}.version in {}".format(section, manifest))
 
 
 def write_info_plist(path, version):
@@ -582,8 +638,16 @@ def app_root():
     return repo_root() / "crates" / "app"
 
 
+def cli_root():
+    return repo_root() / "crates" / "cli"
+
+
 def app_manifest_path():
     return app_root() / "Cargo.toml"
+
+
+def cli_manifest_path():
+    return cli_root() / "Cargo.toml"
 
 
 def app_release_path():
@@ -603,6 +667,17 @@ def app_binary_path():
 
 def app_binary_name():
     return "chipmunk.exe" if is_windows() else "chipmunk"
+
+
+def cli_binary_path():
+    path = workspace_root() / "target" / "release" / cli_binary_name()
+    if not path.exists():
+        raise RuntimeError("Chipmunk CLI binary doesn't exist: {}".format(path))
+    return path
+
+
+def cli_binary_name():
+    return "chipmunk-cli.exe" if is_windows() else "chipmunk-cli"
 
 
 def repo_readme_path():
