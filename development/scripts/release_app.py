@@ -114,7 +114,6 @@ def package_portable(version):
 
     reset_staging_dir(staging_dir)
     shutil.copy2(app_binary_path(), staging_dir / app_binary_name())
-    write_release_manifest(staging_dir)
 
     archive = app_release_path() / "{}.tgz".format(archive_root)
     write_flat_tgz_archive(staging_dir, archive)
@@ -141,18 +140,6 @@ def reset_staging_dir(staging_dir):
     if staging_dir.exists():
         shutil.rmtree(staging_dir)
     staging_dir.mkdir(parents=True)
-
-
-def write_release_manifest(staging_dir):
-    """Write the file list consumed by the legacy self-updater."""
-    entries = [".release"]
-    entries.extend(
-        sorted(path.name for path in staging_dir.iterdir() if path.name != ".release")
-    )
-    (staging_dir / ".release").write_text(
-        "{}\n".format("\n".join(entries)),
-        encoding="utf-8",
-    )
 
 
 def write_flat_tgz_archive(source_dir, archive):
