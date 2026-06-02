@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   create_release:
-    name: Create app release
+    name: Create release
     runs-on: ubuntu-latest
     outputs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
@@ -30,7 +30,7 @@ jobs:
           name: ${{ github.ref_name }}
 
   build_release:
-    name: Build app release
+    name: Build release
     needs: create_release
     runs-on: ${{ matrix.os }}
     strategy:
@@ -135,7 +135,7 @@ jobs:
           security set-keychain-settings build.keychain
           security unlock-keychain -p "$KEYCHAIN_PWD" build.keychain
           security find-identity -v -p codesigning build.keychain
-      - name: Build app release
+      - name: Build release
         shell: bash
         run: |
           # release_app.py owns the artifact layout. macOS needs signing and
@@ -145,7 +145,7 @@ jobs:
           else
             just release
           fi
-      - name: List app release files
+      - name: List release files
         working-directory: ./target/dist
         run: ls
       - name: Upload release asset
