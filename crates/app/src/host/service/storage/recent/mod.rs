@@ -311,12 +311,13 @@ fn get_path() -> Result<PathBuf, StorageError> {
 mod tests {
     use std::{
         fs,
+        ops::Deref,
         path::{Path, PathBuf},
-        time::{SystemTime, UNIX_EPOCH},
     };
 
     use processor::search::filter::SearchFilter;
     use stypes::{ObserveOptions, ObserveOrigin, ParserType, TCPTransportConfig, Transport};
+    use tempfile::{TempDir, tempdir};
 
     use crate::{
         common::time::unix_timestamp_now,
@@ -338,14 +339,18 @@ mod tests {
 
     use super::*;
 
-    fn test_home_dir() -> PathBuf {
-        let unique = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("system time must be after unix epoch")
-            .as_nanos();
-        let path = std::env::temp_dir().join(format!("chipmunk-storage-test-{unique}"));
-        fs::create_dir_all(&path).expect("temp test home dir should be created");
-        path
+    struct TestHomeDir(TempDir);
+
+    impl Deref for TestHomeDir {
+        type Target = Path;
+
+        fn deref(&self) -> &Self::Target {
+            self.0.path()
+        }
+    }
+
+    fn test_home_dir() -> TestHomeDir {
+        TestHomeDir(tempdir().expect("temp home dir should be created"))
     }
 
     fn path_from_home(home_dir: &Path) -> Result<PathBuf, StorageError> {
@@ -501,7 +506,6 @@ mod tests {
         let data = RecentSessionsStorage::load(&path).expect("missing file should default");
 
         assert!(data.sessions.is_empty());
-        let _ = fs::remove_dir_all(home_dir);
     }
 
     #[test]
@@ -513,7 +517,6 @@ mod tests {
         let err = RecentSessionsStorage::load(&path).expect_err("invalid json should fail");
 
         assert_eq!(err.kind, StorageErrorKind::Parse);
-        let _ = fs::remove_dir_all(home_dir);
     }
 
     #[test]
@@ -525,7 +528,6 @@ mod tests {
         load_sessions_from_home(&home_dir).expect("load should succeed");
 
         assert!(legacy::marker_path(&home_dir).exists());
-        let _ = fs::remove_dir_all(home_dir);
     }
 
     #[test]
@@ -537,7 +539,6 @@ mod tests {
 
         assert!(!legacy::storage_path(&home_dir).exists());
         assert!(!legacy::marker_path(&home_dir).exists());
-        let _ = fs::remove_dir_all(home_dir);
     }
 
     #[test]
@@ -553,7 +554,6 @@ mod tests {
         assert!(legacy::marker_path(&home_dir).exists());
         let saved = RecentSessionsStorage::load(&native_path).expect("created storage should load");
         assert!(saved.sessions.is_empty());
-        let _ = fs::remove_dir_all(home_dir);
     }
 
     #[test]
@@ -579,7 +579,6 @@ mod tests {
         assert!(matches!(loaded.sessions[0].parser, ParserType::Text(())));
         assert!(native_path.exists());
         assert!(legacy::marker_path(&home_dir).exists());
-        let _ = fs::remove_dir_all(home_dir);
     }
 
     #[test]
@@ -597,7 +596,6 @@ mod tests {
         assert!(legacy::marker_path(&home_dir).exists());
         let saved = RecentSessionsStorage::load(&native_path).expect("created storage should load");
         assert!(saved.sessions.is_empty());
-        let _ = fs::remove_dir_all(home_dir);
     }
 
     #[test]
@@ -669,7 +667,6 @@ mod tests {
         assert!(chart.filter.is_ignore_case());
         assert!(chart.enabled);
         assert_eq!(state.bookmarks, vec![42]);
-        let _ = fs::remove_dir_all(home_dir);
     }
 
     #[test]
@@ -700,7 +697,6 @@ mod tests {
         assert_eq!(loaded.sessions.len(), 1);
         assert_eq!(loaded.sessions[0].last_opened, 2);
         assert!(matches!(loaded.sessions[0].parser, ParserType::SomeIp(..)));
-        let _ = fs::remove_dir_all(home_dir);
     }
 
     #[test]
@@ -724,7 +720,6 @@ mod tests {
         let saved =
             RecentSessionsStorage::load(&native_path).expect("normalized storage should load");
         assert!(saved.sessions.is_empty());
-        let _ = fs::remove_dir_all(home_dir);
     }
 
     #[test]
@@ -739,7 +734,6 @@ mod tests {
 
         assert!(loaded.sessions.is_empty());
         assert!(!native_path.exists());
-        let _ = fs::remove_dir_all(home_dir);
     }
 
     #[test]
@@ -753,7 +747,6 @@ mod tests {
 
         assert_eq!(err.kind, StorageErrorKind::Parse);
         assert!(legacy::marker_path(&home_dir).exists());
-        let _ = fs::remove_dir_all(home_dir);
     }
 
     #[test]
@@ -776,7 +769,6 @@ mod tests {
 
         assert_eq!(loaded.sessions.len(), 1);
         assert_eq!(loaded.sessions[0].source_key, valid_snapshot.source_key);
-        let _ = fs::remove_dir_all(home_dir);
     }
 
     #[test]
@@ -800,7 +792,6 @@ mod tests {
 
         assert_eq!(loaded.sessions.len(), 1);
         assert_eq!(loaded.sessions[0].source_key, snapshot.source_key);
-        let _ = fs::remove_dir_all(home_dir);
     }
 
     #[test]
@@ -818,7 +809,6 @@ mod tests {
         let loaded = load_and_normalize(&path).expect("load should succeed");
 
         assert_eq!(loaded.sessions.len(), 1);
-        let _ = fs::remove_dir_all(home_dir);
     }
 
     #[test]
@@ -839,7 +829,6 @@ mod tests {
         assert_eq!(loaded.sessions[0].title(), "newest");
         assert_eq!(loaded.sessions[1].title(), "middle");
         assert_eq!(loaded.sessions[2].title(), "oldest");
-        let _ = fs::remove_dir_all(home_dir);
     }
 
     #[test]
@@ -864,7 +853,6 @@ mod tests {
             loaded.sessions[MAX_RECENT_SESSIONS - 1].title(),
             "session-1"
         );
-        let _ = fs::remove_dir_all(home_dir);
     }
 
     #[test]
@@ -900,7 +888,6 @@ mod tests {
         assert_eq!(loaded.sessions[0].last_opened, data.sessions[0].last_opened);
         assert_eq!(loaded.sessions[0].source_key, data.sessions[0].source_key);
         assert_eq!(loaded.sessions[0].state, data.sessions[0].state);
-        let _ = fs::remove_dir_all(home_dir);
     }
 
     #[test]

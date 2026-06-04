@@ -81,11 +81,9 @@ fn get_path() -> Result<PathBuf, StorageError> {
 
 #[cfg(test)]
 mod tests {
-    use std::{
-        fs,
-        path::PathBuf,
-        time::{SystemTime, UNIX_EPOCH},
-    };
+    use std::path::{Path, PathBuf};
+
+    use tempfile::tempdir;
 
     use crate::host::{
         service::storage::storage_path_from_home,
@@ -94,16 +92,6 @@ mod tests {
 
     use super::*;
 
-    fn test_home_dir() -> PathBuf {
-        let unique = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("system time must be after unix epoch")
-            .as_nanos();
-        let path = std::env::temp_dir().join(format!("chipmunk-settings-test-{unique}"));
-        fs::create_dir_all(&path).expect("temp test home dir should be created");
-        path
-    }
-
     fn test_settings_path(home_dir: &Path) -> Result<PathBuf, StorageError> {
         let storage_dir = storage_path_from_home(home_dir)?;
         Ok(storage_dir.join(APP_SETTINGS_FILE))
@@ -111,19 +99,18 @@ mod tests {
 
     #[test]
     fn missing_file_loads_default_settings() {
-        let home_dir = test_home_dir();
-        let path = test_settings_path(&home_dir).expect("settings path should be resolved");
+        let home_dir = tempdir().expect("temp home dir should be created");
+        let path = test_settings_path(home_dir.path()).expect("settings path should be resolved");
 
         let settings = load(&path).expect("missing settings file should load defaults");
 
         assert_eq!(settings, AppSettings::default());
-        fs::remove_dir_all(home_dir).expect("temp home dir should be removed");
     }
 
     #[test]
     fn save_and_load_round_trip() {
-        let home_dir = test_home_dir();
-        let path = test_settings_path(&home_dir).expect("settings path should be resolved");
+        let home_dir = tempdir().expect("temp home dir should be created");
+        let path = test_settings_path(home_dir.path()).expect("settings path should be resolved");
         let settings = AppSettings {
             updates: UpdateSettings {
                 check_for_updates: false,
@@ -135,6 +122,5 @@ mod tests {
         let loaded = load(&path).expect("settings should load");
 
         assert_eq!(loaded, settings);
-        fs::remove_dir_all(home_dir).expect("temp home dir should be removed");
     }
 }

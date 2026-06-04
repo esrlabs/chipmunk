@@ -168,14 +168,10 @@ impl RecentSessionsStorage {
 
 #[cfg(test)]
 mod tests {
-    use std::{
-        fs,
-        path::PathBuf,
-        sync::Arc,
-        time::{SystemTime, UNIX_EPOCH},
-    };
+    use std::{fs, path::PathBuf, sync::Arc};
 
     use stypes::{ObserveOptions, ObserveOrigin, ParserType, TCPTransportConfig, Transport};
+    use tempfile::{TempDir, tempdir};
 
     use super::{MAX_RECENT_SESSIONS, RecentSessionsStorage};
     use crate::{
@@ -190,19 +186,8 @@ mod tests {
         RecentSessionsStorage::default()
     }
 
-    fn test_dir() -> PathBuf {
-        let unique = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("system time must be after unix epoch")
-            .as_nanos();
-        let path = std::env::temp_dir().join(format!("chipmunk-recent-storage-test-{unique}"));
-        fs::create_dir_all(&path).expect("temp test dir should be created");
-        path
-    }
-
-    fn write_test_file(name: &str) -> PathBuf {
-        let dir = test_dir();
-        let path = dir.join(name);
+    fn write_test_file(dir: &TempDir, name: &str) -> PathBuf {
+        let path = dir.path().join(name);
         fs::write(&path, "test").expect("test file should be written");
         path
     }
@@ -254,7 +239,8 @@ mod tests {
 
     #[test]
     fn load_refreshes_cache() {
-        let path = test_dir().join("recent.json");
+        let dir = tempdir().expect("temp dir should be created");
+        let path = dir.path().join("recent.json");
         let original = file_snapshot(PathBuf::from("cached-title.log"));
         let storage = RecentSessionsStorage {
             sessions: vec![original.clone()],
@@ -270,7 +256,8 @@ mod tests {
 
     #[test]
     fn keeps_loaded_sessions() {
-        let valid_path = write_test_file("valid.log");
+        let dir = tempdir().expect("temp dir should be created");
+        let valid_path = write_test_file(&dir, "valid.log");
         let valid_snapshot = file_snapshot(valid_path.clone());
         let invalid_snapshot = file_snapshot(valid_path.with_file_name("missing.log"));
         let storage = RecentSessionsStorage {
@@ -384,8 +371,9 @@ mod tests {
     #[test]
     fn append_rebinds_snapshot() {
         let mut storage = test_storage();
-        let first = write_test_file("rebind-first.log");
-        let second = write_test_file("rebind-second.log");
+        let dir = tempdir().expect("temp dir should be created");
+        let first = write_test_file(&dir, "rebind-first.log");
+        let second = write_test_file(&dir, "rebind-second.log");
         let original = file_snapshot(first);
         let original_key = original.source_key.clone();
         storage.register_session(original);

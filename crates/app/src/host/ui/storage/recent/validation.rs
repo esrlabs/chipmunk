@@ -129,9 +129,10 @@ pub fn validate_saved_parser(
 
 #[cfg(test)]
 mod tests {
-    use std::{fs, path::PathBuf};
+    use std::path::PathBuf;
 
     use stypes::{ObserveOptions, ParserType, PluginType, TCPTransportConfig, Transport};
+    use tempfile::{NamedTempFile, tempdir};
 
     use crate::{
         common::time::unix_timestamp_now,
@@ -204,27 +205,20 @@ mod tests {
 
     #[test]
     fn validate_accepts_existing_file() {
-        let path = std::env::temp_dir().join(format!(
-            "chipmunk-recent-validation-{}.log",
-            uuid::Uuid::new_v4()
-        ));
-        fs::write(&path, "test").expect("test file should be written");
+        let file = NamedTempFile::new().expect("temp source file should be created");
         let snapshot = snapshot_from_observe_options(ObserveOptions::file(
-            path.clone(),
+            file.path().to_path_buf(),
             stypes::FileFormat::Text,
             ParserType::Text(()),
         ));
 
         assert!(validate_sources(&snapshot).is_ok());
-        let _ = fs::remove_file(path);
     }
 
     #[test]
     fn validate_rejects_missing_file() {
-        let path = std::env::temp_dir().join(format!(
-            "chipmunk-missing-recent-validation-{}.log",
-            uuid::Uuid::new_v4()
-        ));
+        let dir = tempdir().expect("temp dir should be created");
+        let path = dir.path().join("missing.log");
         let snapshot = snapshot_from_observe_options(ObserveOptions::file(
             path,
             stypes::FileFormat::Text,
@@ -289,16 +283,12 @@ mod tests {
 
     #[test]
     fn clean_open_skips_plugin_validation() {
-        let path = std::env::temp_dir().join(format!(
-            "chipmunk-recent-clean-plugin-{}.log",
-            uuid::Uuid::new_v4()
-        ));
-        fs::write(&path, "test").expect("test file should be written");
+        let file = NamedTempFile::new().expect("temp source file should be created");
         let session = RecentSessionSnapshot::new(
             1,
             vec![RecentSessionSource::File {
                 format: stypes::FileFormat::Text,
-                path: path.clone(),
+                path: file.path().to_path_buf(),
             }],
             ParserType::Plugin(stypes::PluginParserSettings {
                 plugin_path: PathBuf::from("/plugins/missing/parser.wasm"),
@@ -324,6 +314,5 @@ mod tests {
             )
             .is_err()
         );
-        let _ = fs::remove_file(path);
     }
 }
