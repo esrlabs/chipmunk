@@ -292,10 +292,9 @@ mod tests {
     use std::{
         fs,
         path::{Path, PathBuf},
-        sync::atomic::{AtomicU64, Ordering},
-        time::{SystemTime, UNIX_EPOCH},
     };
 
+    use tempfile::tempdir;
     use tokio::sync::mpsc;
 
     use crate::host::service::{HostAsyncEvent, storage::storage_path_from_home};
@@ -308,19 +307,6 @@ mod tests {
         FAVORITE_SCAN_MAX_ENTRIES, FILE_EXPLORER_FILE, PersistedFileExplorerData, load,
         save_to_path, scan_favorite_folders_with_limit,
     };
-
-    static NEXT_TEST_DIR_ID: AtomicU64 = AtomicU64::new(0);
-
-    fn test_home_dir() -> PathBuf {
-        let unique = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("system time must be after unix epoch")
-            .as_nanos();
-        let id = NEXT_TEST_DIR_ID.fetch_add(1, Ordering::Relaxed);
-        let path = std::env::temp_dir().join(format!("chipmunk-file-explorer-test-{unique}-{id}"));
-        fs::create_dir_all(&path).expect("temp test home dir should be created");
-        path
-    }
 
     fn path_from_home(home_dir: &Path) -> Result<PathBuf, StorageError> {
         let storage_dir = storage_path_from_home(home_dir)?;
@@ -370,31 +356,29 @@ mod tests {
 
     #[test]
     fn missing_file_defaults() {
-        let home_dir = test_home_dir();
-        let path = path_from_home(&home_dir).expect("path should resolve");
+        let home_dir = tempdir().expect("temp home dir should be created");
+        let path = path_from_home(home_dir.path()).expect("path should resolve");
 
         let data = load(&path).expect("missing file should default");
 
         assert!(data.favorite_folders.is_empty());
-        let _ = fs::remove_dir_all(home_dir);
     }
 
     #[test]
     fn malformed_json_fails() {
-        let home_dir = test_home_dir();
-        let path = path_from_home(&home_dir).expect("path should resolve");
+        let home_dir = tempdir().expect("temp home dir should be created");
+        let path = path_from_home(home_dir.path()).expect("path should resolve");
         fs::write(&path, "{not-json").expect("invalid json should be written");
 
         let err = load(&path).expect_err("invalid json should fail");
 
         assert_eq!(err.kind, StorageErrorKind::Parse);
-        let _ = fs::remove_dir_all(home_dir);
     }
 
     #[test]
     fn save_skips_scanned_tree() {
-        let home_dir = test_home_dir();
-        let path = path_from_home(&home_dir).expect("path should resolve");
+        let home_dir = tempdir().expect("temp home dir should be created");
+        let path = path_from_home(home_dir.path()).expect("path should resolve");
         let mut runtime = FileExplorerData {
             favorite_folders: vec![FavoriteFolder::new(PathBuf::from("/tmp/favorites"))],
         };
@@ -411,13 +395,12 @@ mod tests {
             loaded.favorite_folders,
             vec![PathBuf::from("/tmp/favorites")]
         );
-        let _ = fs::remove_dir_all(home_dir);
     }
 
     #[test]
     fn load_reads_path_only_shape() {
-        let home_dir = test_home_dir();
-        let path = path_from_home(&home_dir).expect("path should resolve");
+        let home_dir = tempdir().expect("temp home dir should be created");
+        let path = path_from_home(home_dir.path()).expect("path should resolve");
 
         save_to_path(
             &path,
@@ -431,22 +414,22 @@ mod tests {
             loaded.favorite_folders,
             vec![PathBuf::from("/tmp/one"), PathBuf::from("/tmp/two")]
         );
-        let _ = fs::remove_dir_all(home_dir);
     }
 
     #[test]
     fn scan_includes_nested_content_and_hidden_files() {
-        let dir = test_home_dir();
-        let nested_dir = dir.join("nested");
+        let dir = tempdir().expect("temp folder should be created");
+        let dir_path = dir.path().to_path_buf();
+        let nested_dir = dir_path.join("nested");
         fs::create_dir(&nested_dir).expect("nested dir should be created");
-        fs::write(dir.join("visible.log"), "hello").expect("visible file should be written");
-        fs::write(dir.join(".hidden.log"), "secret").expect("hidden file should be written");
+        fs::write(dir_path.join("visible.log"), "hello").expect("visible file should be written");
+        fs::write(dir_path.join(".hidden.log"), "secret").expect("hidden file should be written");
         fs::write(nested_dir.join("nested.log"), "nested").expect("nested file should be written");
 
-        let scanned = scan(std::slice::from_ref(&dir));
+        let scanned = scan(std::slice::from_ref(&dir_path));
 
         assert_eq!(scanned.len(), 1);
-        assert_eq!(scanned[0].path, dir);
+        assert_eq!(scanned[0].path, dir_path);
         assert_eq!(
             child_names(&scanned[0].children),
             vec!["nested", ".hidden.log", "visible.log"]
@@ -455,8 +438,6 @@ mod tests {
             child_names(folder_children(&scanned[0].children, "nested")),
             vec!["nested.log"]
         );
-
-        let _ = fs::remove_dir_all(scanned[0].path.clone());
     }
 
     #[cfg(unix)]
@@ -464,50 +445,53 @@ mod tests {
     fn scan_skips_symlinks() {
         use std::os::unix::fs::symlink;
 
-        let dir = test_home_dir();
-        let visible = dir.join("visible.log");
-        let symlink_path = dir.join("linked.log");
+        let dir = tempdir().expect("temp folder should be created");
+        let dir_path = dir.path().to_path_buf();
+        let visible = dir_path.join("visible.log");
+        let symlink_path = dir_path.join("linked.log");
 
         fs::write(&visible, "hello").expect("visible file should be written");
         symlink(&visible, &symlink_path).expect("symlink should be created");
 
-        let scanned = scan(std::slice::from_ref(&dir));
+        let scanned = scan(std::slice::from_ref(&dir_path));
 
         assert_eq!(child_names(&scanned[0].children), vec!["visible.log"]);
-
-        let _ = fs::remove_dir_all(scanned[0].path.clone());
     }
 
     #[test]
     fn scan_applies_limit_per_root() {
-        let first = test_home_dir();
-        let second = test_home_dir();
-        let counted_folder = first.join("counted_folder");
+        let first = tempdir().expect("temp folder should be created");
+        let second = tempdir().expect("temp folder should be created");
+        let first_path = first.path().to_path_buf();
+        let second_path = second.path().to_path_buf();
+        let counted_folder = first_path.join("counted_folder");
         fs::create_dir(&counted_folder).expect("folder should be created");
         fs::write(counted_folder.join("nested.log"), "nested")
             .expect("nested file should be written");
-        fs::write(second.join("second.log"), "second").expect("second file should be written");
+        fs::write(second_path.join("second.log"), "second").expect("second file should be written");
 
-        let scanned = scan_with_limit(&[first.clone(), second.clone()], 1);
+        let scanned = scan_with_limit(&[first_path, second_path], 1);
 
         assert_eq!(child_names(&scanned[0].children), vec!["counted_folder"]);
         assert!(folder_children(&scanned[0].children, "counted_folder").is_empty());
         assert_eq!(child_names(&scanned[1].children), vec!["second.log"]);
-
-        let _ = fs::remove_dir_all(first);
-        let _ = fs::remove_dir_all(second);
     }
 
     #[test]
     fn scan_limit_sends_one_warning_with_folder_names() {
-        let first = test_home_dir();
-        let second = test_home_dir();
-        fs::write(first.join("first.log"), "first").expect("first file should be written");
-        fs::write(second.join("second.log"), "second").expect("second file should be written");
+        let first = tempdir().expect("temp folder should be created");
+        let second = tempdir().expect("temp folder should be created");
+        let first_path = first.path().to_path_buf();
+        let second_path = second.path().to_path_buf();
+        fs::write(first_path.join("first.log"), "first").expect("first file should be written");
+        fs::write(second_path.join("second.log"), "second").expect("second file should be written");
 
         let (event_tx, mut event_rx) = mpsc::channel(1);
-        let scanned =
-            scan_favorite_folders_with_limit(&[first.clone(), second.clone()], 1, &event_tx);
+        let scanned = scan_favorite_folders_with_limit(
+            &[first_path.clone(), second_path.clone()],
+            1,
+            &event_tx,
+        );
 
         assert_eq!(child_names(&scanned[0].children), vec!["first.log"]);
         assert_eq!(child_names(&scanned[1].children), vec!["second.log"]);
@@ -519,51 +503,46 @@ mod tests {
                     max_entries_count: 1,
                 }
             )) if folder_names == vec![
-                first.file_name().unwrap().to_string_lossy().into_owned(),
-                second.file_name().unwrap().to_string_lossy().into_owned(),
+                first_path.file_name().unwrap().to_string_lossy().into_owned(),
+                second_path.file_name().unwrap().to_string_lossy().into_owned(),
             ]
         ));
         assert!(event_rx.try_recv().is_err());
-
-        let _ = fs::remove_dir_all(first);
-        let _ = fs::remove_dir_all(second);
     }
 
     #[test]
     fn scan_sorts_folders_before_files_by_name() {
-        let dir = test_home_dir();
-        fs::create_dir(dir.join("b_folder")).expect("folder should be created");
-        fs::create_dir(dir.join("a_folder")).expect("folder should be created");
-        fs::write(dir.join("b.log"), "b").expect("file should be written");
-        fs::write(dir.join("a.log"), "a").expect("file should be written");
+        let dir = tempdir().expect("temp folder should be created");
+        let dir_path = dir.path().to_path_buf();
+        fs::create_dir(dir_path.join("b_folder")).expect("folder should be created");
+        fs::create_dir(dir_path.join("a_folder")).expect("folder should be created");
+        fs::write(dir_path.join("b.log"), "b").expect("file should be written");
+        fs::write(dir_path.join("a.log"), "a").expect("file should be written");
 
-        let scanned = scan(std::slice::from_ref(&dir));
+        let scanned = scan(std::slice::from_ref(&dir_path));
 
         assert_eq!(
             child_names(&scanned[0].children),
             vec!["a_folder", "b_folder", "a.log", "b.log"]
         );
-
-        let _ = fs::remove_dir_all(scanned[0].path.clone());
     }
 
     #[test]
     fn missing_folder_returns_empty_snapshot() {
-        let home_dir = test_home_dir();
-        let missing = home_dir.join("missing");
+        let home_dir = tempdir().expect("temp home dir should be created");
+        let missing = home_dir.path().join("missing");
         let scanned = scan(std::slice::from_ref(&missing));
 
         assert_eq!(scanned.len(), 1);
         assert_eq!(scanned[0].path, missing);
         assert!(scanned[0].children.is_empty());
-
-        let _ = fs::remove_dir_all(home_dir);
     }
 
     #[test]
     fn folders_at_max_depth_are_not_shown_as_empty() {
-        let dir = test_home_dir();
-        let d1 = dir.join("d1");
+        let dir = tempdir().expect("temp folder should be created");
+        let dir_path = dir.path().to_path_buf();
+        let d1 = dir_path.join("d1");
         let d2 = d1.join("d2");
         let d3 = d2.join("d3");
         let d4 = d3.join("d4");
@@ -572,14 +551,12 @@ mod tests {
         fs::write(d4.join("depth5.log"), "depth 5").expect("depth 5 file should be written");
         fs::write(d5.join("too-deep.log"), "too deep").expect("too deep file should be written");
 
-        let scanned = scan(std::slice::from_ref(&dir));
+        let scanned = scan(std::slice::from_ref(&dir_path));
         let d1_children = folder_children(&scanned[0].children, "d1");
         let d2_children = folder_children(d1_children, "d2");
         let d3_children = folder_children(d2_children, "d3");
         let d4_children = folder_children(d3_children, "d4");
 
         assert_eq!(child_names(d4_children), vec!["depth5.log"]);
-
-        let _ = fs::remove_dir_all(scanned[0].path.clone());
     }
 }
