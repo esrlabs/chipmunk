@@ -14,7 +14,7 @@ use super::super::archive;
 use super::{
     InstallerError, TargetArch, UpdateWorkflow, UpdateWorkflowErr, command_success,
     current_executable_target, executable_paths, release_asset_name, remove_temp_dir,
-    replacement_temp_path, select_archive_workflow, spawn_installer_command,
+    select_archive_workflow, spawn_installer_command,
 };
 
 const DEFAULT_MAC_APP_BUNDLE: &str = "chipmunk.app";
@@ -79,15 +79,17 @@ fn replace_archive_for_target(
             archive_extraction_dir.display()
         )
     })?;
-    archive::unpack_archive(archive_path, &archive_extraction_dir)
-        .context("failed to unpack macOS update archive")?;
+    let result = (|| {
+        archive::unpack_archive(archive_path, &archive_extraction_dir)
+            .context("failed to unpack macOS update archive")?;
 
-    // Release archives always contain chipmunk.app at archive root; it may be renamed later.
-    let archive_bundle = archive_extraction_dir.join(DEFAULT_MAC_APP_BUNDLE);
-    replace_bundle_from_archive(&archive_bundle, &current_bundle)?;
+        // Release archives always contain chipmunk.app at archive root.
+        let archive_bundle = archive_extraction_dir.join(DEFAULT_MAC_APP_BUNDLE);
+        copy_bundle_from_archive(&archive_bundle, &current_bundle)
+    })();
     remove_temp_dir(&archive_extraction_dir);
 
-    Ok(())
+    result
 }
 
 /// Detects the macOS update workflow for the executable path.
@@ -191,51 +193,63 @@ fn verify_install_dir(install_dir: &Path, current_bundle: &Path) -> anyhow::Resu
     Ok(())
 }
 
-fn replace_bundle_from_archive(archive_bundle: &Path, current_bundle: &Path) -> anyhow::Result<()> {
-    // Validate the new bundle before moving the running app out of the way.
+fn copy_bundle_from_archive(archive_bundle: &Path, current_bundle: &Path) -> anyhow::Result<()> {
     validate_archive_bundle(archive_bundle)?;
 
-    let bundle_parent = current_bundle.parent().with_context(|| {
+    copy_dir_contents(archive_bundle, current_bundle).with_context(|| {
         format!(
-            "current app bundle has no parent directory: {}",
+            "failed to copy update app bundle '{}' over '{}'",
+            archive_bundle.display(),
             current_bundle.display()
         )
-    })?;
-    let backup_bundle = replacement_temp_path(bundle_parent, current_bundle);
+    })
+}
 
-    // Directory rename is the closest practical bundle swap; rollback keeps the old app
-    // available if moving the extracted bundle into place fails.
-    fs::rename(current_bundle, &backup_bundle).with_context(|| {
+fn copy_dir_contents(source: &Path, destination: &Path) -> anyhow::Result<()> {
+    fs::create_dir_all(destination).with_context(|| {
         format!(
-            "failed to move current app bundle '{}' to temporary backup '{}'",
-            current_bundle.display(),
-            backup_bundle.display()
+            "failed to prepare destination directory '{}'",
+            destination.display()
         )
     })?;
 
-    // Keep the user's current bundle name, including renamed app bundles.
-    match fs::rename(archive_bundle, current_bundle) {
-        Ok(()) => {
-            remove_temp_dir(&backup_bundle);
-            Ok(())
-        }
-        Err(source) => {
-            let replace_error = anyhow::Error::new(source).context(format!(
-                "failed to replace current app bundle '{}'",
-                current_bundle.display()
-            ));
+    for entry in fs::read_dir(source)
+        .with_context(|| format!("failed to read source directory '{}'", source.display()))?
+    {
+        let entry = entry.with_context(|| {
+            format!(
+                "failed to read source directory entry in '{}'",
+                source.display()
+            )
+        })?;
+        let source_path = entry.path();
+        let destination_path = destination.join(entry.file_name());
+        let metadata = entry.metadata().with_context(|| {
+            format!(
+                "failed to read source entry metadata '{}'",
+                source_path.display()
+            )
+        })?;
 
-            if let Err(rollback_source) = fs::rename(&backup_bundle, current_bundle) {
-                return Err(replace_error.context(format!(
-                    "failed to restore original app bundle from '{}' to '{}': {rollback_source}",
-                    backup_bundle.display(),
-                    current_bundle.display()
-                )));
-            }
-
-            Err(replace_error)
+        if metadata.is_dir() {
+            copy_dir_contents(&source_path, &destination_path)?;
+        } else if metadata.is_file() {
+            fs::copy(&source_path, &destination_path).with_context(|| {
+                format!(
+                    "failed to copy '{}' to '{}'",
+                    source_path.display(),
+                    destination_path.display()
+                )
+            })?;
+        } else {
+            bail!(
+                "macOS update archive contains an unsupported bundle entry: {}",
+                source_path.display()
+            );
         }
     }
+
+    Ok(())
 }
 
 fn validate_archive_bundle(archive_bundle: &Path) -> anyhow::Result<()> {
@@ -355,6 +369,7 @@ mod tests {
             b"new"
         );
         assert!(!dir.path().join(DEFAULT_MAC_APP_BUNDLE).exists());
+        assert!(archive_stage_dirs(dir.path()).is_empty());
     }
 
     #[test]
@@ -368,6 +383,7 @@ mod tests {
         let target = current_bundle.join(MAC_APP_EXECUTABLE);
         assert!(replace_archive_for_target(&archive_path, dir.path(), &target).is_err());
         assert_eq!(fs::read(target).unwrap(), b"old");
+        assert!(archive_stage_dirs(dir.path()).is_empty());
     }
 
     #[test]
@@ -388,7 +404,7 @@ mod tests {
     }
 
     #[test]
-    fn archive_replacement_validates_new_bundle_before_swap() {
+    fn archive_replacement_validates_new_bundle_before_copy() {
         let dir = tempdir().unwrap();
         let current_bundle = write_bundle(dir.path(), "Trace.app", b"old");
 
@@ -401,6 +417,7 @@ mod tests {
         let target = current_bundle.join(MAC_APP_EXECUTABLE);
         assert!(replace_archive_for_target(&archive_path, dir.path(), &target).is_err());
         assert_eq!(fs::read(target).unwrap(), b"old");
+        assert!(archive_stage_dirs(dir.path()).is_empty());
     }
 
     #[test]
@@ -437,6 +454,19 @@ mod tests {
             artifact_name(&version(), TargetArch::Aarch64, &UpdateWorkflow::Pkg).unwrap();
 
         assert_eq!(artifact_name, "chipmunk@4.0.0-darwin-arm64.pkg");
+    }
+
+    fn archive_stage_dirs(root: &Path) -> Vec<PathBuf> {
+        fs::read_dir(root)
+            .unwrap()
+            .map(|entry| entry.unwrap().path())
+            .filter(|path| {
+                path.file_name()
+                    .unwrap()
+                    .to_string_lossy()
+                    .starts_with("archive-stage-")
+            })
+            .collect()
     }
 
     fn write_bundle(root: &Path, name: &str, executable_content: &[u8]) -> PathBuf {

@@ -4,7 +4,7 @@
 //! own executable before the process exits. Archive updates therefore split the
 //! work in two parts: Rust validates and prepares all files while the UI is
 //! still open, then a visible PowerShell helper waits for Chipmunk to exit and
-//! performs the final single-file replacement.
+//! copies the validated executable over the locked target.
 
 use std::{
     env,
@@ -23,8 +23,8 @@ use uuid::Uuid;
 use super::super::archive;
 use super::{
     InstallerError, TargetArch, UpdateWorkflow, UpdateWorkflowErr, archive_install_dir,
-    current_executable_target, executable_paths, release_asset_name, replacement_temp_path,
-    select_archive_workflow, spawn_installer_command,
+    current_executable_target, executable_paths, release_asset_name, select_archive_workflow,
+    spawn_installer_command,
 };
 
 const WINDOWS_EXECUTABLE: &str = "chipmunk.exe";
@@ -61,9 +61,9 @@ pub fn install_msi(path: &Path) -> Result<(), InstallerError> {
 
 /// Prepares a portable archive replacement and launches the visible Windows helper.
 ///
-/// The helper owns only the post-exit file swap. Extraction, archive layout
-/// validation, write-access checks, and helper launch failures are handled here
-/// so the Host UI can still cancel shutdown and report those errors.
+/// The helper owns only the post-exit file copy. Extraction, archive layout
+/// validation, and helper launch failures are handled here so the Host UI can
+/// still cancel shutdown and report those errors.
 pub fn replace_archive(archive_path: &Path, install_dir: &Path) -> anyhow::Result<()> {
     let target = current_executable_target()?;
     let prepared = prepare_archive_replacement(archive_path, install_dir, &target)?;
@@ -71,7 +71,7 @@ pub fn replace_archive(archive_path: &Path, install_dir: &Path) -> anyhow::Resul
         &prepared.script_path,
         process::id(),
         &target,
-        &prepared.replacement_path,
+        &prepared.source_path,
     )
 }
 
@@ -95,7 +95,7 @@ fn prepare_archive_replacement(
         .context("failed to unpack Windows update archive")?;
 
     let archive_executable = stage_dir.join(WINDOWS_EXECUTABLE);
-    let replacement_path = prepare_executable_from_archive(&archive_executable, target)?;
+    validate_archive_executable(&archive_executable)?;
 
     // Keep the helper script with the extracted archive so post-close failures
     // can still be shown even after Chipmunk has exited.
@@ -110,7 +110,7 @@ fn prepare_archive_replacement(
 
     let archive_replacement = ArchiveReplacement {
         script_path,
-        replacement_path,
+        source_path: archive_executable,
     };
 
     Ok(archive_replacement)
@@ -118,7 +118,7 @@ fn prepare_archive_replacement(
 
 struct ArchiveReplacement {
     script_path: PathBuf,
-    replacement_path: PathBuf,
+    source_path: PathBuf,
 }
 
 /// Verifies the planned archive install directory still matches the canonical executable parent.
@@ -157,33 +157,6 @@ fn archive_stage_dir(archive_path: &Path) -> PathBuf {
     parent.join(format!("archive-stage-{}", Uuid::new_v4()))
 }
 
-fn prepare_executable_from_archive(
-    archive_executable: &Path,
-    target: &Path,
-) -> anyhow::Result<PathBuf> {
-    validate_archive_executable(archive_executable)?;
-
-    // Copy into the install directory before shutdown. This proves the target
-    // directory is writable and lets PowerShell do a same-directory replacement.
-    let target_parent = target.parent().with_context(|| {
-        format!(
-            "current executable target has no parent directory: {}",
-            target.display()
-        )
-    })?;
-    let replacement_path = replacement_temp_path(target_parent, target);
-
-    fs::copy(archive_executable, &replacement_path).with_context(|| {
-        format!(
-            "failed to copy extracted executable from '{}' to '{}'",
-            archive_executable.display(),
-            replacement_path.display()
-        )
-    })?;
-
-    Ok(replacement_path)
-}
-
 fn validate_archive_executable(archive_executable: &Path) -> anyhow::Result<()> {
     let metadata = match fs::metadata(archive_executable) {
         Ok(metadata) => metadata,
@@ -216,7 +189,7 @@ fn spawn_update_helper(
     script_path: &Path,
     parent_pid: u32,
     target: &Path,
-    replacement_path: &Path,
+    source_path: &Path,
 ) -> anyhow::Result<()> {
     // PowerShell is available on supported Windows machines and gives users a
     // visible terminal for post-close success or failure.
@@ -231,8 +204,8 @@ fn spawn_update_helper(
         .arg(parent_pid.to_string())
         .arg("-Target")
         .arg(target)
-        .arg("-Replacement")
-        .arg(replacement_path);
+        .arg("-Source")
+        .arg(source_path);
 
     #[cfg(windows)]
     {
@@ -283,13 +256,12 @@ fn wait_for_helper_launch(child: &mut process::Child) -> anyhow::Result<()> {
 }
 
 fn update_helper_script() -> &'static str {
-    // File.Replace performs a single-file replacement without keeping a backup.
     // Retries cover the short period where Windows or antivirus software may
     // still hold the executable after the Chipmunk process exits.
     r#"param(
     [Parameter(Mandatory = $true)] [int] $ParentPid,
     [Parameter(Mandatory = $true)] [string] $Target,
-    [Parameter(Mandatory = $true)] [string] $Replacement
+    [Parameter(Mandatory = $true)] [string] $Source
 )
 
 try {
@@ -312,7 +284,7 @@ try {
 
     while ((Get-Date) -lt $Deadline) {
         try {
-            [System.IO.File]::Replace($Replacement, $Target, $null, $true)
+            [System.IO.File]::Copy($Source, $Target, $true)
             $Succeeded = $true
             Write-Host "Chipmunk was updated successfully."
             break
@@ -408,7 +380,7 @@ mod tests {
     }
 
     #[test]
-    fn archive_replacement_prepares_temp_executable() {
+    fn archive_replacement_prepares_staged_executable() {
         let dir = tempdir().unwrap();
         let target = dir.path().join("Trace.exe");
         write_file(&target, b"old");
@@ -425,7 +397,11 @@ mod tests {
         let prepared = prepare_archive_replacement(&archive_path, dir.path(), &target).unwrap();
 
         assert_eq!(fs::read(&target).unwrap(), b"old");
-        assert_eq!(fs::read(prepared.replacement_path).unwrap(), b"new");
+        assert_eq!(fs::read(&prepared.source_path).unwrap(), b"new");
+        assert_eq!(
+            prepared.source_path.parent().unwrap(),
+            prepared.script_path.parent().unwrap()
+        );
         assert!(prepared.script_path.exists());
     }
 
