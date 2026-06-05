@@ -1,4 +1,12 @@
 //! Host service workflow for app release checks and update metadata.
+//!
+//! The built-in updater checks GitHub releases for the running major series,
+//! selects a safe platform workflow before resolving release artifacts, and
+//! downloads only the exact artifact for that workflow.
+//!
+//! Downloads are staged under Chipmunk's downloads directory and installed only
+//! from close handling. Startup cleanup owns removal of successful or stale
+//! staged update files.
 
 use log::{info, trace, warn};
 use semver::Version;
@@ -83,9 +91,12 @@ async fn run_startup_check(
     settings: UpdateSettings,
 ) {
     let current_version = app_info::current_version();
-    let show_changelog = previous_version
-        .as_ref()
-        .is_none_or(|previous_version| previous_version < current_version);
+    // Show changelog always after updating application and also on first launches
+    // when startup update checks are enabled.
+    let show_changelog = match previous_version.as_ref() {
+        Some(previous_version) => previous_version < current_version,
+        None => settings.check_for_updates,
+    };
 
     if !settings.check_for_updates && !show_changelog {
         trace!("Skipping release check because it is disabled in application settings.");

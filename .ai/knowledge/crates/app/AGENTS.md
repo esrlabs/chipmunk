@@ -34,6 +34,7 @@ It owns the desktop application shell and integrates directly with the core runt
 - Recent sessions, favorite folders, and service-backed storage: `crates/app/src/host/ui/storage/`, `crates/app/src/host/service/storage/`
 - Lightweight host UI preferences: `crates/app/src/host/ui/persist.rs`, `crates/app/src/host/ui/state/preferences.rs`
 - Command palette and shortcuts: `crates/app/src/host/ui/command_palette/`, `crates/app/src/host/ui/shortcuts/`
+- Built-in app updater/release checks: `crates/app/src/host/service/update/`, `crates/app/src/host/ui/update.rs`, `crates/app/src/host/ui/state/info.rs`, `crates/app/src/host/ui/banners/update.rs`, `crates/app/src/host/ui/menu.rs`, `crates/app/src/host/service/mod.rs`, `crates/app/src/host/command.rs`, and `crates/app/src/host/message.rs`
 
 ## Ownership Model
 
