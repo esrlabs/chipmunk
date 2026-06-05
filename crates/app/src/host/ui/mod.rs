@@ -226,6 +226,10 @@ impl Host {
                     .handle_presets_exported(path, count, &mut self.ui_actions)
             }
             HostMessage::AppVersionUpdate(update) => self.state.app_info.set_update_info(*update),
+            HostMessage::AppUpdateCheckResult(result) => self
+                .state
+                .app_info
+                .handle_update_check(*result, &mut self.ui_actions),
             HostMessage::AppUpdateDownload(update) => self
                 .state
                 .app_info

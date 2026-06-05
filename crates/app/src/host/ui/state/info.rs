@@ -7,7 +7,7 @@ use crate::host::{
     notification::AppNotification,
     ui::{
         actions::UiActions,
-        update::{AppChangelog, AppVersionUpdate, DownloadedUpdate},
+        update::{AppChangelog, AppVersionUpdate, DownloadedUpdate, UpdateCheckResult},
     },
 };
 
@@ -17,6 +17,7 @@ pub struct AppInfoState {
     update_info: Option<AppVersionUpdate>,
     downloaded_update: Option<DownloadedUpdate>,
     update_running: bool,
+    update_check_running: bool,
     changelog: Option<AppChangelog>,
     changelog_markdown_cache: CommonMarkCache,
     pub show_update_banner: bool,
@@ -36,6 +37,43 @@ impl AppInfoState {
         self.show_update_banner = true;
     }
 
+    /// Starts a user-triggered update check if none is already running.
+    ///
+    /// Returns `true` when a new check was started and `false` when another check is still running.
+    pub fn begin_update_check(&mut self) -> bool {
+        if self.update_check_running {
+            return false;
+        }
+
+        self.update_check_running = true;
+        true
+    }
+
+    /// Returns whether a user-triggered update check is currently running.
+    pub fn is_checking_updates(&self) -> bool {
+        self.update_check_running
+    }
+
+    /// Cancels user-triggered update-check state after the request could not be sent.
+    pub fn cancel_update_check(&mut self) {
+        self.update_check_running = false;
+    }
+
+    /// Handles a completed user-triggered update check.
+    pub fn handle_update_check(&mut self, result: UpdateCheckResult, ui_actions: &mut UiActions) {
+        self.update_check_running = false;
+
+        match result {
+            UpdateCheckResult::UpdateAvailable(update_info) => self.set_update_info(update_info),
+            UpdateCheckResult::UpToDate => {
+                ui_actions.add_notification(AppNotification::Info("Chipmunk is up to date.".into()))
+            }
+            UpdateCheckResult::Failed(err) => {
+                ui_actions.add_notification(AppNotification::Error(err));
+            }
+        }
+    }
+
     /// Handles a completed app update download request.
     pub fn handle_update_download(
         &mut self,
@@ -47,7 +85,7 @@ impl AppInfoState {
                 self.downloaded_update = Some(downloaded_update);
                 self.update_running = false;
                 ui_actions.add_notification(AppNotification::Info(
-                    "Update downloaded successfully.".into(),
+                    "Update downloaded. It will be installed when Chipmunk closes.".into(),
                 ));
             }
             Err(err) => {

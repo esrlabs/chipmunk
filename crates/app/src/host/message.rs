@@ -11,7 +11,7 @@ use crate::{
             session_setup::state::SessionSetupState,
             state::plugin::PluginsState,
             storage::types::StorageEvent,
-            update::{AppChangelog, AppVersionUpdate, DownloadedUpdate},
+            update::{AppChangelog, AppVersionUpdate, DownloadedUpdate, UpdateCheckResult},
         },
     },
     session::SpawnedSession,
@@ -44,8 +44,10 @@ pub enum HostMessage {
     PresetsImported(Box<PresetsImported>),
     /// Presets were exported successfully to the provided file path.
     PresetsExported { path: PathBuf, count: usize },
-    /// A newer application version is available.
+    /// A newer application version was found by the quiet startup update check.
     AppVersionUpdate(Box<AppVersionUpdate>),
+    /// Result of an explicit user-triggered update check.
+    AppUpdateCheckResult(Box<UpdateCheckResult>),
     /// Built-in app update download result.
     AppUpdateDownload(Box<Result<DownloadedUpdate, String>>),
     /// Built-in app update install-on-exit result.

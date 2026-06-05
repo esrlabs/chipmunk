@@ -11,6 +11,7 @@ use crate::host::{
         session_setup::state::{parsers::ParserConfig, sources::ByteSourceConfig},
         storage::{
             recent::session::{RecentSessionReopenMode, RecentSessionSnapshot},
+            settings::UpdateSettings,
             types::{StorageError, StorageSaveData},
         },
     },
@@ -50,6 +51,8 @@ pub enum HostCommand {
     ImportPresets(PathBuf),
     /// Exports the provided named presets to the target file.
     ExportPresets(Box<ExportPresetsParam>),
+    /// Checks for a newer application version after an explicit user request.
+    CheckAppUpdates(Box<UpdateSettings>),
     /// Starts the built-in app update download workflow.
     DownloadAppUpdate(Box<DownloadUpdateParam>),
     /// Runs downloaded built-in app update install-on-exit work.
