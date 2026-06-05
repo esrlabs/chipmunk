@@ -156,16 +156,30 @@ impl FiltersUi {
         registry: &mut FilterRegistry,
         ui: &mut Ui,
     ) {
-        ScrollArea::vertical().show(ui, |ui| {
-            // Render both lists first, then apply the deferred row action once,
-            // and finally refresh the selected editor against the latest state.
-            let mut side_action = None;
-            self.render_filters_group(shared, registry, ui, &mut side_action);
-            self.render_search_values_group(shared, registry, ui, &mut side_action);
+        const SELECTED_GROUP_HEIGHT: f32 = 120.0;
+        const SELECTED_GROUP_SEPARATOR_HEIGHT: f32 = 8.0;
 
-            self.handle_action(side_action, shared, actions, registry);
+        let selected_group_visible = self.selected_item.is_some();
+        let reserved_editor_height = if selected_group_visible {
+            SELECTED_GROUP_HEIGHT + SELECTED_GROUP_SEPARATOR_HEIGHT
+        } else {
+            0.0
+        };
+        let list_max_height = (ui.available_height() - reserved_editor_height).max(0.0);
+
+        let mut side_action = None;
+        ScrollArea::vertical()
+            .max_height(list_max_height)
+            .show(ui, |ui| {
+                self.render_filters_group(shared, registry, ui, &mut side_action);
+                self.render_search_values_group(shared, registry, ui, &mut side_action);
+            });
+
+        self.handle_action(side_action, shared, actions, registry);
+        if selected_group_visible {
+            ui.separator();
             self.render_selected_group(shared, registry, ui);
-        });
+        }
     }
 
     fn render_filters_group(
