@@ -146,7 +146,7 @@ impl UnboundSession {
         // Run cleaning up on a separate thread to avoid latency in startup in case temporary
         // files are too large.
         tokio::task::spawn_blocking(|| {
-            if let Err(errs) = cleanup_temp_files() {
+            if let Err(errs) = cleanup_temp_files(None) {
                 errs.iter().for_each(|err| {
                     log::error!("Error while cleaning up temporary files. Error: {err:?}")
                 });
