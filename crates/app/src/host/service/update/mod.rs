@@ -11,8 +11,8 @@ use crate::{
         ui::{
             storage::settings::UpdateSettings,
             update::{
-                AppChangelog, AppVersionUpdate, DownloadUpdateParam, DownloadedUpdate, UpdatePlan,
-                UpdateWorkflow,
+                AppChangelog, AppVersionUpdate, DownloadUpdateParam, DownloadedUpdate,
+                UpdateCheckResult, UpdatePlan, UpdateWorkflow,
             },
         },
     },
@@ -59,10 +59,25 @@ pub fn spawn_check(
     previous_version: Option<Version>,
     settings: UpdateSettings,
 ) {
-    tokio::spawn(check_for_updates(senders, previous_version, settings));
+    tokio::spawn(run_startup_check(senders, previous_version, settings));
 }
 
-async fn check_for_updates(
+/// Spawns a user-triggered release check in the current major series.
+pub fn spawn_update_check(senders: ServiceSenders, settings: UpdateSettings) {
+    tokio::spawn(async move {
+        let result = run_requested_check(&settings).await.unwrap_or_else(|err| {
+            warn!("Failed to check GitHub releases after user request: {err:#}");
+            UpdateCheckResult::Failed(err.to_string())
+        });
+
+        senders
+            .send_message(HostMessage::AppUpdateCheckResult(Box::new(result)))
+            .await;
+    });
+}
+
+/// Runs the quiet startup release lookup for changelog and update-banner metadata.
+async fn run_startup_check(
     senders: ServiceSenders,
     previous_version: Option<Version>,
     settings: UpdateSettings,
@@ -77,16 +92,25 @@ async fn check_for_updates(
         return;
     }
 
-    let release_metadata =
-        match fetch_release_metadata(current_version, &settings, show_changelog).await {
-            Ok(metadata) => metadata,
-            Err(err) => {
-                warn!("Failed to fetch GitHub releases: {err:#}");
-                return;
-            }
-        };
+    let lookup = ReleaseLookup {
+        include_changelog: show_changelog,
+        include_update_candidate: settings.check_for_updates,
+        include_pre_releases: settings.check_pre_releases,
+    };
+    let release_metadata = match fetch_release_metadata(current_version, lookup).await {
+        Ok(metadata) => metadata,
+        Err(err) => {
+            warn!("Failed to fetch GitHub releases: {err:#}");
+            return;
+        }
+    };
 
-    if let Some(changelog) = release_metadata.changelog {
+    let ReleaseMetadata {
+        changelog,
+        latest_release,
+    } = release_metadata;
+
+    if let Some(changelog) = changelog {
         senders
             .send_message(HostMessage::AppChangelog(Box::new(changelog)))
             .await;
@@ -96,31 +120,8 @@ async fn check_for_updates(
         return;
     }
 
-    let Some((latest_version, release)) = release_metadata.latest_release else {
-        trace!("No release found for the current major version in the fetched GitHub releases.");
+    let Some(update) = find_version_update(current_version, latest_release).await else {
         return;
-    };
-
-    if latest_version <= *current_version {
-        trace!(
-            "Application is up to date for the current major version. \
-            current_version={current_version}, latest_version={latest_version}"
-        );
-        return;
-    }
-
-    let plan = match platform::detect_install_workflow().await {
-        Ok(workflow) => resolve_update_plan(&latest_version, workflow, &release.assets),
-        Err(err) => {
-            log_workflow_error(&err);
-            None
-        }
-    };
-
-    let update = AppVersionUpdate {
-        latest_version,
-        release_url: release.html_url.clone(),
-        plan,
     };
 
     senders
@@ -128,15 +129,38 @@ async fn check_for_updates(
         .await;
 }
 
+/// Runs an explicit user-requested release lookup and reports every outcome.
+async fn run_requested_check(settings: &UpdateSettings) -> anyhow::Result<UpdateCheckResult> {
+    let current_version = app_info::current_version();
+    let lookup = ReleaseLookup {
+        include_changelog: false,
+        include_update_candidate: true,
+        include_pre_releases: settings.check_pre_releases,
+    };
+    let release_metadata = fetch_release_metadata(current_version, lookup).await?;
+
+    let Some(update) = find_version_update(current_version, release_metadata.latest_release).await
+    else {
+        return Ok(UpdateCheckResult::UpToDate);
+    };
+
+    Ok(UpdateCheckResult::UpdateAvailable(update))
+}
+
 struct ReleaseMetadata {
     changelog: Option<AppChangelog>,
     latest_release: Option<(Version, GithubRelease)>,
 }
 
+struct ReleaseLookup {
+    include_changelog: bool,
+    include_update_candidate: bool,
+    include_pre_releases: bool,
+}
+
 async fn fetch_release_metadata(
     current_version: &Version,
-    settings: &UpdateSettings,
-    include_changelog: bool,
+    lookup: ReleaseLookup,
 ) -> anyhow::Result<ReleaseMetadata> {
     let mut changelog = None;
     let mut latest_release = None;
@@ -149,7 +173,7 @@ async fn fetch_release_metadata(
             break;
         }
 
-        if include_changelog
+        if lookup.include_changelog
             && changelog.is_none()
             && let Some(release) = release::current_release(&page_releases, current_version)
         {
@@ -160,14 +184,14 @@ async fn fetch_release_metadata(
             });
         }
 
-        if !settings.check_for_updates {
+        if !lookup.include_update_candidate {
             break;
         }
 
         match release::find_update_candidate(
             page_releases,
             current_version.major,
-            settings.check_pre_releases,
+            lookup.include_pre_releases,
         ) {
             release::FindCandidateOutcome::Found(version, release) => {
                 latest_release = Some((version, release));
@@ -186,13 +210,45 @@ async fn fetch_release_metadata(
         }
     }
 
-    if include_changelog && changelog.is_none() {
+    if lookup.include_changelog && changelog.is_none() {
         warn!("Release notes for current Chipmunk version {current_version} were not found.");
     }
 
     Ok(ReleaseMetadata {
         changelog,
         latest_release,
+    })
+}
+
+async fn find_version_update(
+    current_version: &Version,
+    latest_release: Option<(Version, GithubRelease)>,
+) -> Option<AppVersionUpdate> {
+    let Some((latest_version, release)) = latest_release else {
+        trace!("No release found for the current major version in the fetched GitHub releases.");
+        return None;
+    };
+
+    if latest_version <= *current_version {
+        trace!(
+            "Application is up to date for the current major version. \
+            current_version={current_version}, latest_version={latest_version}"
+        );
+        return None;
+    }
+
+    let plan = match platform::detect_install_workflow().await {
+        Ok(workflow) => resolve_update_plan(&latest_version, workflow, &release.assets),
+        Err(err) => {
+            log_workflow_error(&err);
+            None
+        }
+    };
+
+    Some(AppVersionUpdate {
+        latest_version,
+        release_url: release.html_url,
+        plan,
     })
 }
 

@@ -254,6 +254,9 @@ impl HostService {
             HostCommand::ExportPresets(params) => {
                 self.export_presets(*params).await?;
             }
+            HostCommand::CheckAppUpdates(settings) => {
+                update::spawn_update_check(self.communication.senders.clone(), *settings);
+            }
             HostCommand::DownloadAppUpdate(params) => {
                 update::spawn_download_update(self.communication.senders.clone(), *params);
             }

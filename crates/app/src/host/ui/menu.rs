@@ -1,4 +1,4 @@
-use egui::{MenuBar, Theme, Ui};
+use egui::{Button, MenuBar, Theme, Ui};
 use stypes::FileFormat;
 use tokio::sync::mpsc::Sender;
 
@@ -63,6 +63,28 @@ impl MainMenuBar {
 
                 if ui.button("Keyboard Shortcuts").clicked() {
                     state.modals.open(HostModal::Shortcuts);
+                    ui.close();
+                }
+
+                ui.separator();
+
+                let update_check_running = state.app_info.is_checking_updates();
+                let update_check_label = if update_check_running {
+                    "Checking for Updates..."
+                } else {
+                    "Check for Updates..."
+                };
+                if ui
+                    .add_enabled(!update_check_running, Button::new(update_check_label))
+                    .clicked()
+                {
+                    if state.app_info.begin_update_check() {
+                        let update_settings = storage.settings.current().updates.clone();
+                        let command = HostCommand::CheckAppUpdates(Box::new(update_settings));
+                        if !actions.try_send_command(&self.cmd_tx, command) {
+                            state.app_info.cancel_update_check();
+                        }
+                    }
                     ui.close();
                 }
 

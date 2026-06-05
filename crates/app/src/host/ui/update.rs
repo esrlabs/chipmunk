@@ -31,6 +31,17 @@ pub struct AppChangelog {
     pub release_url: String,
 }
 
+/// Result of an explicit user-triggered update check.
+#[derive(Debug)]
+pub enum UpdateCheckResult {
+    /// A newer version exists and should be presented through the update banner.
+    UpdateAvailable(AppVersionUpdate),
+    /// No newer version exists in the current major release series.
+    UpToDate,
+    /// The check failed before a release decision could be made.
+    Failed(String),
+}
+
 /// Parameters for downloading a selected app update artifact.
 #[derive(Debug, Clone)]
 pub struct DownloadUpdateParam {
