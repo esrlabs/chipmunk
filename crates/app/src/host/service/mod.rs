@@ -18,6 +18,7 @@ use stypes::{
 };
 
 use crate::{
+    common::app_info,
     host::{
         command::{
             DltStatisticsParam, ExportPresetsParam, HostCommand, ScanFavoriteFoldersParam,
@@ -163,8 +164,9 @@ impl HostService {
     }
 
     fn spawn_startup_cleanup() {
-        tokio::task::spawn_blocking(|| {
-            if let Err(errs) = session_core::unbound::cleanup_temp_files() {
+        tokio::task::spawn_blocking(move || {
+            let current_update = format!("update_{}_", app_info::current_version());
+            if let Err(errs) = session_core::unbound::cleanup_temp_files(Some(&current_update)) {
                 for err in errs {
                     log::error!("Error while cleaning up temporary files. Error: {err:?}");
                 }

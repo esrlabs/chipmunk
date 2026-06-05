@@ -60,8 +60,8 @@ fn unique_download_dir(request: &DownloadUpdateParam) -> Result<PathBuf, Downloa
         DownloadUpdateError::PrepareDirectory(std::io::Error::other(message))
     })?;
 
-    let download_dir = downloads_dir.join("app-update").join(format!(
-        "{}-{}",
+    let download_dir = downloads_dir.join(format!(
+        "update_{}_{}",
         request.latest_version,
         Uuid::new_v4()
     ));
