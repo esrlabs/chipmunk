@@ -1,14 +1,14 @@
 //! Preset tab state and interactions for the session bottom panel.
 
-use egui::{Align, Frame, Layout, Margin, RichText, ScrollArea, Ui, UiBuilder, Widget, vec2};
+use std::path::PathBuf;
+
+use egui::{Align, Layout, RichText, ScrollArea, Ui, Widget, vec2};
 use processor::search::filter::SearchFilter;
-use rustc_hash::FxHashSet;
 use tokio::sync::mpsc::Sender;
 use uuid::Uuid;
 
 use crate::{
     common::{
-        matcher::substring_matcher::SubstringMatcher,
         phosphor::icons,
         ui::{buttons, visibility_tracker::VisibilityTracker},
     },
@@ -19,41 +19,25 @@ use crate::{
         ui::{
             UiActions,
             actions::{FileDialogFilter, FileDialogOptions},
-            registry::{
-                HostRegistry,
-                filters::{FilterDefinition, FilterRegistry, SearchValueDefinition},
-                presets::{Preset, PresetFilterEntry, PresetSearchValueEntry, PresetUpdateOutcome},
-            },
+            registry::HostRegistry,
         },
     },
-    session::{
-        command::SessionCommand,
-        ui::shared::{SearchSyncTarget, SessionShared},
-    },
+    session::{command::SessionCommand, ui::shared::SessionShared},
 };
 
-use query::collect_matching_preset_ids;
+use edit::PresetEditState;
+use export::ExportSelectionState;
+use query::{PresetQueryState, collect_matching_preset_ids};
 
+mod apply;
+mod edit;
+mod export;
 mod query;
 mod render;
 
 const IMPORT_PRESETS_DIALOG_ID: &str = "import_presets";
 const EXPORT_PRESETS_DIALOG_ID: &str = "export_presets";
 const PRESETS_EXPORT_FILE_NAME: &str = "chipmunk-presets.json";
-
-mod card_metrics {
-    pub const PRESET_CARD_WIDTH: f32 = 280.0;
-    pub const PRESET_CARD_HEIGHT: f32 = 160.0;
-    pub const PRESET_CARD_INNER_MARGIN_X: i8 = 12;
-    pub const PRESET_CARD_INNER_MARGIN_Y: i8 = 8;
-    pub const PRESET_CARD_OUTER_MARGIN_Y: i8 = 4;
-    pub const PRESET_CARD_HEADER_GAP: f32 = 4.0;
-    pub const PRESET_EDIT_ITEM_ICON_SIZE: f32 = 12.0;
-    pub const PRESET_CARD_CONTENT_WIDTH: f32 =
-        PRESET_CARD_WIDTH - (PRESET_CARD_INNER_MARGIN_X as f32 * 2.0);
-    pub const PRESET_CARD_CONTENT_HEIGHT: f32 = PRESET_CARD_HEIGHT
-        - ((PRESET_CARD_INNER_MARGIN_Y as f32 + PRESET_CARD_OUTER_MARGIN_Y as f32) * 2.0);
-}
 
 /// Immediate-mode state for the presets tab surface.
 #[derive(Debug)]
@@ -67,57 +51,6 @@ pub struct PresetsUI {
     export_state: Option<ExportSelectionState>,
     /// Newly captured preset card that should be brought into view once rendered.
     scroll_to_preset: Option<Uuid>,
-}
-
-/// Cached name-filter state keyed by the preset catalog revision.
-#[derive(Debug, Default)]
-struct PresetQueryState {
-    query: String,
-    matcher: SubstringMatcher,
-    // `None` means the query is empty and every preset stays visible.
-    matching_ids: Option<FxHashSet<Uuid>>,
-    cached_revision: u64,
-}
-
-/// Render-time metadata for a single editable preset row.
-#[derive(Debug, Clone, Copy)]
-struct PresetItemRow<'a> {
-    label: &'a str,
-    index: usize,
-    len: usize,
-}
-
-/// Logical sections shared by preset browse and edit rendering.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum PresetBrowseSection {
-    Filter,
-    SearchValue,
-}
-
-/// Local draft state for the single preset card currently in edit mode.
-#[derive(Debug, Clone)]
-struct PresetEditState {
-    preset_id: Uuid,
-    draft_name: String,
-    draft_filters: Vec<PresetFilterEntry>,
-    draft_search_values: Vec<PresetSearchValueEntry>,
-    // Used to autofocus the draft name exactly once when entering edit mode.
-    first_render_frame: bool,
-}
-
-/// Persistent selection for the temporary export-only interaction mode.
-#[derive(Debug, Clone)]
-struct ExportSelectionState {
-    selected_ids: FxHashSet<Uuid>,
-    cached_revision: u64,
-}
-
-/// Result of applying a preset into the current session state.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum PresetApplyOutcome {
-    NotFound,
-    NoChanges,
-    Applied(SearchSyncTarget),
 }
 
 /// Deferred UI intents emitted while rendering preset cards.
@@ -312,85 +245,6 @@ impl PresetsUI {
         }
     }
 
-    fn render_export_overlay(
-        &mut self,
-        actions: &mut UiActions,
-        registry: &HostRegistry,
-        view_rect: egui::Rect,
-        ui: &mut Ui,
-    ) {
-        let can_select_filtered = self.has_visible_presets(registry);
-        let selected_count = self.selected_export_count();
-        let overlay_rect = view_rect.shrink2(vec2(6.0, 4.0));
-        let mut overlay_ui = ui.new_child(
-            UiBuilder::new()
-                .max_rect(overlay_rect)
-                .layout(Layout::bottom_up(Align::RIGHT)),
-        );
-
-        let visuals = overlay_ui.visuals();
-        Frame::new()
-            .fill(visuals.panel_fill)
-            .stroke(visuals.window_stroke)
-            .corner_radius(visuals.widgets.inactive.corner_radius)
-            .inner_margin(Margin::symmetric(6, 4))
-            .show(&mut overlay_ui, |ui| {
-                ui.horizontal(|ui| {
-                    let button_size = vec2(100.0, 20.0);
-
-                    let cancel = buttons::bottom_panel("Cancel")
-                        .min_size(button_size)
-                        .ui(ui)
-                        .on_hover_text("Exit export mode");
-
-                    if cancel.clicked() {
-                        self.cancel_export_mode();
-                    }
-
-                    let export_btn = buttons::bottom_panel(format!("Export ({selected_count})"))
-                        .min_size(button_size);
-
-                    if ui
-                        .add_enabled(selected_count > 0, export_btn)
-                        .on_disabled_hover_text("Select at least one preset to export")
-                        .on_hover_text("Export the selected named presets")
-                        .clicked()
-                    {
-                        actions.file_dialog.save_file(
-                            EXPORT_PRESETS_DIALOG_ID,
-                            FileDialogOptions::new()
-                                .title("Export Presets")
-                                .file_name(PRESETS_EXPORT_FILE_NAME)
-                                .filters(vec![FileDialogFilter::new(
-                                    "JSON (*.json)",
-                                    vec!["json".to_owned()],
-                                )]),
-                        );
-                    }
-
-                    let clear_btn = buttons::bottom_panel("Clear").min_size(button_size);
-                    if ui
-                        .add_enabled(selected_count > 0, clear_btn)
-                        .on_disabled_hover_text("All export selections are already cleared")
-                        .on_hover_text("Clear all selected presets")
-                        .clicked()
-                    {
-                        self.clear_export_selection();
-                    }
-
-                    let select_all = buttons::bottom_panel("Select All").min_size(button_size);
-                    if ui
-                        .add_enabled(can_select_filtered, select_all)
-                        .on_disabled_hover_text("No presets match the current filter")
-                        .on_hover_text("Select all filtered")
-                        .clicked()
-                    {
-                        self.select_filtered_for_export(registry);
-                    }
-                });
-            });
-    }
-
     fn handle_preset_action(
         &mut self,
         action: PresetAction,
@@ -439,26 +293,6 @@ impl PresetsUI {
         }
     }
 
-    fn sync_export_state(&mut self, registry: &HostRegistry) {
-        let Some(export_state) = self.export_state.as_mut() else {
-            return;
-        };
-
-        let revision = registry.presets.definitions_revision();
-        if export_state.cached_revision == revision {
-            return;
-        }
-
-        export_state
-            .selected_ids
-            .retain(|preset_id| registry.presets.get(preset_id).is_some());
-        export_state.cached_revision = revision;
-
-        if registry.presets.presets().is_empty() {
-            self.export_state = None;
-        }
-    }
-
     fn handle_file_dialog_output(&mut self, actions: &mut UiActions, registry: &HostRegistry) {
         let Some((dialog_id, paths)) = actions
             .file_dialog
@@ -487,7 +321,7 @@ impl PresetsUI {
         }
     }
 
-    fn dispatch_import_request(&self, actions: &mut UiActions, path: std::path::PathBuf) -> bool {
+    fn dispatch_import_request(&self, actions: &mut UiActions, path: PathBuf) -> bool {
         actions.try_send_command(&self.host_cmd_tx, HostCommand::ImportPresets(path))
     }
 
@@ -495,7 +329,7 @@ impl PresetsUI {
         &self,
         actions: &mut UiActions,
         registry: &HostRegistry,
-        path: std::path::PathBuf,
+        path: PathBuf,
     ) -> bool {
         let presets = match self.export_state.as_ref() {
             Some(export_state) => registry
@@ -514,9 +348,10 @@ impl PresetsUI {
             return false;
         }
 
+        let params = ExportPresetsParam { path, presets };
         actions.try_send_command(
             &self.host_cmd_tx,
-            HostCommand::ExportPresets(Box::new(ExportPresetsParam { path, presets })),
+            HostCommand::ExportPresets(Box::new(params)),
         )
     }
 
@@ -524,200 +359,6 @@ impl PresetsUI {
         self.edit_state
             .as_ref()
             .is_some_and(|state| state.preset_id == preset_id)
-    }
-
-    fn is_exporting(&self) -> bool {
-        self.export_state.is_some()
-    }
-
-    fn is_selected_for_export(&self, preset_id: Uuid) -> bool {
-        self.export_state
-            .as_ref()
-            .is_some_and(|state| state.selected_ids.contains(&preset_id))
-    }
-
-    fn selected_export_count(&self) -> usize {
-        self.export_state
-            .as_ref()
-            .map_or(0, |state| state.selected_ids.len())
-    }
-
-    fn has_visible_presets(&self, registry: &HostRegistry) -> bool {
-        registry
-            .presets
-            .presets()
-            .iter()
-            .any(|preset| self.query_state.matches(&preset.id))
-    }
-
-    fn start_export_mode(&mut self, registry: &HostRegistry) {
-        self.export_state = Some(ExportSelectionState {
-            selected_ids: registry
-                .presets
-                .presets()
-                .iter()
-                .map(|preset| preset.id)
-                .collect(),
-            cached_revision: registry.presets.definitions_revision(),
-        });
-    }
-
-    fn cancel_export_mode(&mut self) {
-        self.export_state = None;
-    }
-
-    fn clear_export_selection(&mut self) {
-        let Some(export_state) = self.export_state.as_mut() else {
-            return;
-        };
-
-        export_state.selected_ids.clear();
-    }
-
-    fn select_filtered_for_export(&mut self, registry: &HostRegistry) {
-        let selected_ids = registry
-            .presets
-            .presets()
-            .iter()
-            .filter_map(|preset| self.query_state.matches(&preset.id).then_some(preset.id))
-            .collect();
-
-        let Some(export_state) = self.export_state.as_mut() else {
-            return;
-        };
-
-        export_state.selected_ids = selected_ids;
-    }
-
-    fn toggle_export_selection(&mut self, preset_id: Uuid) {
-        let Some(export_state) = self.export_state.as_mut() else {
-            return;
-        };
-
-        if !export_state.selected_ids.remove(&preset_id) {
-            export_state.selected_ids.insert(preset_id);
-        }
-    }
-
-    fn start_edit_from_preset(&mut self, preset: &Preset) {
-        self.edit_state = Some(PresetEditState::from_preset(preset));
-    }
-
-    fn save_edit(&mut self, registry: &mut HostRegistry, preset_id: Uuid) {
-        let Some(edit_state) = self.edit_state.as_ref() else {
-            return;
-        };
-        if edit_state.preset_id != preset_id {
-            return;
-        }
-
-        let draft_name = edit_state.draft_name.clone();
-        let draft_filters = edit_state.draft_filters.clone();
-        let draft_search_values = edit_state.draft_search_values.clone();
-        match registry.presets.update_preset(
-            preset_id,
-            draft_name,
-            draft_filters,
-            draft_search_values,
-        ) {
-            PresetUpdateOutcome::NotFound => self.sync_edit_state(registry),
-            PresetUpdateOutcome::Unchanged | PresetUpdateOutcome::Updated { .. } => {
-                self.edit_state = None;
-            }
-        }
-    }
-
-    fn cancel_edit(&mut self, preset_id: Uuid) {
-        if self
-            .edit_state
-            .as_ref()
-            .is_some_and(|state| state.preset_id == preset_id)
-        {
-            self.edit_state = None;
-        }
-    }
-
-    fn add_filter_to_draft(&mut self, preset_id: Uuid, filter: SearchFilter) -> bool {
-        let Some(edit_state) = self.edit_state.as_mut() else {
-            return false;
-        };
-        if edit_state.preset_id != preset_id
-            || edit_state
-                .draft_filters
-                .iter()
-                .any(|entry| entry.filter == filter)
-        {
-            return false;
-        }
-
-        let entry = PresetFilterEntry::with_next_color(filter, &edit_state.draft_filters);
-        edit_state.draft_filters.push(entry);
-        true
-    }
-
-    fn add_search_value_to_draft(&mut self, preset_id: Uuid, search_value: SearchFilter) -> bool {
-        let Some(edit_state) = self.edit_state.as_mut() else {
-            return false;
-        };
-        if edit_state.preset_id != preset_id
-            || edit_state
-                .draft_search_values
-                .iter()
-                .any(|entry| entry.filter == search_value)
-        {
-            return false;
-        }
-
-        let entry =
-            PresetSearchValueEntry::with_next_color(search_value, &edit_state.draft_search_values);
-        edit_state.draft_search_values.push(entry);
-        true
-    }
-
-    fn remove_filter_from_draft(&mut self, preset_id: Uuid, index: usize) -> bool {
-        let Some(edit_state) = self.edit_state.as_mut() else {
-            return false;
-        };
-        if edit_state.preset_id != preset_id || index >= edit_state.draft_filters.len() {
-            return false;
-        }
-
-        edit_state.draft_filters.remove(index);
-        true
-    }
-
-    fn remove_search_value_from_draft(&mut self, preset_id: Uuid, index: usize) -> bool {
-        let Some(edit_state) = self.edit_state.as_mut() else {
-            return false;
-        };
-        if edit_state.preset_id != preset_id || index >= edit_state.draft_search_values.len() {
-            return false;
-        }
-
-        edit_state.draft_search_values.remove(index);
-        true
-    }
-
-    fn move_filter_in_draft(&mut self, preset_id: Uuid, from: usize, to: usize) -> bool {
-        let Some(edit_state) = self.edit_state.as_mut() else {
-            return false;
-        };
-        if edit_state.preset_id != preset_id {
-            return false;
-        }
-
-        move_item(&mut edit_state.draft_filters, from, to)
-    }
-
-    fn move_search_value_in_draft(&mut self, preset_id: Uuid, from: usize, to: usize) -> bool {
-        let Some(edit_state) = self.edit_state.as_mut() else {
-            return false;
-        };
-        if edit_state.preset_id != preset_id {
-            return false;
-        }
-
-        move_item(&mut edit_state.draft_search_values, from, to)
     }
 
     fn delete_preset(&mut self, registry: &mut HostRegistry, preset_id: Uuid) -> bool {
@@ -740,97 +381,6 @@ impl PresetsUI {
         self.scroll_to_preset = Some(preset_id);
         preset_id
     }
-
-    fn apply_preset(
-        &self,
-        shared: &mut SessionShared,
-        actions: &mut UiActions,
-        registry: &mut HostRegistry,
-        preset_id: Uuid,
-    ) -> PresetApplyOutcome {
-        let Some((filters, search_values)) = registry
-            .presets
-            .get(&preset_id)
-            .map(|preset| (preset.filters.clone(), preset.search_values.clone()))
-        else {
-            return PresetApplyOutcome::NotFound;
-        };
-
-        // Materialize preset filters and charts through the normal registry/session path.
-        // Existing applied rows, including disabled ones, are left as-is because
-        // dedupe reuses their ids and the applied check skips re-applying them.
-        let mut changed_filters = false;
-        for entry in filters {
-            let PresetFilterEntry {
-                filter,
-                enabled: _enabled,
-                colors: _colors,
-            } = entry;
-            let filter_id = registry.filters.add_filter(FilterDefinition::new(filter));
-            if shared.filters.is_filter_applied(&filter_id) {
-                continue;
-            }
-
-            shared.apply_filter(&mut registry.filters, filter_id);
-            changed_filters = true;
-        }
-
-        let mut changed_search_values = false;
-        for entry in search_values {
-            let PresetSearchValueEntry {
-                filter,
-                enabled: _enabled,
-                color: _color,
-            } = entry;
-            let value_id = registry
-                .filters
-                .add_search_value(SearchValueDefinition::new(filter));
-            if shared.filters.is_search_value_applied(&value_id) {
-                continue;
-            }
-
-            shared.apply_search_value(&mut registry.filters, value_id);
-            changed_search_values = true;
-        }
-
-        let outcome = match (changed_filters, changed_search_values) {
-            (false, false) => PresetApplyOutcome::NoChanges,
-            (true, false) => PresetApplyOutcome::Applied(SearchSyncTarget::Filter),
-            (false, true) => PresetApplyOutcome::Applied(SearchSyncTarget::SearchValue),
-            (true, true) => PresetApplyOutcome::Applied(SearchSyncTarget::Both),
-        };
-
-        if let PresetApplyOutcome::Applied(target) = outcome {
-            self.dispatch_sync_commands(shared, actions, &registry.filters, target);
-        }
-
-        outcome
-    }
-
-    fn dispatch_sync_commands(
-        &self,
-        shared: &mut SessionShared,
-        actions: &mut UiActions,
-        registry: &FilterRegistry,
-        target: SearchSyncTarget,
-    ) {
-        // Preset apply mutates session state first, then issues the same explicit
-        // sync commands used by the rest of the search/filter UI.
-        shared
-            .sync_search(registry, target)
-            .into_iter()
-            .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
-    }
-}
-
-fn move_item<T>(items: &mut Vec<T>, from: usize, to: usize) -> bool {
-    if from >= items.len() || to >= items.len() || from == to {
-        return false;
-    }
-
-    let item = items.remove(from);
-    items.insert(to, item);
-    true
 }
 
 fn can_create_preset_from_session(shared: &SessionShared) -> bool {
@@ -838,39 +388,33 @@ fn can_create_preset_from_session(shared: &SessionShared) -> bool {
     !shared.filters.filter_entries.is_empty() || !shared.filters.search_value_entries.is_empty()
 }
 
-impl PresetEditState {
-    fn from_preset(preset: &Preset) -> Self {
-        Self {
-            preset_id: preset.id,
-            draft_name: preset.name.clone(),
-            draft_filters: preset.filters.clone(),
-            draft_search_values: preset.search_values.clone(),
-            first_render_frame: true,
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use std::path::PathBuf;
 
+    use processor::search::filter::SearchFilter;
+    use stypes::{FileFormat, ObserveOrigin};
     use tokio::{runtime::Runtime, sync::mpsc};
     use uuid::Uuid;
 
-    use super::*;
-    use crate::session::ui::definitions::schema::LogSchemaSpec;
     use crate::{
         host::{
             command::HostCommand,
             common::parsers::ParserNames,
-            ui::registry::{
-                HostRegistry,
-                filters::{FilterDefinition, SearchValueDefinition},
+            ui::{
+                UiActions,
+                registry::{
+                    HostRegistry,
+                    filters::{FilterDefinition, FilterRegistry, SearchValueDefinition},
+                    presets::Preset,
+                },
             },
         },
         session::{command::SessionCommand, types::ObserveOperation, ui::SessionInfo},
     };
-    use stypes::{FileFormat, ObserveOrigin};
+
+    use super::*;
+    use crate::session::ui::definitions::schema::LogSchemaSpec;
 
     fn new_presets() -> (
         PresetsUI,
@@ -919,15 +463,6 @@ mod tests {
         id
     }
 
-    fn filter_entries(filters: Vec<SearchFilter>) -> Vec<PresetFilterEntry> {
-        Preset::with_default_state(Uuid::new_v4(), "preset".to_owned(), filters, vec![]).filters
-    }
-
-    fn search_value_entries(search_values: Vec<SearchFilter>) -> Vec<PresetSearchValueEntry> {
-        Preset::with_default_state(Uuid::new_v4(), "preset".to_owned(), vec![], search_values)
-            .search_values
-    }
-
     fn add_preset_with_default_state(
         registry: &mut HostRegistry,
         name: &str,
@@ -939,14 +474,6 @@ mod tests {
         registry
             .presets
             .add_preset(preset.name, preset.filters, preset.search_values)
-    }
-
-    fn drain_commands(cmd_rx: &mut mpsc::Receiver<SessionCommand>) -> Vec<SessionCommand> {
-        let mut commands = Vec::new();
-        while let Ok(command) = cmd_rx.try_recv() {
-            commands.push(command);
-        }
-        commands
     }
 
     fn drain_host_commands(host_cmd_rx: &mut mpsc::Receiver<HostCommand>) -> Vec<HostCommand> {
@@ -996,90 +523,6 @@ mod tests {
     }
 
     #[test]
-    fn export_mode_selects_all() {
-        let (mut presets, _, _) = new_presets();
-        let mut registry = HostRegistry::default();
-        let first_id = add_preset_with_default_state(&mut registry, "first", vec![], vec![]);
-        let second_id = add_preset_with_default_state(&mut registry, "second", vec![], vec![]);
-
-        presets.start_export_mode(&registry);
-
-        assert!(presets.is_exporting());
-        assert_eq!(presets.selected_export_count(), 2);
-        assert!(presets.is_selected_for_export(first_id));
-        assert!(presets.is_selected_for_export(second_id));
-    }
-
-    #[test]
-    fn export_mode_prunes_deleted() {
-        let (mut presets, _, _) = new_presets();
-        let mut registry = HostRegistry::default();
-        let first_id = add_preset_with_default_state(&mut registry, "first", vec![], vec![]);
-        let second_id = add_preset_with_default_state(&mut registry, "second", vec![], vec![]);
-        presets.start_export_mode(&registry);
-
-        assert!(registry.presets.remove_preset(second_id));
-        presets.sync_export_state(&registry);
-
-        assert!(presets.is_selected_for_export(first_id));
-        assert!(!presets.is_selected_for_export(second_id));
-        assert_eq!(presets.selected_export_count(), 1);
-    }
-
-    #[test]
-    fn select_filtered_replaces_selection() {
-        let (mut presets, _, _) = new_presets();
-        let mut registry = HostRegistry::default();
-        let error_id = add_preset_with_default_state(&mut registry, "Errors", vec![], vec![]);
-        let warn_id = add_preset_with_default_state(&mut registry, "Warnings", vec![], vec![]);
-        let other_error_id =
-            add_preset_with_default_state(&mut registry, "Error Group", vec![], vec![]);
-        presets.start_export_mode(&registry);
-        presets.query_state.query = "error".to_owned();
-        presets.query_state.update_with_revision(
-            registry.presets.definitions_revision(),
-            true,
-            |matcher| collect_matching_preset_ids(matcher, &registry),
-        );
-
-        presets.select_filtered_for_export(&registry);
-
-        assert!(presets.is_selected_for_export(error_id));
-        assert!(!presets.is_selected_for_export(warn_id));
-        assert!(presets.is_selected_for_export(other_error_id));
-        assert_eq!(presets.selected_export_count(), 2);
-    }
-
-    #[test]
-    fn select_filtered_uses_all_when_empty() {
-        let (mut presets, _, _) = new_presets();
-        let mut registry = HostRegistry::default();
-        let first_id = add_preset_with_default_state(&mut registry, "Errors", vec![], vec![]);
-        let second_id = add_preset_with_default_state(&mut registry, "Warnings", vec![], vec![]);
-        presets.start_export_mode(&registry);
-        presets.toggle_export_selection(first_id);
-
-        presets.select_filtered_for_export(&registry);
-
-        assert!(presets.is_selected_for_export(first_id));
-        assert!(presets.is_selected_for_export(second_id));
-        assert_eq!(presets.selected_export_count(), 2);
-    }
-
-    #[test]
-    fn clear_selection_empties_export_state() {
-        let (mut presets, _, _) = new_presets();
-        let mut registry = HostRegistry::default();
-        let first_id = add_preset_with_default_state(&mut registry, "Errors", vec![], vec![]);
-        presets.start_export_mode(&registry);
-
-        presets.clear_export_selection();
-
-        assert!(!presets.is_selected_for_export(first_id));
-        assert_eq!(presets.selected_export_count(), 0);
-    }
-
-    #[test]
     fn delete_clears_editor() {
         let (mut presets, _, _) = new_presets();
         let mut registry = HostRegistry::default();
@@ -1089,282 +532,6 @@ mod tests {
         assert!(presets.delete_preset(&mut registry, preset_id));
 
         assert!(presets.edit_state.is_none());
-    }
-
-    #[test]
-    fn edit_switches_cards() {
-        let (mut presets, _, _) = new_presets();
-        let mut registry = HostRegistry::default();
-        let first_id = add_preset_with_default_state(&mut registry, "first", vec![], vec![]);
-        let second_id = add_preset_with_default_state(&mut registry, "second", vec![], vec![]);
-        presets.start_edit_from_preset(registry.presets.get(&first_id).unwrap());
-        presets.edit_state.as_mut().unwrap().draft_name = "draft".to_owned();
-
-        presets.start_edit_from_preset(registry.presets.get(&second_id).unwrap());
-
-        let edit_state = presets.edit_state.as_ref().unwrap();
-        assert_eq!(edit_state.preset_id, second_id);
-        assert_eq!(edit_state.draft_name, "second");
-    }
-
-    #[test]
-    fn move_filter_repositions_item() {
-        let (mut presets, _, _) = new_presets();
-        let mut registry = HostRegistry::default();
-        let preset_id = add_preset_with_default_state(
-            &mut registry,
-            "first",
-            vec![
-                SearchFilter::plain("one"),
-                SearchFilter::plain("two"),
-                SearchFilter::plain("three"),
-                SearchFilter::plain("four"),
-            ],
-            vec![],
-        );
-        presets.start_edit_from_preset(registry.presets.get(&preset_id).unwrap());
-
-        assert!(presets.move_filter_in_draft(preset_id, 1, 3));
-
-        let edit_state = presets.edit_state.as_ref().unwrap();
-        assert_eq!(
-            edit_state
-                .draft_filters
-                .iter()
-                .map(|entry| entry.filter.value.as_str())
-                .collect::<Vec<_>>(),
-            vec!["one", "three", "four", "two"]
-        );
-    }
-
-    #[test]
-    fn cancel_discards_draft() {
-        let (mut presets, _, _) = new_presets();
-        let mut registry = HostRegistry::default();
-        let preset_id = add_preset_with_default_state(
-            &mut registry,
-            "first",
-            vec![],
-            vec![SearchFilter::plain("one")],
-        );
-        presets.start_edit_from_preset(registry.presets.get(&preset_id).unwrap());
-        let edit_state = presets.edit_state.as_mut().unwrap();
-        edit_state.draft_name = "changed".to_owned();
-        edit_state.draft_search_values.clear();
-
-        presets.cancel_edit(preset_id);
-
-        assert!(presets.edit_state.is_none());
-        let preset = registry.presets.get(&preset_id).unwrap();
-        assert_eq!(preset.name, "first");
-        assert_eq!(preset.search_values.len(), 1);
-    }
-
-    #[test]
-    fn save_commits_draft() {
-        let (mut presets, _, _) = new_presets();
-        let mut registry = HostRegistry::default();
-        let first_id = add_preset_with_default_state(
-            &mut registry,
-            "first",
-            vec![SearchFilter::plain("one").ignore_case(true)],
-            vec![],
-        );
-        add_preset_with_default_state(&mut registry, "taken", vec![], vec![]);
-        add_preset_with_default_state(&mut registry, "taken_2", vec![], vec![]);
-        presets.start_edit_from_preset(registry.presets.get(&first_id).unwrap());
-        let edit_state = presets.edit_state.as_mut().unwrap();
-        edit_state.draft_name = "taken".to_owned();
-        edit_state.draft_filters = filter_entries(vec![
-            SearchFilter::plain("warn").ignore_case(true),
-            SearchFilter::plain("error").ignore_case(true),
-        ]);
-        edit_state.draft_search_values = search_value_entries(vec![
-            SearchFilter::plain("duration=(\\d+)")
-                .regex(true)
-                .ignore_case(true),
-        ]);
-
-        presets.save_edit(&mut registry, first_id);
-
-        let preset = registry.presets.get(&first_id).unwrap();
-        assert_eq!(preset.name, "taken_3");
-        assert_eq!(
-            preset
-                .filters
-                .iter()
-                .map(|entry| entry.filter.value.clone())
-                .collect::<Vec<_>>(),
-            vec!["warn".to_owned(), "error".to_owned()]
-        );
-        assert_eq!(
-            preset
-                .search_values
-                .iter()
-                .map(|entry| entry.filter.value.clone())
-                .collect::<Vec<_>>(),
-            vec!["duration=(\\d+)".to_owned()]
-        );
-        assert!(presets.edit_state.is_none());
-    }
-
-    #[test]
-    fn apply_preset_skips_existing_rows() {
-        let runtime = Runtime::new().unwrap();
-        let (presets, mut cmd_rx, _) = new_presets();
-        let mut shared = new_shared();
-        let mut actions = new_actions(&runtime);
-        let mut registry = HostRegistry::default();
-        let filter_id = add_filter_definition(&mut registry.filters, "error");
-        let value_id = add_search_value_definition(&mut registry.filters, "duration=(\\d+)");
-
-        shared
-            .filters
-            .apply_filter_with_state(&mut registry.filters, filter_id, false);
-        shared
-            .filters
-            .apply_search_value_with_state(&mut registry.filters, value_id, false);
-        let original_filter_colors = shared.filters.filter_entries[0].colors.clone();
-        let original_value_color = shared.filters.search_value_entries[0].color;
-        let preset_filter = registry
-            .filters
-            .get_filter(&filter_id)
-            .unwrap()
-            .filter
-            .clone();
-        let preset_search_value = registry
-            .filters
-            .get_search_value(&value_id)
-            .unwrap()
-            .filter
-            .clone();
-        let preset_id = add_preset_with_default_state(
-            &mut registry,
-            "test",
-            vec![preset_filter.clone(), preset_filter],
-            vec![preset_search_value.clone(), preset_search_value],
-        );
-
-        let outcome = presets.apply_preset(&mut shared, &mut actions, &mut registry, preset_id);
-
-        assert_eq!(outcome, PresetApplyOutcome::NoChanges);
-        assert_eq!(shared.filters.filter_entries.len(), 1);
-        assert_eq!(shared.filters.search_value_entries.len(), 1);
-        assert!(!shared.filters.filter_entries[0].enabled);
-        assert!(!shared.filters.search_value_entries[0].enabled);
-        assert_eq!(
-            shared.filters.filter_entries[0].colors,
-            original_filter_colors
-        );
-        assert_eq!(
-            shared.filters.search_value_entries[0].color,
-            original_value_color
-        );
-        assert_eq!(registry.filters.filters_map().len(), 1);
-        assert_eq!(registry.filters.search_value_map().len(), 1);
-        assert!(drain_commands(&mut cmd_rx).is_empty());
-    }
-
-    #[test]
-    fn apply_preset_appends_and_syncs() {
-        let runtime = Runtime::new().unwrap();
-        let (presets, mut cmd_rx, _) = new_presets();
-        let mut shared = new_shared();
-        let mut actions = new_actions(&runtime);
-        let mut registry = HostRegistry::default();
-        let existing_filter_id = add_filter_definition(&mut registry.filters, "existing");
-        let preset_id = add_preset_with_default_state(
-            &mut registry,
-            "test",
-            vec![
-                SearchFilter::plain("existing").ignore_case(true),
-                SearchFilter::plain("error").ignore_case(true),
-            ],
-            vec![
-                SearchFilter::plain("duration=(\\d+)")
-                    .regex(true)
-                    .ignore_case(true),
-                SearchFilter::plain("latency=(\\d+)")
-                    .regex(true)
-                    .ignore_case(true),
-            ],
-        );
-        shared
-            .filters
-            .apply_filter(&mut registry.filters, existing_filter_id);
-
-        let outcome = presets.apply_preset(&mut shared, &mut actions, &mut registry, preset_id);
-
-        assert_eq!(outcome, PresetApplyOutcome::Applied(SearchSyncTarget::Both));
-        assert_eq!(
-            shared
-                .filters
-                .filter_entries
-                .iter()
-                .map(|item| {
-                    registry
-                        .filters
-                        .get_filter(&item.id)
-                        .unwrap()
-                        .filter
-                        .value
-                        .clone()
-                })
-                .collect::<Vec<_>>(),
-            vec!["existing".to_owned(), "error".to_owned()]
-        );
-        assert_eq!(
-            shared
-                .filters
-                .search_value_entries
-                .iter()
-                .map(|item| {
-                    registry
-                        .filters
-                        .get_search_value(&item.id)
-                        .unwrap()
-                        .filter
-                        .value
-                        .clone()
-                })
-                .collect::<Vec<_>>(),
-            vec!["duration=(\\d+)".to_owned(), "latency=(\\d+)".to_owned()]
-        );
-
-        let commands = drain_commands(&mut cmd_rx);
-        assert_eq!(commands.len(), 2);
-        match &commands[0] {
-            SessionCommand::ApplySearchFilter { filters, .. } => {
-                assert_eq!(filters.len(), 2);
-                assert_eq!(filters[0].value, "existing");
-                assert_eq!(filters[1].value, "error");
-            }
-            other => panic!("expected ApplySearchFilter command, got {other:?}"),
-        }
-        match &commands[1] {
-            SessionCommand::ApplySearchValuesFilter { filters, .. } => {
-                assert_eq!(
-                    filters,
-                    &vec!["duration=(\\d+)".to_owned(), "latency=(\\d+)".to_owned()]
-                );
-            }
-            other => panic!("expected ApplySearchValuesFilter command, got {other:?}"),
-        }
-    }
-
-    #[test]
-    fn apply_preset_handles_missing_id() {
-        let runtime = Runtime::new().unwrap();
-        let (presets, mut cmd_rx, _) = new_presets();
-        let mut shared = new_shared();
-        let mut actions = new_actions(&runtime);
-        let mut registry = HostRegistry::default();
-
-        let outcome =
-            presets.apply_preset(&mut shared, &mut actions, &mut registry, Uuid::new_v4());
-
-        assert_eq!(outcome, PresetApplyOutcome::NotFound);
-        assert!(drain_commands(&mut cmd_rx).is_empty());
     }
 
     #[test]
