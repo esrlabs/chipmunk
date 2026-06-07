@@ -27,7 +27,7 @@ use crate::{
         common::{dlt_stats::dlt_statistics, parsers::ParserNames, sources::StreamNames},
         communication::ServiceHandle,
         error::HostError,
-        message::{HostMessage, PluginReadmeLoaded, PresetsImported},
+        message::{HostMessage, ImportFormat, PluginReadmeLoaded, PresetsImported},
         notification::AppNotification,
         service::storage::recent::RecentSessionOpenRequest,
         ui::{
@@ -52,7 +52,7 @@ use crate::{
 };
 
 use plugin::{PluginEvent, PluginService};
-use presets_io::{ImportFormat, import_named_presets, serialize_named_presets};
+use presets_io::{import_named_presets, serialize_named_presets};
 use storage::StorageService;
 
 pub mod file;
@@ -822,7 +822,7 @@ impl HostService {
             })
         })??;
 
-        let used_legacy_format = match report.format {
+        match report.format {
             ImportFormat::Legacy => {
                 for warning in &report.warnings {
                     trace!(
@@ -831,17 +831,16 @@ impl HostService {
                         warning
                     );
                 }
-                true
             }
-            ImportFormat::Version1 => false,
-        };
+            ImportFormat::Version1 | ImportFormat::Version2 => {}
+        }
 
         self.communication
             .senders
             .send_message(HostMessage::PresetsImported(Box::new(PresetsImported {
                 path,
                 presets: report.presets,
-                used_legacy_format,
+                format: report.format,
             })))
             .await;
 

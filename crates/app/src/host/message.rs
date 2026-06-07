@@ -1,3 +1,5 @@
+//! Host-service messages consumed by the native UI.
+
 use std::path::PathBuf;
 
 use uuid::Uuid;
@@ -28,7 +30,9 @@ pub enum HostMessage {
     MultiSetupClose { id: Uuid },
     /// The collected DLT statistics on a file for a SessionSetup
     DltStatistics {
+        /// Setup tab that requested the statistics.
         setup_session_id: Uuid,
+        /// Collected statistics, or `None` when collection failed.
         statistics: Option<Box<DltStatistics>>,
     },
     /// A new session has been successfully created.
@@ -43,7 +47,12 @@ pub enum HostMessage {
     /// Presets loaded from a file and ready for UI-side registry import.
     PresetsImported(Box<PresetsImported>),
     /// Presets were exported successfully to the provided file path.
-    PresetsExported { path: PathBuf, count: usize },
+    PresetsExported {
+        /// Destination file path.
+        path: PathBuf,
+        /// Number of exported presets.
+        count: usize,
+    },
     /// A newer application version was found by the quiet startup update check.
     AppVersionUpdate(Box<AppVersionUpdate>),
     /// Result of an explicit user-triggered update check.
@@ -69,8 +78,19 @@ pub struct PresetsImported {
     pub path: PathBuf,
     /// Parsed presets ready to be inserted into the registry.
     pub presets: Vec<Preset>,
-    /// True when the file was parsed through the legacy compatibility path.
-    pub used_legacy_format: bool,
+    /// Import format detected by the backend parser.
+    pub format: ImportFormat,
+}
+
+/// Import source recognized by the preset parser.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ImportFormat {
+    /// Native v1 Chipmunk named preset document.
+    Version1,
+    /// Native v2 Chipmunk named preset document.
+    Version2,
+    /// Legacy Chipmunk V3 TypeScript frontend export.
+    Legacy,
 }
 
 /// README loading result for a Plugin Manager request.

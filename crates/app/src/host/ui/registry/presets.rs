@@ -1,9 +1,18 @@
+//! Host registry storage for named preset snapshots.
+
 use std::borrow::Cow;
 
-use crate::{host::ui::registry::filters::FilterRegistry, session::ui::SessionShared};
+use egui::Color32;
 use processor::search::filter::SearchFilter;
-
 use uuid::Uuid;
+
+use crate::{
+    host::{
+        common::colors::{self, ColorPair},
+        ui::registry::filters::FilterRegistry,
+    },
+    session::ui::SessionShared,
+};
 
 /// Host-level registry for named preset snapshots captured from session filters and charts.
 #[derive(Debug, Default, Clone)]
@@ -13,20 +22,49 @@ pub struct PresetRegistry {
     definitions_revision: u64,
 }
 
-/// Preset definition with copied semantic content.
+/// Preset definition with copied row state.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Preset {
+    /// Runtime identifier used by UI selection and edit flows.
     pub id: Uuid,
+    /// User-visible preset name.
     pub name: String,
-    pub filters: Vec<SearchFilter>,
-    pub search_values: Vec<SearchFilter>,
+    /// Stored filter rows.
+    pub filters: Vec<PresetFilterEntry>,
+    /// Stored chart/search-value rows.
+    pub search_values: Vec<PresetSearchValueEntry>,
+}
+
+/// Stored preset snapshot for one filter row.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PresetFilterEntry {
+    /// Filter definition stored for the row.
+    pub filter: SearchFilter,
+    /// Whether the row was enabled when captured.
+    pub enabled: bool,
+    /// Highlight colors stored for the row.
+    pub colors: ColorPair,
+}
+
+/// Stored preset snapshot for one chart/search-value row.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PresetSearchValueEntry {
+    /// Search-value definition stored for the row.
+    pub filter: SearchFilter,
+    /// Whether the row was enabled when captured.
+    pub enabled: bool,
+    /// Chart color stored for the row.
+    pub color: Color32,
 }
 
 /// Result of applying a preset edit request.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PresetUpdateOutcome {
+    /// No preset exists for the requested id.
     NotFound,
+    /// The requested edit matched the stored preset.
     Unchanged,
+    /// The preset was updated.
     Updated {
         /// Final stored name after uniqueness normalization.
         name: String,
@@ -36,10 +74,90 @@ pub enum PresetUpdateOutcome {
 /// Result of importing a batch of presets into the registry.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct PresetImportSummary {
+    /// Number of imported presets renamed to avoid collisions.
     pub renamed_items: usize,
 }
 
+impl PresetFilterEntry {
+    /// Creates a filter entry with explicit row state.
+    pub fn new(filter: SearchFilter, enabled: bool, colors: ColorPair) -> Self {
+        Self {
+            filter,
+            enabled,
+            colors,
+        }
+    }
+
+    /// Creates an enabled filter entry using the default color for its row index.
+    pub fn with_default_color(filter: SearchFilter, index: usize) -> Self {
+        let colors =
+            colors::FILTER_HIGHLIGHT_COLORS[index % colors::FILTER_HIGHLIGHT_COLORS.len()].clone();
+        Self::new(filter, true, colors)
+    }
+
+    /// Creates an enabled filter entry using the next color after existing entries.
+    pub fn with_next_color(filter: SearchFilter, entries: &[Self]) -> Self {
+        let used_colors = entries
+            .iter()
+            .map(|entry| entry.colors.clone())
+            .collect::<Vec<_>>();
+
+        Self::new(filter, true, colors::next_filter_color(&used_colors))
+    }
+}
+
+impl PresetSearchValueEntry {
+    /// Creates a search-value entry with explicit row state.
+    pub fn new(filter: SearchFilter, enabled: bool, color: Color32) -> Self {
+        Self {
+            filter,
+            enabled,
+            color,
+        }
+    }
+
+    /// Creates an enabled search-value entry using the default color for its row index.
+    pub fn with_default_color(filter: SearchFilter, index: usize) -> Self {
+        Self::new(filter, true, colors::search_value_color(index))
+    }
+
+    /// Creates an enabled search-value entry using the next color after existing entries.
+    pub fn with_next_color(filter: SearchFilter, entries: &[Self]) -> Self {
+        let used_colors = entries.iter().map(|entry| entry.color).collect::<Vec<_>>();
+        Self::new(filter, true, colors::next_search_value_color(&used_colors))
+    }
+}
+
+impl Preset {
+    /// Builds a preset from filters and default row state.
+    pub fn with_default_state(
+        id: Uuid,
+        name: String,
+        filters: Vec<SearchFilter>,
+        search_values: Vec<SearchFilter>,
+    ) -> Self {
+        let filters = filters
+            .into_iter()
+            .enumerate()
+            .map(|(index, filter)| PresetFilterEntry::with_default_color(filter, index))
+            .collect();
+        let search_values = search_values
+            .into_iter()
+            .enumerate()
+            .map(|(index, filter)| PresetSearchValueEntry::with_default_color(filter, index))
+            .collect();
+
+        Self {
+            id,
+            name,
+            filters,
+            search_values,
+        }
+    }
+}
+
 impl PresetRegistry {
+    /// Returns stored presets in display order.
     pub fn presets(&self) -> &[Preset] {
         &self.presets
     }
@@ -50,37 +168,47 @@ impl PresetRegistry {
     }
 
     fn unique_preset_name<'a>(&self, base_name: &'a str, skip_id: Option<Uuid>) -> Cow<'a, str> {
-        if !self
-            .presets
-            .iter()
-            .any(|preset| Some(preset.id) != skip_id && preset.name == base_name)
-        {
+        if !self.presets.iter().any(|preset| {
+            let Preset {
+                id,
+                name,
+                filters: _,
+                search_values: _,
+            } = preset;
+            Some(*id) != skip_id && name == base_name
+        }) {
             return Cow::Borrowed(base_name);
         }
 
         let mut suffix = 2;
         loop {
             let candidate = format!("{base_name}_{suffix}");
-            if !self
-                .presets
-                .iter()
-                .any(|preset| Some(preset.id) != skip_id && preset.name == candidate)
-            {
+            if !self.presets.iter().any(|preset| {
+                let Preset {
+                    id,
+                    name,
+                    filters: _,
+                    search_values: _,
+                } = preset;
+                Some(*id) != skip_id && name == &candidate
+            }) {
                 return Cow::Owned(candidate);
             }
             suffix += 1;
         }
     }
 
+    /// Returns a preset by id.
     pub fn get(&self, id: &Uuid) -> Option<&Preset> {
         self.presets.iter().find(|preset| preset.id == *id)
     }
 
+    /// Adds a new preset and returns its generated id.
     pub fn add_preset(
         &mut self,
         name: impl Into<String>,
-        filters: Vec<SearchFilter>,
-        search_values: Vec<SearchFilter>,
+        filters: Vec<PresetFilterEntry>,
+        search_values: Vec<PresetSearchValueEntry>,
     ) -> Uuid {
         let name = name.into();
         let name = self.unique_preset_name(&name, None).into_owned();
@@ -122,6 +250,7 @@ impl PresetRegistry {
         PresetImportSummary { renamed_items }
     }
 
+    /// Captures the current session-applied filters and charts as a preset.
     pub fn add_preset_from_session(
         &mut self,
         shared: &SessionShared,
@@ -131,26 +260,33 @@ impl PresetRegistry {
             .filters
             .filter_entries
             .iter()
-            .filter_map(|item| registry.get_filter(&item.id))
-            .map(|def| def.filter.clone())
+            .filter_map(|item| {
+                registry.get_filter(&item.id).map(|def| {
+                    PresetFilterEntry::new(def.filter.clone(), item.enabled, item.colors.clone())
+                })
+            })
             .collect();
         let search_values = shared
             .filters
             .search_value_entries
             .iter()
-            .filter_map(|item| registry.get_search_value(&item.id))
-            .map(|def| def.filter.clone())
+            .filter_map(|item| {
+                registry.get_search_value(&item.id).map(|def| {
+                    PresetSearchValueEntry::new(def.filter.clone(), item.enabled, item.color)
+                })
+            })
             .collect();
 
         self.add_preset(shared.get_info().title.clone(), filters, search_values)
     }
 
+    /// Updates an existing preset with the provided row snapshots.
     pub fn update_preset(
         &mut self,
         id: Uuid,
         requested_name: impl Into<String>,
-        filters: Vec<SearchFilter>,
-        search_values: Vec<SearchFilter>,
+        filters: Vec<PresetFilterEntry>,
+        search_values: Vec<PresetSearchValueEntry>,
     ) -> PresetUpdateOutcome {
         let requested_name = requested_name.into();
         let Some(index) = self.presets.iter().position(|preset| preset.id == id) else {
@@ -158,15 +294,22 @@ impl PresetRegistry {
         };
 
         let next_name = self.unique_preset_name(&requested_name, Some(id));
-        let preset = &mut self.presets[index];
-        if preset.name == next_name.as_ref()
-            && preset.filters == filters
-            && preset.search_values == search_values
+        let preset = &self.presets[index];
+        let Preset {
+            id: _,
+            name,
+            filters: stored_filters,
+            search_values: stored_search_values,
+        } = preset;
+        if name == next_name.as_ref()
+            && stored_filters == &filters
+            && stored_search_values == &search_values
         {
             return PresetUpdateOutcome::Unchanged;
         }
 
         let next_name = next_name.into_owned();
+        let preset = &mut self.presets[index];
         preset.name = next_name.clone();
         preset.filters = filters;
         preset.search_values = search_values;
@@ -175,6 +318,7 @@ impl PresetRegistry {
         PresetUpdateOutcome::Updated { name: next_name }
     }
 
+    /// Removes a preset by id and reports whether anything was removed.
     pub fn remove_preset(&mut self, id: Uuid) -> bool {
         let Some(index) = self.presets.iter().position(|preset| preset.id == id) else {
             return false;
@@ -209,6 +353,53 @@ mod tests {
 
     fn regex(value: &str) -> SearchFilter {
         SearchFilter::plain(value).regex(true).ignore_case(true)
+    }
+
+    fn runtime_preset(
+        id: Uuid,
+        name: &str,
+        filters: Vec<SearchFilter>,
+        search_values: Vec<SearchFilter>,
+    ) -> Preset {
+        Preset::with_default_state(id, name.to_owned(), filters, search_values)
+    }
+
+    fn add_preset_with_default_state(
+        registry: &mut PresetRegistry,
+        name: &str,
+        filters: Vec<SearchFilter>,
+        search_values: Vec<SearchFilter>,
+    ) -> Uuid {
+        registry.add_preset(
+            name,
+            filter_entries(filters),
+            search_value_entries(search_values),
+        )
+    }
+
+    fn filter_entries(filters: Vec<SearchFilter>) -> Vec<PresetFilterEntry> {
+        Preset::with_default_state(Uuid::new_v4(), "preset".to_owned(), filters, vec![]).filters
+    }
+
+    fn search_value_entries(search_values: Vec<SearchFilter>) -> Vec<PresetSearchValueEntry> {
+        Preset::with_default_state(Uuid::new_v4(), "preset".to_owned(), vec![], search_values)
+            .search_values
+    }
+
+    fn filter_definitions(preset: &Preset) -> Vec<SearchFilter> {
+        preset
+            .filters
+            .iter()
+            .map(|entry| entry.filter.clone())
+            .collect()
+    }
+
+    fn search_value_definitions(preset: &Preset) -> Vec<SearchFilter> {
+        preset
+            .search_values
+            .iter()
+            .map(|entry| entry.filter.clone())
+            .collect()
     }
 
     fn new_shared() -> SessionShared {
@@ -255,8 +446,10 @@ mod tests {
     #[test]
     fn add_keeps_order() {
         let mut registry = PresetRegistry::default();
-        let first_id = registry.add_preset("First", vec![plain("one")], vec![]);
-        let second_id = registry.add_preset("Second", vec![plain("two")], vec![]);
+        let first_id =
+            add_preset_with_default_state(&mut registry, "First", vec![plain("one")], vec![]);
+        let second_id =
+            add_preset_with_default_state(&mut registry, "Second", vec![plain("two")], vec![]);
 
         assert_eq!(registry.presets()[0].id, first_id);
         assert_eq!(registry.presets()[1].id, second_id);
@@ -266,14 +459,15 @@ mod tests {
     #[test]
     fn keeps_filter_duplicates() {
         let mut registry = PresetRegistry::default();
-        let preset_id = registry.add_preset(
+        let preset_id = add_preset_with_default_state(
+            &mut registry,
             "Errors",
             vec![plain("error"), plain("warn"), plain("error"), plain("warn")],
             vec![],
         );
 
         assert_eq!(
-            registry.get(&preset_id).unwrap().filters,
+            filter_definitions(registry.get(&preset_id).unwrap()),
             vec![plain("error"), plain("warn"), plain("error"), plain("warn")]
         );
     }
@@ -281,7 +475,8 @@ mod tests {
     #[test]
     fn keeps_search_value_duplicates() {
         let mut registry = PresetRegistry::default();
-        let preset_id = registry.add_preset(
+        let preset_id = add_preset_with_default_state(
+            &mut registry,
             "Durations",
             vec![],
             vec![
@@ -292,7 +487,7 @@ mod tests {
         );
 
         assert_eq!(
-            registry.get(&preset_id).unwrap().search_values,
+            search_value_definitions(registry.get(&preset_id).unwrap()),
             vec![
                 regex("duration=(\\d+)"),
                 regex("latency=(\\d+)"),
@@ -304,26 +499,35 @@ mod tests {
     #[test]
     fn duplicates_stay_per_list() {
         let mut registry = PresetRegistry::default();
-        let preset_id = registry.add_preset(
+        let preset_id = add_preset_with_default_state(
+            &mut registry,
             "Shared Value",
             vec![plain("error"), plain("error")],
             vec![plain("error"), plain("error")],
         );
         let preset = registry.get(&preset_id).unwrap();
 
-        assert_eq!(preset.filters, vec![plain("error"), plain("error")]);
-        assert_eq!(preset.search_values, vec![plain("error"), plain("error")]);
+        assert_eq!(
+            filter_definitions(preset),
+            vec![plain("error"), plain("error")]
+        );
+        assert_eq!(
+            search_value_definitions(preset),
+            vec![plain("error"), plain("error")]
+        );
     }
 
     #[test]
     fn identical_presets_both_store() {
         let mut registry = PresetRegistry::default();
-        let first_id = registry.add_preset(
+        let first_id = add_preset_with_default_state(
+            &mut registry,
             "Errors",
             vec![plain("error")],
             vec![regex("duration=(\\d+)")],
         );
-        let second_id = registry.add_preset(
+        let second_id = add_preset_with_default_state(
+            &mut registry,
             "Errors",
             vec![plain("error")],
             vec![regex("duration=(\\d+)")],
@@ -336,9 +540,10 @@ mod tests {
     #[test]
     fn keeps_base_name_free() {
         let mut registry = PresetRegistry::default();
-        registry.add_preset("Errors_2", vec![plain("error")], vec![]);
+        add_preset_with_default_state(&mut registry, "Errors_2", vec![plain("error")], vec![]);
 
-        let preset_id = registry.add_preset("Errors", vec![plain("warn")], vec![]);
+        let preset_id =
+            add_preset_with_default_state(&mut registry, "Errors", vec![plain("warn")], vec![]);
 
         assert_eq!(registry.get(&preset_id).unwrap().name, "Errors");
     }
@@ -346,9 +551,10 @@ mod tests {
     #[test]
     fn appends_second_suffix() {
         let mut registry = PresetRegistry::default();
-        registry.add_preset("Errors", vec![plain("error")], vec![]);
+        add_preset_with_default_state(&mut registry, "Errors", vec![plain("error")], vec![]);
 
-        let preset_id = registry.add_preset("Errors", vec![plain("warn")], vec![]);
+        let preset_id =
+            add_preset_with_default_state(&mut registry, "Errors", vec![plain("warn")], vec![]);
 
         assert_eq!(registry.get(&preset_id).unwrap().name, "Errors_2");
     }
@@ -356,12 +562,7 @@ mod tests {
     #[test]
     fn import_keeps_provided_id() {
         let mut registry = PresetRegistry::default();
-        let preset = Preset {
-            id: Uuid::new_v4(),
-            name: "Imported".to_owned(),
-            filters: vec![plain("error")],
-            search_values: vec![],
-        };
+        let preset = runtime_preset(Uuid::new_v4(), "Imported", vec![plain("error")], vec![]);
         let imported_id = preset.id;
 
         let was_renamed = registry.import_preset(preset);
@@ -373,15 +574,15 @@ mod tests {
     #[test]
     fn import_renames_colliding_name() {
         let mut registry = PresetRegistry::default();
-        registry.add_preset("Errors", vec![plain("warn")], vec![]);
+        add_preset_with_default_state(&mut registry, "Errors", vec![plain("warn")], vec![]);
 
         let imported_id = Uuid::new_v4();
-        let was_renamed = registry.import_preset(Preset {
-            id: imported_id,
-            name: "Errors".to_owned(),
-            filters: vec![plain("error")],
-            search_values: vec![],
-        });
+        let was_renamed = registry.import_preset(runtime_preset(
+            imported_id,
+            "Errors",
+            vec![plain("error")],
+            vec![],
+        ));
 
         assert!(was_renamed);
         assert_eq!(registry.get(&imported_id).unwrap().name, "Errors_2");
@@ -391,24 +592,9 @@ mod tests {
     fn import_batch_preserves_order() {
         let mut registry = PresetRegistry::default();
         let presets = vec![
-            Preset {
-                id: Uuid::new_v4(),
-                name: "Same".to_owned(),
-                filters: vec![plain("one")],
-                search_values: vec![],
-            },
-            Preset {
-                id: Uuid::new_v4(),
-                name: "Same".to_owned(),
-                filters: vec![plain("two")],
-                search_values: vec![],
-            },
-            Preset {
-                id: Uuid::new_v4(),
-                name: "Third".to_owned(),
-                filters: vec![plain("three")],
-                search_values: vec![],
-            },
+            runtime_preset(Uuid::new_v4(), "Same", vec![plain("one")], vec![]),
+            runtime_preset(Uuid::new_v4(), "Same", vec![plain("two")], vec![]),
+            runtime_preset(Uuid::new_v4(), "Third", vec![plain("three")], vec![]),
         ];
 
         let summary = registry.import_presets(presets);
@@ -424,18 +610,8 @@ mod tests {
         let mut registry = PresetRegistry::default();
 
         registry.import_presets(vec![
-            Preset {
-                id: Uuid::new_v4(),
-                name: "First".to_owned(),
-                filters: vec![plain("one")],
-                search_values: vec![],
-            },
-            Preset {
-                id: Uuid::new_v4(),
-                name: "Second".to_owned(),
-                filters: vec![plain("two")],
-                search_values: vec![],
-            },
+            runtime_preset(Uuid::new_v4(), "First", vec![plain("one")], vec![]),
+            runtime_preset(Uuid::new_v4(), "Second", vec![plain("two")], vec![]),
         ]);
 
         assert_eq!(registry.definitions_revision(), 2);
@@ -444,10 +620,11 @@ mod tests {
     #[test]
     fn skips_taken_suffixes() {
         let mut registry = PresetRegistry::default();
-        registry.add_preset("Errors", vec![plain("error")], vec![]);
-        registry.add_preset("Errors_2", vec![plain("warn")], vec![]);
+        add_preset_with_default_state(&mut registry, "Errors", vec![plain("error")], vec![]);
+        add_preset_with_default_state(&mut registry, "Errors_2", vec![plain("warn")], vec![]);
 
-        let preset_id = registry.add_preset("Errors", vec![plain("info")], vec![]);
+        let preset_id =
+            add_preset_with_default_state(&mut registry, "Errors", vec![plain("info")], vec![]);
 
         assert_eq!(registry.get(&preset_id).unwrap().name, "Errors_3");
     }
@@ -455,9 +632,12 @@ mod tests {
     #[test]
     fn remove_preset_keeps_other_order() {
         let mut registry = PresetRegistry::default();
-        let first_id = registry.add_preset("First", vec![plain("one")], vec![]);
-        let second_id = registry.add_preset("Second", vec![plain("two")], vec![]);
-        let third_id = registry.add_preset("Third", vec![plain("three")], vec![]);
+        let first_id =
+            add_preset_with_default_state(&mut registry, "First", vec![plain("one")], vec![]);
+        let second_id =
+            add_preset_with_default_state(&mut registry, "Second", vec![plain("two")], vec![]);
+        let third_id =
+            add_preset_with_default_state(&mut registry, "Third", vec![plain("three")], vec![]);
 
         assert!(registry.remove_preset(second_id));
 
@@ -480,7 +660,8 @@ mod tests {
         let filter_id = add_filter_definition(&mut filters_registry, "error");
 
         filters_registry.apply_filter_to_session(filter_id, session_id);
-        let preset_id = preset_registry.add_preset(
+        let preset_id = add_preset_with_default_state(
+            &mut preset_registry,
             "Errors",
             vec![
                 filters_registry
@@ -504,7 +685,7 @@ mod tests {
             plain("warn")
         );
         assert_eq!(
-            preset_registry.get(&preset_id).unwrap().filters,
+            filter_definitions(preset_registry.get(&preset_id).unwrap()),
             vec![plain("error")]
         );
     }
@@ -518,7 +699,8 @@ mod tests {
         let value_id = add_search_value_definition(&mut filters_registry, "duration=(\\d+)");
 
         filters_registry.apply_search_value_to_session(value_id, session_id);
-        let preset_id = preset_registry.add_preset(
+        let preset_id = add_preset_with_default_state(
+            &mut preset_registry,
             "Durations",
             vec![],
             vec![
@@ -544,7 +726,7 @@ mod tests {
             regex("latency=(\\d+)")
         );
         assert_eq!(
-            preset_registry.get(&preset_id).unwrap().search_values,
+            search_value_definitions(preset_registry.get(&preset_id).unwrap()),
             vec![regex("duration=(\\d+)")]
         );
     }
@@ -552,7 +734,8 @@ mod tests {
     #[test]
     fn update_preset_replaces_all_fields() {
         let mut registry = PresetRegistry::default();
-        let preset_id = registry.add_preset(
+        let preset_id = add_preset_with_default_state(
+            &mut registry,
             "Errors",
             vec![plain("error")],
             vec![regex("duration=(\\d+)")],
@@ -561,8 +744,8 @@ mod tests {
         let outcome = registry.update_preset(
             preset_id,
             "Warnings",
-            vec![plain("warn"), plain("info")],
-            vec![regex("latency=(\\d+)")],
+            filter_entries(vec![plain("warn"), plain("info")]),
+            search_value_entries(vec![regex("latency=(\\d+)")]),
         );
 
         assert_eq!(
@@ -573,12 +756,12 @@ mod tests {
         );
         assert_eq!(
             registry.get(&preset_id).unwrap(),
-            &Preset {
-                id: preset_id,
-                name: "Warnings".to_owned(),
-                filters: vec![plain("warn"), plain("info")],
-                search_values: vec![regex("latency=(\\d+)")],
-            }
+            &runtime_preset(
+                preset_id,
+                "Warnings",
+                vec![plain("warn"), plain("info")],
+                vec![regex("latency=(\\d+)")],
+            )
         );
         assert_eq!(registry.definitions_revision(), 2);
     }
@@ -586,7 +769,8 @@ mod tests {
     #[test]
     fn update_preset_keeps_same_data() {
         let mut registry = PresetRegistry::default();
-        let preset_id = registry.add_preset(
+        let preset_id = add_preset_with_default_state(
+            &mut registry,
             "Errors",
             vec![plain("error")],
             vec![regex("duration=(\\d+)")],
@@ -595,8 +779,8 @@ mod tests {
         let outcome = registry.update_preset(
             preset_id,
             "Errors",
-            vec![plain("error")],
-            vec![regex("duration=(\\d+)")],
+            filter_entries(vec![plain("error")]),
+            search_value_entries(vec![regex("duration=(\\d+)")]),
         );
 
         assert_eq!(outcome, PresetUpdateOutcome::Unchanged);
@@ -607,11 +791,17 @@ mod tests {
     #[test]
     fn update_preset_uses_unique_name() {
         let mut registry = PresetRegistry::default();
-        let first_id = registry.add_preset("First", vec![plain("one")], vec![]);
-        registry.add_preset("Taken", vec![plain("two")], vec![]);
-        registry.add_preset("Taken_2", vec![plain("three")], vec![]);
+        let first_id =
+            add_preset_with_default_state(&mut registry, "First", vec![plain("one")], vec![]);
+        add_preset_with_default_state(&mut registry, "Taken", vec![plain("two")], vec![]);
+        add_preset_with_default_state(&mut registry, "Taken_2", vec![plain("three")], vec![]);
 
-        let outcome = registry.update_preset(first_id, "Taken", vec![plain("one")], vec![]);
+        let outcome = registry.update_preset(
+            first_id,
+            "Taken",
+            filter_entries(vec![plain("one")]),
+            vec![],
+        );
 
         assert_eq!(
             outcome,
@@ -630,8 +820,8 @@ mod tests {
         let outcome = registry.update_preset(
             Uuid::new_v4(),
             "Missing",
-            vec![plain("one")],
-            vec![regex("duration=(\\d+)")],
+            filter_entries(vec![plain("one")]),
+            search_value_entries(vec![regex("duration=(\\d+)")]),
         );
 
         assert_eq!(outcome, PresetUpdateOutcome::NotFound);
@@ -641,7 +831,8 @@ mod tests {
     #[test]
     fn remove_preset_advances_revision() {
         let mut registry = PresetRegistry::default();
-        let preset_id = registry.add_preset("Errors", vec![plain("one")], vec![]);
+        let preset_id =
+            add_preset_with_default_state(&mut registry, "Errors", vec![plain("one")], vec![]);
 
         assert!(registry.remove_preset(preset_id));
         assert_eq!(registry.definitions_revision(), 2);
@@ -670,39 +861,58 @@ mod tests {
             .filters
             .apply_search_value_with_state(&mut filters_registry, second_value_id, false);
 
+        let expected_filter_entries = shared.filters.filter_entries.clone();
+        let expected_search_value_entries = shared.filters.search_value_entries.clone();
         let preset_id = preset_registry.add_preset_from_session(&shared, &filters_registry);
         let preset = preset_registry.get(&preset_id).unwrap();
 
         assert_eq!(preset.name, "test");
-        assert_eq!(
-            preset.filters,
-            vec![
-                filters_registry
-                    .get_filter(&first_filter_id)
-                    .unwrap()
-                    .filter
-                    .clone(),
-                filters_registry
-                    .get_filter(&second_filter_id)
-                    .unwrap()
-                    .filter
-                    .clone(),
-            ]
-        );
-        assert_eq!(
-            preset.search_values,
-            vec![
-                filters_registry
-                    .get_search_value(&first_value_id)
-                    .unwrap()
-                    .filter
-                    .clone(),
-                filters_registry
-                    .get_search_value(&second_value_id)
-                    .unwrap()
-                    .filter
-                    .clone(),
-            ]
-        );
+        let first_filter = filters_registry
+            .get_filter(&first_filter_id)
+            .unwrap()
+            .filter
+            .clone();
+        let second_filter = filters_registry
+            .get_filter(&second_filter_id)
+            .unwrap()
+            .filter
+            .clone();
+        let expected_filters = vec![
+            PresetFilterEntry::new(
+                first_filter,
+                expected_filter_entries[0].enabled,
+                expected_filter_entries[0].colors.clone(),
+            ),
+            PresetFilterEntry::new(
+                second_filter,
+                expected_filter_entries[1].enabled,
+                expected_filter_entries[1].colors.clone(),
+            ),
+        ];
+        assert_eq!(preset.filters, expected_filters);
+
+        let first_search_value = filters_registry
+            .get_search_value(&first_value_id)
+            .unwrap()
+            .filter
+            .clone();
+        let second_search_value = filters_registry
+            .get_search_value(&second_value_id)
+            .unwrap()
+            .filter
+            .clone();
+        let expected_search_values = vec![
+            PresetSearchValueEntry::new(
+                first_search_value,
+                expected_search_value_entries[0].enabled,
+                expected_search_value_entries[0].color,
+            ),
+            PresetSearchValueEntry::new(
+                second_search_value,
+                expected_search_value_entries[1].enabled,
+                expected_search_value_entries[1].color,
+            ),
+        ];
+        assert_eq!(preset.search_values, expected_search_values);
     }
 }
