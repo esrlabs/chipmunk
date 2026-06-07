@@ -3,9 +3,21 @@
 use rustc_hash::FxHashSet;
 use uuid::Uuid;
 
-use crate::common::matcher::substring_matcher::SubstringMatcher;
+use crate::{
+    common::matcher::substring_matcher::SubstringMatcher,
+    host::ui::registry::{HostRegistry, presets::Preset},
+};
 
-use super::{HostRegistry, Preset, PresetQueryState};
+/// Cached name-filter state keyed by the preset catalog revision.
+#[derive(Debug, Default)]
+pub struct PresetQueryState {
+    /// User-entered preset name filter.
+    pub query: String,
+    matcher: SubstringMatcher,
+    // `None` means the query is empty and every preset stays visible.
+    matching_ids: Option<FxHashSet<Uuid>>,
+    cached_revision: u64,
+}
 
 impl PresetQueryState {
     /// Refreshes the cached visible-id set when the query or preset catalog changes.

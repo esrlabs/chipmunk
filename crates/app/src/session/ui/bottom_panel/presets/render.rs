@@ -6,11 +6,46 @@ use egui::{
 };
 use uuid::Uuid;
 
-use super::{
-    HostRegistry, Preset, PresetAction, PresetBrowseSection, PresetFilterEntry, PresetItemRow,
-    PresetSearchValueEntry, PresetsUI, SearchFilter, card_metrics, icons,
+use processor::search::filter::SearchFilter;
+
+use crate::{
+    common::{phosphor::icons, ui::buttons},
+    host::ui::registry::{
+        HostRegistry,
+        presets::{Preset, PresetFilterEntry, PresetSearchValueEntry},
+    },
 };
-use crate::common::ui::buttons;
+
+use super::{PresetAction, PresetsUI};
+
+mod card_metrics {
+    pub const PRESET_CARD_WIDTH: f32 = 280.0;
+    pub const PRESET_CARD_HEIGHT: f32 = 160.0;
+    pub const PRESET_CARD_INNER_MARGIN_X: i8 = 12;
+    pub const PRESET_CARD_INNER_MARGIN_Y: i8 = 8;
+    pub const PRESET_CARD_OUTER_MARGIN_Y: i8 = 4;
+    pub const PRESET_CARD_HEADER_GAP: f32 = 4.0;
+    pub const PRESET_EDIT_ITEM_ICON_SIZE: f32 = 12.0;
+    pub const PRESET_CARD_CONTENT_WIDTH: f32 =
+        PRESET_CARD_WIDTH - (PRESET_CARD_INNER_MARGIN_X as f32 * 2.0);
+    pub const PRESET_CARD_CONTENT_HEIGHT: f32 = PRESET_CARD_HEIGHT
+        - ((PRESET_CARD_INNER_MARGIN_Y as f32 + PRESET_CARD_OUTER_MARGIN_Y as f32) * 2.0);
+}
+
+/// Render-time metadata for a single editable preset row.
+#[derive(Debug, Clone, Copy)]
+struct PresetItemRow<'a> {
+    label: &'a str,
+    index: usize,
+    len: usize,
+}
+
+/// Logical sections shared by preset browse and edit rendering.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum PresetBrowseSection {
+    Filter,
+    SearchValue,
+}
 
 impl PresetsUI {
     /// Renders a single fixed-size preset card and returns its container response.

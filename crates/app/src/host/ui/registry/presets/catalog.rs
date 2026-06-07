@@ -1,18 +1,10 @@
-//! Host registry storage for named preset snapshots.
+//! Preset catalog storage and mutation behavior.
 
 use std::borrow::Cow;
 
-use egui::Color32;
-use processor::search::filter::SearchFilter;
 use uuid::Uuid;
 
-use crate::{
-    host::{
-        common::colors::{self, ColorPair},
-        ui::registry::filters::FilterRegistry,
-    },
-    session::ui::SessionShared,
-};
+use super::{Preset, PresetFilterEntry, PresetSearchValueEntry};
 
 /// Host-level registry for named preset snapshots captured from session filters and charts.
 #[derive(Debug, Default, Clone)]
@@ -20,41 +12,6 @@ pub struct PresetRegistry {
     presets: Vec<Preset>,
     /// Monotonic catalog revision used by UI caches keyed on preset structure.
     definitions_revision: u64,
-}
-
-/// Preset definition with copied row state.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Preset {
-    /// Runtime identifier used by UI selection and edit flows.
-    pub id: Uuid,
-    /// User-visible preset name.
-    pub name: String,
-    /// Stored filter rows.
-    pub filters: Vec<PresetFilterEntry>,
-    /// Stored chart/search-value rows.
-    pub search_values: Vec<PresetSearchValueEntry>,
-}
-
-/// Stored preset snapshot for one filter row.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PresetFilterEntry {
-    /// Filter definition stored for the row.
-    pub filter: SearchFilter,
-    /// Whether the row was enabled when captured.
-    pub enabled: bool,
-    /// Highlight colors stored for the row.
-    pub colors: ColorPair,
-}
-
-/// Stored preset snapshot for one chart/search-value row.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PresetSearchValueEntry {
-    /// Search-value definition stored for the row.
-    pub filter: SearchFilter,
-    /// Whether the row was enabled when captured.
-    pub enabled: bool,
-    /// Chart color stored for the row.
-    pub color: Color32,
 }
 
 /// Result of applying a preset edit request.
@@ -76,84 +33,6 @@ pub enum PresetUpdateOutcome {
 pub struct PresetImportSummary {
     /// Number of imported presets renamed to avoid collisions.
     pub renamed_items: usize,
-}
-
-impl PresetFilterEntry {
-    /// Creates a filter entry with explicit row state.
-    pub fn new(filter: SearchFilter, enabled: bool, colors: ColorPair) -> Self {
-        Self {
-            filter,
-            enabled,
-            colors,
-        }
-    }
-
-    /// Creates an enabled filter entry using the default color for its row index.
-    pub fn with_default_color(filter: SearchFilter, index: usize) -> Self {
-        let colors =
-            colors::FILTER_HIGHLIGHT_COLORS[index % colors::FILTER_HIGHLIGHT_COLORS.len()].clone();
-        Self::new(filter, true, colors)
-    }
-
-    /// Creates an enabled filter entry using the next color after existing entries.
-    pub fn with_next_color(filter: SearchFilter, entries: &[Self]) -> Self {
-        let used_colors = entries
-            .iter()
-            .map(|entry| entry.colors.clone())
-            .collect::<Vec<_>>();
-
-        Self::new(filter, true, colors::next_filter_color(&used_colors))
-    }
-}
-
-impl PresetSearchValueEntry {
-    /// Creates a search-value entry with explicit row state.
-    pub fn new(filter: SearchFilter, enabled: bool, color: Color32) -> Self {
-        Self {
-            filter,
-            enabled,
-            color,
-        }
-    }
-
-    /// Creates an enabled search-value entry using the default color for its row index.
-    pub fn with_default_color(filter: SearchFilter, index: usize) -> Self {
-        Self::new(filter, true, colors::search_value_color(index))
-    }
-
-    /// Creates an enabled search-value entry using the next color after existing entries.
-    pub fn with_next_color(filter: SearchFilter, entries: &[Self]) -> Self {
-        let used_colors = entries.iter().map(|entry| entry.color).collect::<Vec<_>>();
-        Self::new(filter, true, colors::next_search_value_color(&used_colors))
-    }
-}
-
-impl Preset {
-    /// Builds a preset from filters and default row state.
-    pub fn with_default_state(
-        id: Uuid,
-        name: String,
-        filters: Vec<SearchFilter>,
-        search_values: Vec<SearchFilter>,
-    ) -> Self {
-        let filters = filters
-            .into_iter()
-            .enumerate()
-            .map(|(index, filter)| PresetFilterEntry::with_default_color(filter, index))
-            .collect();
-        let search_values = search_values
-            .into_iter()
-            .enumerate()
-            .map(|(index, filter)| PresetSearchValueEntry::with_default_color(filter, index))
-            .collect();
-
-        Self {
-            id,
-            name,
-            filters,
-            search_values,
-        }
-    }
 }
 
 impl PresetRegistry {
@@ -250,36 +129,6 @@ impl PresetRegistry {
         PresetImportSummary { renamed_items }
     }
 
-    /// Captures the current session-applied filters and charts as a preset.
-    pub fn add_preset_from_session(
-        &mut self,
-        shared: &SessionShared,
-        registry: &FilterRegistry,
-    ) -> Uuid {
-        let filters = shared
-            .filters
-            .filter_entries
-            .iter()
-            .filter_map(|item| {
-                registry.get_filter(&item.id).map(|def| {
-                    PresetFilterEntry::new(def.filter.clone(), item.enabled, item.colors.clone())
-                })
-            })
-            .collect();
-        let search_values = shared
-            .filters
-            .search_value_entries
-            .iter()
-            .filter_map(|item| {
-                registry.get_search_value(&item.id).map(|def| {
-                    PresetSearchValueEntry::new(def.filter.clone(), item.enabled, item.color)
-                })
-            })
-            .collect();
-
-        self.add_preset(shared.get_info().title.clone(), filters, search_values)
-    }
-
     /// Updates an existing preset with the provided row snapshots.
     pub fn update_preset(
         &mut self,
@@ -334,13 +183,18 @@ impl PresetRegistry {
 mod tests {
     use std::path::PathBuf;
 
+    use processor::search::filter::SearchFilter;
     use stypes::{FileFormat, ObserveOrigin};
+    use uuid::Uuid;
 
     use crate::{
         host::{
             common::parsers::ParserNames,
-            ui::registry::filters::{FilterDefinition, RegistryEditOutcome, SearchValueDefinition},
+            ui::registry::filters::{
+                FilterDefinition, FilterRegistry, RegistryEditOutcome, SearchValueDefinition,
+            },
         },
+        session::ui::SessionShared,
         session::{types::ObserveOperation, ui::SessionInfo},
     };
 
@@ -836,83 +690,5 @@ mod tests {
 
         assert!(registry.remove_preset(preset_id));
         assert_eq!(registry.definitions_revision(), 2);
-    }
-
-    #[test]
-    fn captures_applied_session_state() {
-        let mut shared = new_shared();
-        let mut filters_registry = FilterRegistry::default();
-        let mut preset_registry = PresetRegistry::default();
-        let first_filter_id = add_filter_definition(&mut filters_registry, "error");
-        let second_filter_id = add_filter_definition(&mut filters_registry, "warn");
-        let first_value_id = add_search_value_definition(&mut filters_registry, "duration=(\\d+)");
-        let second_value_id = add_search_value_definition(&mut filters_registry, "latency=(\\d+)");
-
-        shared
-            .filters
-            .apply_filter(&mut filters_registry, first_filter_id);
-        shared
-            .filters
-            .apply_filter_with_state(&mut filters_registry, second_filter_id, false);
-        shared
-            .filters
-            .apply_search_value(&mut filters_registry, first_value_id);
-        shared
-            .filters
-            .apply_search_value_with_state(&mut filters_registry, second_value_id, false);
-
-        let expected_filter_entries = shared.filters.filter_entries.clone();
-        let expected_search_value_entries = shared.filters.search_value_entries.clone();
-        let preset_id = preset_registry.add_preset_from_session(&shared, &filters_registry);
-        let preset = preset_registry.get(&preset_id).unwrap();
-
-        assert_eq!(preset.name, "test");
-        let first_filter = filters_registry
-            .get_filter(&first_filter_id)
-            .unwrap()
-            .filter
-            .clone();
-        let second_filter = filters_registry
-            .get_filter(&second_filter_id)
-            .unwrap()
-            .filter
-            .clone();
-        let expected_filters = vec![
-            PresetFilterEntry::new(
-                first_filter,
-                expected_filter_entries[0].enabled,
-                expected_filter_entries[0].colors.clone(),
-            ),
-            PresetFilterEntry::new(
-                second_filter,
-                expected_filter_entries[1].enabled,
-                expected_filter_entries[1].colors.clone(),
-            ),
-        ];
-        assert_eq!(preset.filters, expected_filters);
-
-        let first_search_value = filters_registry
-            .get_search_value(&first_value_id)
-            .unwrap()
-            .filter
-            .clone();
-        let second_search_value = filters_registry
-            .get_search_value(&second_value_id)
-            .unwrap()
-            .filter
-            .clone();
-        let expected_search_values = vec![
-            PresetSearchValueEntry::new(
-                first_search_value,
-                expected_search_value_entries[0].enabled,
-                expected_search_value_entries[0].color,
-            ),
-            PresetSearchValueEntry::new(
-                second_search_value,
-                expected_search_value_entries[1].enabled,
-                expected_search_value_entries[1].color,
-            ),
-        ];
-        assert_eq!(preset.search_values, expected_search_values);
     }
 }
