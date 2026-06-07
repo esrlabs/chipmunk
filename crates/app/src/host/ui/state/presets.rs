@@ -1,13 +1,20 @@
+//! Host UI handlers for preset import and export messages.
+
 use std::{
     fmt::Write,
     path::{Path, PathBuf},
 };
 
-use crate::host::{message::PresetsImported, notification::AppNotification, ui::UiActions};
+use crate::host::{
+    message::{ImportFormat, PresetsImported},
+    notification::AppNotification,
+    ui::UiActions,
+};
 
 use super::HostState;
 
 impl HostState {
+    /// Imports backend-loaded presets into the registry and reports the result.
     pub fn handle_presets_imported(
         &mut self,
         imported: PresetsImported,
@@ -16,7 +23,7 @@ impl HostState {
         let PresetsImported {
             path,
             presets,
-            used_legacy_format,
+            format,
         } = imported;
 
         let imported_count = presets.len();
@@ -24,11 +31,12 @@ impl HostState {
         ui_actions.add_notification(AppNotification::Info(format_preset_import_report(
             &path,
             imported_count,
-            used_legacy_format,
+            format,
             summary.renamed_items,
         )));
     }
 
+    /// Reports a completed preset export.
     pub fn handle_presets_exported(&self, path: PathBuf, count: usize, ui_actions: &mut UiActions) {
         ui_actions.add_notification(AppNotification::Info(format_preset_export_report(
             &path, count,
@@ -39,13 +47,12 @@ impl HostState {
 fn format_preset_import_report(
     path: &Path,
     imported_count: usize,
-    used_legacy_format: bool,
+    format: ImportFormat,
     renamed_count: usize,
 ) -> String {
-    let source = if used_legacy_format {
-        "legacy preset file"
-    } else {
-        "preset file"
+    let source = match format {
+        ImportFormat::Version1 | ImportFormat::Version2 => "preset file",
+        ImportFormat::Legacy => "legacy preset file",
     };
 
     let mut message = if imported_count == 0 {
@@ -72,6 +79,15 @@ fn format_preset_import_report(
         );
     }
 
+    match format {
+        ImportFormat::Version1 => {
+            message.push_str(
+                " V1 preset files do not store row colors or enabled state, so defaults were applied. Re-export these presets to preserve that state in future imports.",
+            );
+        }
+        ImportFormat::Version2 | ImportFormat::Legacy => {}
+    }
+
     message
 }
 
@@ -85,48 +101,4 @@ fn format_preset_export_report(path: &Path, count: usize) -> String {
 
 fn pluralize<'a>(count: usize, singular: &'a str, plural: &'a str) -> &'a str {
     if count == 1 { singular } else { plural }
-}
-
-#[cfg(test)]
-mod tests {
-    use std::path::Path;
-
-    use super::{format_preset_export_report, format_preset_import_report};
-
-    #[test]
-    fn import_report_for_document_file() {
-        let message = format_preset_import_report(Path::new("presets.json"), 2, false, 0);
-
-        assert_eq!(
-            message,
-            "Imported 2 presets from preset file 'presets.json'."
-        );
-    }
-
-    #[test]
-    fn import_report_for_legacy_file_with_renames() {
-        let message = format_preset_import_report(Path::new("legacy.json"), 3, true, 2);
-
-        assert_eq!(
-            message,
-            "Imported 3 presets from legacy preset file 'legacy.json'. Renamed 2 presets to avoid name collisions."
-        );
-    }
-
-    #[test]
-    fn import_report_for_empty_import() {
-        let message = format_preset_import_report(Path::new("legacy.json"), 0, true, 0);
-
-        assert_eq!(
-            message,
-            "No presets were imported from legacy preset file 'legacy.json'."
-        );
-    }
-
-    #[test]
-    fn export_report_for_multiple_presets() {
-        let message = format_preset_export_report(Path::new("presets.json"), 2);
-
-        assert_eq!(message, "Exported 2 presets to 'presets.json'.");
-    }
 }

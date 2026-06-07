@@ -35,10 +35,16 @@ mod tests {
     #[test]
     fn cleanup_keeps_presets() {
         let mut registry = HostRegistry::default();
+        let preset = presets::Preset::with_default_state(
+            Uuid::new_v4(),
+            "Errors".to_owned(),
+            vec![SearchFilter::plain("error")],
+            vec![],
+        );
         let preset_id =
             registry
                 .presets
-                .add_preset("Errors", vec![SearchFilter::plain("error")], vec![]);
+                .add_preset(preset.name, preset.filters, preset.search_values);
 
         registry.cleanup_session(&Uuid::new_v4());
 

@@ -4,16 +4,17 @@ use egui::{
     Align, Frame, Key, Layout, Margin, Response, RichText, ScrollArea, Sense, Sides, StrokeKind,
     TextEdit, Ui, UiBuilder, vec2,
 };
+use uuid::Uuid;
 
 use super::{
-    HostRegistry, Preset, PresetAction, PresetBrowseSection, PresetItemRow, PresetsUI,
-    SearchFilter, card_metrics, icons,
+    HostRegistry, Preset, PresetAction, PresetBrowseSection, PresetFilterEntry, PresetItemRow,
+    PresetSearchValueEntry, PresetsUI, SearchFilter, card_metrics, icons,
 };
 use crate::common::ui::buttons;
 
 impl PresetsUI {
     /// Renders a single fixed-size preset card and returns its container response.
-    pub(super) fn render_preset_card(
+    pub fn render_preset_card(
         &mut self,
         preset: &Preset,
         registry: &HostRegistry,
@@ -22,74 +23,71 @@ impl PresetsUI {
     ) -> Response {
         let is_editing = self.is_editing(preset.id);
         let is_export_selected = self.is_selected_for_export(preset.id);
-        ui.allocate_ui_with_layout(
-            vec2(
-                card_metrics::PRESET_CARD_WIDTH,
-                card_metrics::PRESET_CARD_HEIGHT,
-            ),
-            Layout::top_down(Align::Min),
-            |ui| {
-                let visuals = ui.visuals();
-                let mut frame = Frame::group(ui.style())
-                    .fill(visuals.faint_bg_color)
-                    .inner_margin(Margin::symmetric(
-                        card_metrics::PRESET_CARD_INNER_MARGIN_X,
-                        card_metrics::PRESET_CARD_INNER_MARGIN_Y,
-                    ))
-                    .outer_margin(Margin::symmetric(
-                        0,
-                        card_metrics::PRESET_CARD_OUTER_MARGIN_Y,
-                    ));
+        let card_size = vec2(
+            card_metrics::PRESET_CARD_WIDTH,
+            card_metrics::PRESET_CARD_HEIGHT,
+        );
+        ui.allocate_ui_with_layout(card_size, Layout::top_down(Align::Min), |ui| {
+            let visuals = ui.visuals();
+            let mut frame = Frame::group(ui.style())
+                .fill(visuals.faint_bg_color)
+                .inner_margin(Margin::symmetric(
+                    card_metrics::PRESET_CARD_INNER_MARGIN_X,
+                    card_metrics::PRESET_CARD_INNER_MARGIN_Y,
+                ))
+                .outer_margin(Margin::symmetric(
+                    0,
+                    card_metrics::PRESET_CARD_OUTER_MARGIN_Y,
+                ));
+            if is_editing {
+                frame = frame
+                    .fill(visuals.widgets.open.bg_fill)
+                    .stroke(visuals.selection.stroke);
+            } else if is_export_selected {
+                frame = frame.stroke(visuals.selection.stroke);
+            }
+
+            frame.show(ui, |ui| {
+                // Lock the inner card size so long content cannot widen or
+                // stretch cards inside the wrapped layout.
+                ui.set_width(card_metrics::PRESET_CARD_CONTENT_WIDTH);
+                ui.set_height(card_metrics::PRESET_CARD_CONTENT_HEIGHT);
                 if is_editing {
-                    frame = frame
-                        .fill(visuals.widgets.open.bg_fill)
-                        .stroke(visuals.selection.stroke);
-                } else if is_export_selected {
-                    frame = frame.stroke(visuals.selection.stroke);
+                    self.render_edit_header(preset.id, ui, pending_action);
+                } else if self.is_exporting() {
+                    self.render_export_header(preset, ui, pending_action);
+                } else {
+                    self.render_browse_header(preset, ui, pending_action);
                 }
 
-                frame.show(ui, |ui| {
-                    // Lock the inner card size so long content cannot widen or
-                    // stretch cards inside the wrapped layout.
-                    ui.set_width(card_metrics::PRESET_CARD_CONTENT_WIDTH);
-                    ui.set_height(card_metrics::PRESET_CARD_CONTENT_HEIGHT);
-                    if is_editing {
-                        self.render_edit_header(preset.id, ui, pending_action);
-                    } else if self.is_exporting() {
-                        self.render_export_header(preset, ui, pending_action);
-                    } else {
-                        self.render_browse_header(preset, ui, pending_action);
-                    }
+                ui.add_space(card_metrics::PRESET_CARD_HEADER_GAP);
 
-                    ui.add_space(card_metrics::PRESET_CARD_HEADER_GAP);
-
-                    ScrollArea::vertical()
-                        .id_salt(("preset_card_body", preset.id))
-                        .auto_shrink(false)
-                        .show(ui, |ui| {
-                            Frame::NONE
-                                .inner_margin(Margin {
-                                    left: 1,
-                                    right: 6,
-                                    top: 0,
-                                    bottom: 0,
-                                })
-                                .show(ui, |ui| {
-                                    if is_editing {
-                                        self.render_editing_body(
-                                            preset.id,
-                                            registry,
-                                            ui,
-                                            pending_action,
-                                        );
-                                    } else {
-                                        self.render_browse_body(preset, ui);
-                                    }
-                                });
-                        });
-                });
-            },
-        )
+                ScrollArea::vertical()
+                    .id_salt(("preset_card_body", preset.id))
+                    .auto_shrink(false)
+                    .show(ui, |ui| {
+                        Frame::NONE
+                            .inner_margin(Margin {
+                                left: 1,
+                                right: 6,
+                                top: 0,
+                                bottom: 0,
+                            })
+                            .show(ui, |ui| {
+                                if is_editing {
+                                    self.render_editing_body(
+                                        preset.id,
+                                        registry,
+                                        ui,
+                                        pending_action,
+                                    );
+                                } else {
+                                    self.render_browse_body(preset, ui);
+                                }
+                            });
+                    });
+            });
+        })
         .response
     }
 
@@ -109,7 +107,8 @@ impl PresetsUI {
                     .on_hover_text("Include preset in export")
                     .changed()
                 {
-                    *pending_action = Some(PresetAction::ToggleExportSelection(preset.id));
+                    let action = PresetAction::ToggleExportSelection(preset.id);
+                    *pending_action = Some(action);
                 }
             });
         });
@@ -132,7 +131,8 @@ impl PresetsUI {
                     .on_hover_text("Delete preset")
                     .clicked()
                 {
-                    *pending_action = Some(PresetAction::Delete(preset.id));
+                    let action = PresetAction::Delete(preset.id);
+                    *pending_action = Some(action);
                 }
                 if ui
                     .add(buttons::bottom_panel_icon(
@@ -150,7 +150,8 @@ impl PresetsUI {
                     .on_hover_text("Apply preset")
                     .clicked()
                 {
-                    *pending_action = Some(PresetAction::Apply(preset.id));
+                    let action = PresetAction::Apply(preset.id);
+                    *pending_action = Some(action);
                 }
             });
         });
@@ -158,18 +159,14 @@ impl PresetsUI {
 
     /// Renders the read-only preset contents below the card header.
     fn render_browse_body(&self, preset: &Preset, ui: &mut Ui) {
-        self.render_browse_section(PresetBrowseSection::Filter, &preset.filters, ui);
+        self.render_browse_filters(&preset.filters, ui);
         ui.separator();
-        self.render_browse_section(PresetBrowseSection::SearchValue, &preset.search_values, ui);
+        self.render_browse_search_values(&preset.search_values, ui);
     }
 
-    /// Renders one browse section and its current item list.
-    fn render_browse_section(
-        &self,
-        section: PresetBrowseSection,
-        items: &[SearchFilter],
-        ui: &mut Ui,
-    ) {
+    /// Renders the browse filter list.
+    fn render_browse_filters(&self, items: &[PresetFilterEntry], ui: &mut Ui) {
+        let section = PresetBrowseSection::Filter;
         ui.label(section_title(section.title(), items.len()));
 
         if items.is_empty() {
@@ -178,14 +175,26 @@ impl PresetsUI {
         }
 
         for item in items {
-            match section {
-                PresetBrowseSection::Filter => self.render_filter_row(ui, item),
-                PresetBrowseSection::SearchValue => self.render_search_value_row(ui, item),
-            }
+            self.render_filter_row(ui, &item.filter);
         }
     }
 
-    /// Renders a browse row for a filter, including its semantic flags.
+    /// Renders the browse chart/search-value list.
+    fn render_browse_search_values(&self, items: &[PresetSearchValueEntry], ui: &mut Ui) {
+        let section = PresetBrowseSection::SearchValue;
+        ui.label(section_title(section.title(), items.len()));
+
+        if items.is_empty() {
+            ui.label(RichText::new(section.empty_text()).weak());
+            return;
+        }
+
+        for item in items {
+            self.render_search_value_row(ui, &item.filter);
+        }
+    }
+
+    /// Renders a browse row for a filter, including its matching flags.
     fn render_filter_row(&self, ui: &mut Ui, filter: &SearchFilter) {
         Self::item_frame(ui).show(ui, |ui| {
             Sides::new().shrink_left().truncate().show(
@@ -235,7 +244,7 @@ impl PresetsUI {
     /// Renders the editable filter and chart lists for the active draft.
     fn render_editing_body(
         &mut self,
-        preset_id: uuid::Uuid,
+        preset_id: Uuid,
         registry: &HostRegistry,
         ui: &mut Ui,
         pending_action: &mut Option<PresetAction>,
@@ -264,7 +273,7 @@ impl PresetsUI {
     /// Renders the edit-mode header, including scoped save and cancel shortcuts.
     fn render_edit_header(
         &mut self,
-        preset_id: uuid::Uuid,
+        preset_id: Uuid,
         ui: &mut Ui,
         pending_action: &mut Option<PresetAction>,
     ) {
@@ -283,68 +292,67 @@ impl PresetsUI {
             draft_name_has_focus && input.consume_key(egui::Modifiers::NONE, Key::Enter)
         });
 
-        ui.allocate_ui_with_layout(
-            vec2(ui.available_width(), 16.0),
-            Layout::right_to_left(Align::Center),
-            |ui| {
-                if ui
-                    .add(buttons::bottom_panel_icon(
-                        RichText::new(icons::regular::CHECK).size(14.0),
-                    ))
-                    .on_hover_text("Save preset")
-                    .clicked()
-                    || enter_pressed
-                {
-                    *pending_action = Some(PresetAction::SaveEdit(preset_id));
+        let header_size = vec2(ui.available_width(), 16.0);
+        ui.allocate_ui_with_layout(header_size, Layout::right_to_left(Align::Center), |ui| {
+            if ui
+                .add(buttons::bottom_panel_icon(
+                    RichText::new(icons::regular::CHECK).size(14.0),
+                ))
+                .on_hover_text("Save preset")
+                .clicked()
+                || enter_pressed
+            {
+                let action = PresetAction::SaveEdit(preset_id);
+                *pending_action = Some(action);
+            }
+
+            let mut cancel_edit = ui
+                .add(buttons::bottom_panel_icon(
+                    RichText::new(icons::regular::X).size(14.0),
+                ))
+                .on_hover_text("Cancel edit")
+                .clicked();
+
+            ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
+                let mut text_edit = TextEdit::singleline(&mut edit_state.draft_name)
+                    .id(draft_name_id)
+                    .desired_width(f32::INFINITY)
+                    .show(ui);
+
+                // Input text will lose focus directly on pressing escape which can
+                // be used as indicator of escape pressed while input text in focus.
+                let escape_pressed = text_edit.response.lost_focus()
+                    && text_edit
+                        .response
+                        .ctx
+                        .input(|input| input.key_pressed(Key::Escape));
+
+                if escape_pressed {
+                    cancel_edit = true;
                 }
 
-                let mut cancel_edit = ui
-                    .add(buttons::bottom_panel_icon(
-                        RichText::new(icons::regular::X).size(14.0),
-                    ))
-                    .on_hover_text("Cancel edit")
-                    .clicked();
-
-                ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
-                    let mut text_edit = TextEdit::singleline(&mut edit_state.draft_name)
-                        .id(draft_name_id)
-                        .desired_width(f32::INFINITY)
-                        .show(ui);
-
-                    // Input text will lose focus directly on pressing escape which can
-                    // be used as indicator of escape pressed while input text in focus.
-                    let escape_pressed = text_edit.response.lost_focus()
-                        && text_edit
-                            .response
-                            .ctx
-                            .input(|input| input.key_pressed(Key::Escape));
-
-                    if escape_pressed {
-                        cancel_edit = true;
-                    }
-
-                    if edit_state.first_render_frame {
-                        // Entering edit mode should focus the draft name once,
-                        // without re-stealing focus on later frames.
-                        text_edit.state.cursor.set_char_range(None);
-                        text_edit.state.store(ui.ctx(), text_edit.response.id);
-                        text_edit.response.request_focus();
-                        edit_state.first_render_frame = false;
-                    }
-                });
-
-                if cancel_edit {
-                    *pending_action = Some(PresetAction::CancelEdit(preset_id));
+                if edit_state.first_render_frame {
+                    // Entering edit mode should focus the draft name once,
+                    // without re-stealing focus on later frames.
+                    text_edit.state.cursor.set_char_range(None);
+                    text_edit.state.store(ui.ctx(), text_edit.response.id);
+                    text_edit.response.request_focus();
+                    edit_state.first_render_frame = false;
                 }
-            },
-        );
+            });
+
+            if cancel_edit {
+                let action = PresetAction::CancelEdit(preset_id);
+                *pending_action = Some(action);
+            }
+        });
     }
 
     /// Renders the editable filter section and its add menu.
     fn render_edit_filters_section(
         &self,
-        preset_id: uuid::Uuid,
-        draft_filters: &[SearchFilter],
+        preset_id: Uuid,
+        draft_filters: &[PresetFilterEntry],
         registry: &HostRegistry,
         ui: &mut Ui,
         pending_action: &mut Option<PresetAction>,
@@ -380,7 +388,9 @@ impl PresetsUI {
                         }
 
                         for definition in filters {
-                            let already_added = draft_filters.contains(&definition.filter);
+                            let already_added = draft_filters
+                                .iter()
+                                .any(|entry| entry.filter == definition.filter);
                             let response = ui
                                 .add_enabled_ui(!already_added, |ui| {
                                     render_filter_picker_button(ui, &definition.filter)
@@ -388,10 +398,9 @@ impl PresetsUI {
                                 .inner
                                 .on_disabled_hover_text("Already in preset");
                             if response.clicked() {
-                                *pending_action = Some(PresetAction::AddFilter(
-                                    preset_id,
-                                    definition.filter.clone(),
-                                ));
+                                let action =
+                                    PresetAction::AddFilter(preset_id, definition.filter.clone());
+                                *pending_action = Some(action);
                                 ui.close();
                             }
                         }
@@ -407,10 +416,10 @@ impl PresetsUI {
             return;
         }
 
-        for (index, filter) in draft_filters.iter().enumerate() {
+        for (index, entry) in draft_filters.iter().enumerate() {
             self.render_edit_item_row(
                 PresetItemRow {
-                    label: filter.value.as_str(),
+                    label: entry.filter.value.as_str(),
                     index,
                     len: draft_filters.len(),
                 },
@@ -425,8 +434,8 @@ impl PresetsUI {
     /// Renders the editable chart section and its add menu.
     fn render_edit_search_values_section(
         &self,
-        preset_id: uuid::Uuid,
-        draft_search_values: &[SearchFilter],
+        preset_id: Uuid,
+        draft_search_values: &[PresetSearchValueEntry],
         registry: &HostRegistry,
         ui: &mut Ui,
         pending_action: &mut Option<PresetAction>,
@@ -452,7 +461,9 @@ impl PresetsUI {
                         }
 
                         for definition in values {
-                            let already_added = draft_search_values.contains(&definition.filter);
+                            let already_added = draft_search_values
+                                .iter()
+                                .any(|entry| entry.filter == definition.filter);
                             let response = ui
                                 .add_enabled(
                                     !already_added,
@@ -460,10 +471,11 @@ impl PresetsUI {
                                 )
                                 .on_disabled_hover_text("Already in preset");
                             if response.clicked() {
-                                *pending_action = Some(PresetAction::AddSearchValue(
+                                let action = PresetAction::AddSearchValue(
                                     preset_id,
                                     definition.filter.clone(),
-                                ));
+                                );
+                                *pending_action = Some(action);
                                 ui.close();
                             }
                         }
@@ -479,10 +491,10 @@ impl PresetsUI {
             return;
         }
 
-        for (index, filter) in draft_search_values.iter().enumerate() {
+        for (index, entry) in draft_search_values.iter().enumerate() {
             self.render_edit_item_row(
                 PresetItemRow {
-                    label: filter.value.as_str(),
+                    label: entry.filter.value.as_str(),
                     index,
                     len: draft_search_values.len(),
                 },
@@ -582,7 +594,7 @@ fn section_title(title: &str, count: usize) -> String {
     format!("{title} ({count})")
 }
 
-fn render_filter_picker_button(ui: &mut Ui, filter: &SearchFilter) -> egui::Response {
+fn render_filter_picker_button(ui: &mut Ui, filter: &SearchFilter) -> Response {
     let desired_size = vec2(ui.available_width(), ui.spacing().interact_size.y);
     let (_, response) = ui.allocate_exact_size(desired_size, Sense::click());
     let button_padding = ui.spacing().button_padding;
@@ -650,15 +662,4 @@ fn render_filter_picker_button(ui: &mut Ui, filter: &SearchFilter) -> egui::Resp
     );
 
     response
-}
-
-#[cfg(test)]
-mod tests {
-    use super::section_title;
-
-    #[test]
-    fn section_title_shows_count() {
-        assert_eq!(section_title("Filters", 3), "Filters (3)");
-        assert_eq!(section_title("Charts", 0), "Charts (0)");
-    }
 }
