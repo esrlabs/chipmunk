@@ -23,6 +23,8 @@ pub enum PresetApplyOutcome {
     NotFound,
     /// The preset did not add or update session rows.
     NoChanges,
+    /// The preset changed session rows, but active backend search inputs stayed unchanged.
+    AppliedNoSync,
     /// The preset changed rows that require backend sync.
     Applied(SearchSyncTarget),
 }
@@ -44,44 +46,61 @@ impl PresetsUI {
             return PresetApplyOutcome::NotFound;
         };
 
-        // Materialize preset filters and charts through the normal registry/session path.
-        // Existing applied rows, including disabled ones, are left as-is because
-        // dedupe reuses their ids and the applied check skips re-applying them.
-        let mut changed_filters = false;
+        let before_filters = shared
+            .filters
+            .enabled_filter_ids()
+            .copied()
+            .collect::<Vec<_>>();
+        let before_search_values = shared
+            .filters
+            .enabled_search_value_ids()
+            .copied()
+            .collect::<Vec<_>>();
+
+        let mut changed = false;
         for entry in filters {
             let PresetFilterEntry {
                 filter,
-                enabled: _enabled,
-                colors: _colors,
+                enabled,
+                colors,
             } = entry;
             let filter_id = registry.filters.add_filter(FilterDefinition::new(filter));
-            if shared.filters.is_filter_applied(&filter_id) {
-                continue;
-            }
-
-            shared.apply_filter(&mut registry.filters, filter_id);
-            changed_filters = true;
+            changed |=
+                shared.set_filter_entry_state(&mut registry.filters, filter_id, enabled, colors);
         }
 
-        let mut changed_search_values = false;
         for entry in search_values {
             let PresetSearchValueEntry {
                 filter,
-                enabled: _enabled,
-                color: _color,
+                enabled,
+                color,
             } = entry;
             let value_id = registry
                 .filters
                 .add_search_value(SearchValueDefinition::new(filter));
-            if shared.filters.is_search_value_applied(&value_id) {
-                continue;
-            }
-
-            shared.apply_search_value(&mut registry.filters, value_id);
-            changed_search_values = true;
+            changed |= shared.set_search_value_entry_state(
+                &mut registry.filters,
+                value_id,
+                enabled,
+                color,
+            );
         }
 
-        let outcome = match (changed_filters, changed_search_values) {
+        let after_filters = shared
+            .filters
+            .enabled_filter_ids()
+            .copied()
+            .collect::<Vec<_>>();
+        let after_search_values = shared
+            .filters
+            .enabled_search_value_ids()
+            .copied()
+            .collect::<Vec<_>>();
+
+        let filters_changed = before_filters != after_filters;
+        let search_values_changed = before_search_values != after_search_values;
+        let outcome = match (filters_changed, search_values_changed) {
+            (false, false) if changed => PresetApplyOutcome::AppliedNoSync,
             (false, false) => PresetApplyOutcome::NoChanges,
             (true, false) => PresetApplyOutcome::Applied(SearchSyncTarget::Filter),
             (false, true) => PresetApplyOutcome::Applied(SearchSyncTarget::SearchValue),
@@ -116,6 +135,7 @@ impl PresetsUI {
 mod tests {
     use std::path::PathBuf;
 
+    use egui::Color32;
     use processor::search::filter::SearchFilter;
     use stypes::{FileFormat, ObserveOrigin};
     use tokio::{runtime::Runtime, sync::mpsc};
@@ -124,13 +144,12 @@ mod tests {
     use crate::{
         host::{
             command::HostCommand,
-            common::parsers::ParserNames,
+            common::{colors::ColorPair, parsers::ParserNames},
             ui::{
                 UiActions,
                 registry::{
                     HostRegistry,
                     filters::{FilterDefinition, FilterRegistry, SearchValueDefinition},
-                    presets::Preset,
                 },
             },
         },
@@ -187,19 +206,6 @@ mod tests {
         id
     }
 
-    fn add_preset_with_default_state(
-        registry: &mut HostRegistry,
-        name: &str,
-        filters: Vec<SearchFilter>,
-        search_values: Vec<SearchFilter>,
-    ) -> Uuid {
-        let preset =
-            Preset::with_default_state(Uuid::new_v4(), name.to_owned(), filters, search_values);
-        registry
-            .presets
-            .add_preset(preset.name, preset.filters, preset.search_values)
-    }
-
     fn drain_commands(cmd_rx: &mut mpsc::Receiver<SessionCommand>) -> Vec<SessionCommand> {
         let mut commands = Vec::new();
         while let Ok(command) = cmd_rx.try_recv() {
@@ -208,8 +214,65 @@ mod tests {
         commands
     }
 
+    fn add_preset_with_entries(
+        registry: &mut HostRegistry,
+        name: &str,
+        filters: Vec<PresetFilterEntry>,
+        search_values: Vec<PresetSearchValueEntry>,
+    ) -> Uuid {
+        registry.presets.add_preset(name, filters, search_values)
+    }
+
+    fn filter_entry(value: &str, enabled: bool, colors: ColorPair) -> PresetFilterEntry {
+        let filter = SearchFilter::plain(value).ignore_case(true);
+        PresetFilterEntry::new(filter, enabled, colors)
+    }
+
+    fn search_value_entry(value: &str, enabled: bool, color: Color32) -> PresetSearchValueEntry {
+        let filter = SearchFilter::plain(value).regex(true).ignore_case(true);
+        PresetSearchValueEntry::new(filter, enabled, color)
+    }
+
+    fn filter_colors(fg: u8, bg: u8) -> ColorPair {
+        ColorPair::new(Color32::from_gray(fg), Color32::from_gray(bg))
+    }
+
+    fn applied_filter_values(shared: &SessionShared, registry: &HostRegistry) -> Vec<String> {
+        shared
+            .filters
+            .filter_entries
+            .iter()
+            .map(|item| {
+                registry
+                    .filters
+                    .get_filter(&item.id)
+                    .unwrap()
+                    .filter
+                    .value
+                    .clone()
+            })
+            .collect()
+    }
+
+    fn applied_search_value_values(shared: &SessionShared, registry: &HostRegistry) -> Vec<String> {
+        shared
+            .filters
+            .search_value_entries
+            .iter()
+            .map(|item| {
+                registry
+                    .filters
+                    .get_search_value(&item.id)
+                    .unwrap()
+                    .filter
+                    .value
+                    .clone()
+            })
+            .collect()
+    }
+
     #[test]
-    fn apply_preset_skips_existing_rows() {
+    fn apply_preset_overwrites_existing_rows_and_syncs() {
         let runtime = Runtime::new().unwrap();
         let (presets, mut cmd_rx, _) = new_presets();
         let mut shared = new_shared();
@@ -217,122 +280,110 @@ mod tests {
         let mut registry = HostRegistry::default();
         let filter_id = add_filter_definition(&mut registry.filters, "error");
         let value_id = add_search_value_definition(&mut registry.filters, "duration=(\\d+)");
-
-        shared
-            .filters
-            .apply_filter_with_state(&mut registry.filters, filter_id, false);
-        shared
-            .filters
-            .apply_search_value_with_state(&mut registry.filters, value_id, false);
-        let original_filter_colors = shared.filters.filter_entries[0].colors.clone();
-        let original_value_color = shared.filters.search_value_entries[0].color;
-        let preset_filter = registry
-            .filters
-            .get_filter(&filter_id)
-            .unwrap()
-            .filter
-            .clone();
-        let preset_search_value = registry
-            .filters
-            .get_search_value(&value_id)
-            .unwrap()
-            .filter
-            .clone();
-        let preset_id = add_preset_with_default_state(
+        let filter_colors = filter_colors(10, 20);
+        let search_value_color = Color32::from_rgb(30, 40, 50);
+        let preset_id = add_preset_with_entries(
             &mut registry,
             "test",
-            vec![preset_filter.clone(), preset_filter],
-            vec![preset_search_value.clone(), preset_search_value],
+            vec![filter_entry("error", true, filter_colors.clone())],
+            vec![search_value_entry(
+                "duration=(\\d+)",
+                true,
+                search_value_color,
+            )],
         );
+
+        shared.apply_filter_with_state(&mut registry.filters, filter_id, false);
+        shared.apply_search_value_with_state(&mut registry.filters, value_id, false);
 
         let outcome = presets.apply_preset(&mut shared, &mut actions, &mut registry, preset_id);
 
-        assert_eq!(outcome, PresetApplyOutcome::NoChanges);
+        assert_eq!(outcome, PresetApplyOutcome::Applied(SearchSyncTarget::Both));
         assert_eq!(shared.filters.filter_entries.len(), 1);
         assert_eq!(shared.filters.search_value_entries.len(), 1);
-        assert!(!shared.filters.filter_entries[0].enabled);
-        assert!(!shared.filters.search_value_entries[0].enabled);
-        assert_eq!(
-            shared.filters.filter_entries[0].colors,
-            original_filter_colors
-        );
+        assert!(shared.filters.filter_entries[0].enabled);
+        assert!(shared.filters.search_value_entries[0].enabled);
+        assert_eq!(shared.filters.filter_entries[0].colors, filter_colors);
         assert_eq!(
             shared.filters.search_value_entries[0].color,
-            original_value_color
+            search_value_color
         );
         assert_eq!(registry.filters.filters_map().len(), 1);
         assert_eq!(registry.filters.search_value_map().len(), 1);
-        assert!(drain_commands(&mut cmd_rx).is_empty());
+
+        let commands = drain_commands(&mut cmd_rx);
+        assert_eq!(commands.len(), 2);
     }
 
     #[test]
-    fn apply_preset_appends_and_syncs() {
+    fn apply_preset_adds_missing_rows_with_preset_state() {
         let runtime = Runtime::new().unwrap();
         let (presets, mut cmd_rx, _) = new_presets();
         let mut shared = new_shared();
         let mut actions = new_actions(&runtime);
         let mut registry = HostRegistry::default();
         let existing_filter_id = add_filter_definition(&mut registry.filters, "existing");
-        let preset_id = add_preset_with_default_state(
+        let existing_value_id =
+            add_search_value_definition(&mut registry.filters, "existing=(\\d+)");
+        let existing_filter_colors = filter_colors(1, 2);
+        let existing_value_color = Color32::from_rgb(1, 2, 3);
+        let added_filter_colors = filter_colors(3, 4);
+        let added_value_color = Color32::from_rgb(4, 5, 6);
+        let preset_id = add_preset_with_entries(
             &mut registry,
             "test",
-            vec![
-                SearchFilter::plain("existing").ignore_case(true),
-                SearchFilter::plain("error").ignore_case(true),
-            ],
-            vec![
-                SearchFilter::plain("duration=(\\d+)")
-                    .regex(true)
-                    .ignore_case(true),
-                SearchFilter::plain("latency=(\\d+)")
-                    .regex(true)
-                    .ignore_case(true),
-            ],
+            vec![filter_entry("error", true, added_filter_colors.clone())],
+            vec![search_value_entry(
+                "duration=(\\d+)",
+                false,
+                added_value_color,
+            )],
         );
-        shared
-            .filters
-            .apply_filter(&mut registry.filters, existing_filter_id);
+
+        shared.set_filter_entry_state(
+            &mut registry.filters,
+            existing_filter_id,
+            true,
+            existing_filter_colors.clone(),
+        );
+        shared.set_search_value_entry_state(
+            &mut registry.filters,
+            existing_value_id,
+            true,
+            existing_value_color,
+        );
 
         let outcome = presets.apply_preset(&mut shared, &mut actions, &mut registry, preset_id);
 
-        assert_eq!(outcome, PresetApplyOutcome::Applied(SearchSyncTarget::Both));
         assert_eq!(
-            shared
-                .filters
-                .filter_entries
-                .iter()
-                .map(|item| {
-                    registry
-                        .filters
-                        .get_filter(&item.id)
-                        .unwrap()
-                        .filter
-                        .value
-                        .clone()
-                })
-                .collect::<Vec<_>>(),
+            outcome,
+            PresetApplyOutcome::Applied(SearchSyncTarget::Filter)
+        );
+        assert_eq!(
+            applied_filter_values(&shared, &registry),
             vec!["existing".to_owned(), "error".to_owned()]
         );
         assert_eq!(
-            shared
-                .filters
-                .search_value_entries
-                .iter()
-                .map(|item| {
-                    registry
-                        .filters
-                        .get_search_value(&item.id)
-                        .unwrap()
-                        .filter
-                        .value
-                        .clone()
-                })
-                .collect::<Vec<_>>(),
-            vec!["duration=(\\d+)".to_owned(), "latency=(\\d+)".to_owned()]
+            applied_search_value_values(&shared, &registry),
+            vec!["existing=(\\d+)".to_owned(), "duration=(\\d+)".to_owned()]
+        );
+        assert_eq!(
+            shared.filters.filter_entries[0].colors,
+            existing_filter_colors
+        );
+        assert_eq!(
+            shared.filters.search_value_entries[0].color,
+            existing_value_color
+        );
+        assert_eq!(shared.filters.filter_entries[1].colors, added_filter_colors);
+        assert!(!shared.filters.search_value_entries[1].enabled);
+        assert_eq!(
+            shared.filters.search_value_entries[1].color,
+            added_value_color
         );
 
         let commands = drain_commands(&mut cmd_rx);
-        assert_eq!(commands.len(), 2);
+        assert_eq!(commands.len(), 1);
         match &commands[0] {
             SessionCommand::ApplySearchFilter { filters, .. } => {
                 assert_eq!(filters.len(), 2);
@@ -341,15 +392,180 @@ mod tests {
             }
             other => panic!("expected ApplySearchFilter command, got {other:?}"),
         }
-        match &commands[1] {
-            SessionCommand::ApplySearchValuesFilter { filters, .. } => {
-                assert_eq!(
-                    filters,
-                    &vec!["duration=(\\d+)".to_owned(), "latency=(\\d+)".to_owned()]
-                );
-            }
-            other => panic!("expected ApplySearchValuesFilter command, got {other:?}"),
-        }
+    }
+
+    #[test]
+    fn apply_preset_adds_disabled_rows_without_sync() {
+        let runtime = Runtime::new().unwrap();
+        let (presets, mut cmd_rx, _) = new_presets();
+        let mut shared = new_shared();
+        let mut actions = new_actions(&runtime);
+        let mut registry = HostRegistry::default();
+        let filter_colors = filter_colors(10, 20);
+        let search_value_color = Color32::from_rgb(30, 40, 50);
+        let preset_id = add_preset_with_entries(
+            &mut registry,
+            "test",
+            vec![filter_entry("error", false, filter_colors.clone())],
+            vec![search_value_entry(
+                "duration=(\\d+)",
+                false,
+                search_value_color,
+            )],
+        );
+
+        let revision = shared.recent_revision();
+
+        let outcome = presets.apply_preset(&mut shared, &mut actions, &mut registry, preset_id);
+
+        assert_eq!(outcome, PresetApplyOutcome::AppliedNoSync);
+        assert!(shared.recent_revision() > revision);
+        assert_eq!(shared.filters.filter_entries.len(), 1);
+        assert_eq!(shared.filters.search_value_entries.len(), 1);
+        assert!(!shared.filters.filter_entries[0].enabled);
+        assert!(!shared.filters.search_value_entries[0].enabled);
+        assert_eq!(shared.filters.filter_entries[0].colors, filter_colors);
+        assert_eq!(
+            shared.filters.search_value_entries[0].color,
+            search_value_color
+        );
+        assert!(drain_commands(&mut cmd_rx).is_empty());
+    }
+
+    #[test]
+    fn apply_preset_color_only_changes_do_not_sync() {
+        let runtime = Runtime::new().unwrap();
+        let (presets, mut cmd_rx, _) = new_presets();
+        let mut shared = new_shared();
+        let mut actions = new_actions(&runtime);
+        let mut registry = HostRegistry::default();
+        let filter_id = add_filter_definition(&mut registry.filters, "error");
+        let value_id = add_search_value_definition(&mut registry.filters, "duration=(\\d+)");
+        let filter_colors = filter_colors(70, 80);
+        let search_value_color = Color32::from_rgb(90, 100, 110);
+        let preset_id = add_preset_with_entries(
+            &mut registry,
+            "test",
+            vec![filter_entry("error", true, filter_colors.clone())],
+            vec![search_value_entry(
+                "duration=(\\d+)",
+                true,
+                search_value_color,
+            )],
+        );
+
+        shared.apply_filter(&mut registry.filters, filter_id);
+        shared.apply_search_value(&mut registry.filters, value_id);
+        let revision = shared.recent_revision();
+
+        let outcome = presets.apply_preset(&mut shared, &mut actions, &mut registry, preset_id);
+
+        assert_eq!(outcome, PresetApplyOutcome::AppliedNoSync);
+        assert!(shared.recent_revision() > revision);
+        assert!(shared.filters.filter_entries[0].enabled);
+        assert!(shared.filters.search_value_entries[0].enabled);
+        assert_eq!(shared.filters.filter_entries[0].colors, filter_colors);
+        assert_eq!(
+            shared.filters.search_value_entries[0].color,
+            search_value_color
+        );
+        assert!(drain_commands(&mut cmd_rx).is_empty());
+    }
+
+    #[test]
+    fn apply_preset_returns_no_changes_for_identical_state() {
+        let runtime = Runtime::new().unwrap();
+        let (presets, mut cmd_rx, _) = new_presets();
+        let mut shared = new_shared();
+        let mut actions = new_actions(&runtime);
+        let mut registry = HostRegistry::default();
+        let filter_id = add_filter_definition(&mut registry.filters, "error");
+        let value_id = add_search_value_definition(&mut registry.filters, "duration=(\\d+)");
+        let filter_colors = filter_colors(10, 20);
+        let search_value_color = Color32::from_rgb(30, 40, 50);
+        let preset_id = add_preset_with_entries(
+            &mut registry,
+            "test",
+            vec![filter_entry("error", true, filter_colors.clone())],
+            vec![search_value_entry(
+                "duration=(\\d+)",
+                true,
+                search_value_color,
+            )],
+        );
+
+        shared.set_filter_entry_state(&mut registry.filters, filter_id, true, filter_colors);
+        shared.set_search_value_entry_state(
+            &mut registry.filters,
+            value_id,
+            true,
+            search_value_color,
+        );
+        let revision = shared.recent_revision();
+
+        let outcome = presets.apply_preset(&mut shared, &mut actions, &mut registry, preset_id);
+
+        assert_eq!(outcome, PresetApplyOutcome::NoChanges);
+        assert_eq!(shared.recent_revision(), revision);
+        assert!(drain_commands(&mut cmd_rx).is_empty());
+    }
+
+    #[test]
+    fn apply_preset_duplicates_keep_first_position_and_last_state() {
+        let runtime = Runtime::new().unwrap();
+        let (presets, mut cmd_rx, _) = new_presets();
+        let mut shared = new_shared();
+        let mut actions = new_actions(&runtime);
+        let mut registry = HostRegistry::default();
+        let first_colors = filter_colors(1, 2);
+        let last_colors = filter_colors(3, 4);
+        let other_colors = filter_colors(5, 6);
+        let first_value_color = Color32::from_rgb(1, 2, 3);
+        let last_value_color = Color32::from_rgb(4, 5, 6);
+        let other_value_color = Color32::from_rgb(7, 8, 9);
+        let preset_id = add_preset_with_entries(
+            &mut registry,
+            "test",
+            vec![
+                filter_entry("dup", true, first_colors),
+                filter_entry("other", false, other_colors.clone()),
+                filter_entry("dup", false, last_colors.clone()),
+            ],
+            vec![
+                search_value_entry("dup=(\\d+)", true, first_value_color),
+                search_value_entry("other=(\\d+)", false, other_value_color),
+                search_value_entry("dup=(\\d+)", false, last_value_color),
+            ],
+        );
+
+        let outcome = presets.apply_preset(&mut shared, &mut actions, &mut registry, preset_id);
+
+        assert_eq!(outcome, PresetApplyOutcome::AppliedNoSync);
+        assert_eq!(
+            applied_filter_values(&shared, &registry),
+            vec!["dup".to_owned(), "other".to_owned()]
+        );
+        assert_eq!(
+            applied_search_value_values(&shared, &registry),
+            vec!["dup=(\\d+)".to_owned(), "other=(\\d+)".to_owned()]
+        );
+        assert!(!shared.filters.filter_entries[0].enabled);
+        assert_eq!(shared.filters.filter_entries[0].colors, last_colors);
+        assert!(!shared.filters.filter_entries[1].enabled);
+        assert_eq!(shared.filters.filter_entries[1].colors, other_colors);
+        assert!(!shared.filters.search_value_entries[0].enabled);
+        assert_eq!(
+            shared.filters.search_value_entries[0].color,
+            last_value_color
+        );
+        assert!(!shared.filters.search_value_entries[1].enabled);
+        assert_eq!(
+            shared.filters.search_value_entries[1].color,
+            other_value_color
+        );
+        assert_eq!(registry.filters.filters_map().len(), 2);
+        assert_eq!(registry.filters.search_value_map().len(), 2);
+        assert!(drain_commands(&mut cmd_rx).is_empty());
     }
 
     #[test]

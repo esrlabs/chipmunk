@@ -1,7 +1,12 @@
 use std::rc::Rc;
 
+use egui::Color32;
+
 use crate::{
-    host::ui::{UiActions, registry::filters::FilterRegistry},
+    host::{
+        common::colors::ColorPair,
+        ui::{UiActions, registry::filters::FilterRegistry},
+    },
     session::{
         command::SessionCommand,
         types::{ObserveOperation, OperationPhase},
@@ -364,6 +369,23 @@ impl SessionShared {
         changed
     }
 
+    /// Applies full filter row state and tracks recent-session dirtiness.
+    pub fn set_filter_entry_state(
+        &mut self,
+        registry: &mut FilterRegistry,
+        filter_id: Uuid,
+        enabled: bool,
+        colors: ColorPair,
+    ) -> bool {
+        let changed = self
+            .filters
+            .set_filter_entry_state(registry, filter_id, enabled, colors);
+        if changed {
+            self.bump_recent_revision();
+        }
+        changed
+    }
+
     /// Removes a filter from this session and tracks recent-session dirtiness.
     pub fn unapply_filter(&mut self, registry: &mut FilterRegistry, filter_id: &Uuid) -> bool {
         let changed = self.filters.unapply_filter(registry, filter_id);
@@ -401,6 +423,23 @@ impl SessionShared {
         let changed = self
             .filters
             .apply_search_value_with_state(registry, value_id, enabled);
+        if changed {
+            self.bump_recent_revision();
+        }
+        changed
+    }
+
+    /// Applies full search-value row state and tracks recent-session dirtiness.
+    pub fn set_search_value_entry_state(
+        &mut self,
+        registry: &mut FilterRegistry,
+        value_id: Uuid,
+        enabled: bool,
+        color: Color32,
+    ) -> bool {
+        let changed = self
+            .filters
+            .set_search_value_entry_state(registry, value_id, enabled, color);
         if changed {
             self.bump_recent_revision();
         }
