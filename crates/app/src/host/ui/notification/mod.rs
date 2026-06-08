@@ -1,12 +1,13 @@
 //! Host notification UI, including the history popup and latest-message banner.
 
-use std::time::{Duration, Instant};
+mod banner;
 
 use egui::{
-    Align2, Area, Button, Color32, Frame, Id, Label, Layout, Margin, Modal, ModalResponse, NumExt,
-    Order, Popup, PopupAnchor, Rect, RectAlign, RichText, ScrollArea, Sense, Stroke, TextWrapMode,
+    Align, Button, Color32, Frame, Id, Label, Layout, Margin, Modal, ModalResponse, NumExt, Popup,
+    PopupAnchor, PopupCloseBehavior, Rect, RectAlign, RichText, ScrollArea, Sense, TextWrapMode,
     Ui, Vec2, pos2, vec2,
 };
+use stypes::Severity;
 
 use crate::{
     common::{
@@ -17,8 +18,7 @@ use crate::{
     session::error::SessionError,
 };
 
-/// The maximum amount of notifications to store.
-const NOTIFICATIONS_LIMIT: usize = 30;
+use self::banner::NotificationBanner;
 
 /// Stores host notifications and renders their button, popup, modal, and banner.
 #[derive(Debug)]
@@ -47,18 +47,11 @@ enum NotificationLevel {
     Error,
 }
 
-/// State for the currently visible temporal notification banner.
-#[derive(Debug, Clone)]
-struct NotificationBanner {
-    entry: NotificationEntry,
-    remaining: Duration,
-    created_at: Instant,
-    last_updated: Instant,
-}
-
 impl Default for NotificationUi {
     /// Creates empty notification UI state.
     fn default() -> Self {
+        const NOTIFICATIONS_LIMIT: usize = 30;
+
         Self {
             popup_id: egui::Id::new("notification_popup"),
             queue: FixedQueue::new(NOTIFICATIONS_LIMIT),
@@ -82,16 +75,8 @@ impl NotificationUi {
             self.unseen_top_level = Some(entry.level);
         }
 
-        // Banner time to live
-        const BANNER_TTL: Duration = Duration::from_secs(4);
-
-        let now = Instant::now();
-        self.active_banner = Some(NotificationBanner {
-            entry: entry.clone(),
-            remaining: BANNER_TTL,
-            created_at: now,
-            last_updated: now,
-        });
+        let active_banner = NotificationBanner::new(entry.clone());
+        self.active_banner = Some(active_banner);
         self.queue.add_item(entry);
     }
 
@@ -121,13 +106,15 @@ impl NotificationUi {
             }
             None => {
                 const POPUP_GAP: f32 = 3.0;
+                let anchor_pos = pos2(
+                    ui.content_rect().right() - POPUP_GAP,
+                    ui.max_rect().bottom() + POPUP_GAP,
+                );
+                let popup_anchor = PopupAnchor::Position(anchor_pos);
                 Popup::menu(&button_res)
                     .id(self.popup_id)
-                    .close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside)
-                    .anchor(PopupAnchor::Position(pos2(
-                        ui.content_rect().right() - POPUP_GAP,
-                        ui.max_rect().bottom() + POPUP_GAP,
-                    )))
+                    .close_behavior(PopupCloseBehavior::CloseOnClickOutside)
+                    .anchor(popup_anchor)
                     .align(RectAlign::BOTTOM_END)
                     .show(|ui| {
                         self.active_banner = None;
@@ -157,100 +144,13 @@ impl NotificationUi {
             return;
         };
 
-        const BANNER_MAX_WIDTH: f32 = 340.0;
-        const BANNER_MARGIN: f32 = 8.0;
-        const BANNER_GAP: f32 = 6.0;
-
-        let content_rect = ui.ctx().content_rect();
-        let available_width = content_rect.width() - BANNER_MARGIN * 2.0;
-        let banner_width = BANNER_MAX_WIDTH.min(available_width.at_least(20.0));
-        let pos = pos2(
-            button_rect
-                .right()
-                .min(content_rect.right() - BANNER_MARGIN),
-            button_rect.bottom() + BANNER_GAP,
-        );
-
-        let now = Instant::now();
-        const FADE_IN: Duration = Duration::from_millis(120);
-        const FADE_OUT: Duration = Duration::from_millis(400);
-        let age_alpha = (now
-            .saturating_duration_since(banner.created_at)
-            .as_secs_f32()
-            / FADE_IN.as_secs_f32())
-        .clamp(0.0, 1.0);
-        let remaining_alpha =
-            (banner.remaining.as_secs_f32() / FADE_OUT.as_secs_f32()).clamp(0.0, 1.0);
-        let opacity = age_alpha.min(remaining_alpha);
-        let apply_alpha = |color: Color32| {
-            let alpha = (color.a() as f32 * opacity).round() as u8;
-            Color32::from_rgba_unmultiplied(color.r(), color.g(), color.b(), alpha)
-        };
-
-        let entry = &banner.entry;
-        let banner_id = Id::new("notification_banner");
-        let response = Area::new(banner_id)
-            .order(Order::Foreground)
-            .pivot(Align2::RIGHT_TOP)
-            .fixed_pos(pos)
-            .show(ui.ctx(), |ui| {
-                ui.set_width(banner_width);
-
-                let level_color = apply_alpha(entry.level.color(ui.visuals().dark_mode));
-                let stroke = Stroke::new(1.0, level_color);
-                let margin = Margin::same(10);
-                let content_width = (banner_width - 20.0).at_least(0.0);
-                let text_color = apply_alpha(ui.visuals().text_color());
-                let mut frame = Frame::window(ui.style())
-                    .stroke(stroke)
-                    .inner_margin(margin);
-                frame.fill = apply_alpha(frame.fill);
-                frame.shadow.color = apply_alpha(frame.shadow.color);
-                frame
-                    .show(ui, |ui| {
-                        ui.set_min_width(content_width);
-                        ui.horizontal_centered(|ui| {
-                            let dot_size = Vec2::splat(8.0);
-                            let (respond, painter) = ui.allocate_painter(dot_size, Sense::empty());
-                            let dot_radius = respond.rect.width() / 2.0;
-                            painter.circle_filled(respond.rect.center(), dot_radius, level_color);
-
-                            let message =
-                                Label::new(RichText::new(&entry.message).color(text_color))
-                                    .wrap_mode(TextWrapMode::Wrap);
-                            ui.add(message);
-                        });
-                    })
-                    .response
-                    .interact(Sense::click())
-            })
-            .inner;
-
-        if response.clicked() {
+        let clicked = banner.render(button_rect, ui);
+        if clicked {
             // Dismiss the banner and mark notifications as seen on click.
             self.active_banner = None;
             self.unseen_top_level = None;
-            return;
-        }
-
-        let hovered = response.hovered()
-            || ui
-                .ctx()
-                .rect_contains_pointer(response.layer_id, response.interact_rect);
-        if hovered {
-            banner.last_updated = now;
-        } else {
-            let elapsed = now.saturating_duration_since(banner.last_updated);
-            banner.last_updated = now;
-            banner.remaining = banner.remaining.saturating_sub(elapsed);
-        }
-
-        if banner.remaining.is_zero() {
+        } else if banner.expired() {
             self.active_banner = None;
-        } else {
-            // Some platforms do not reliably wake the app for delayed repaints here.
-            // Keep the repaint loop alive only while a banner is visible.
-            ui.ctx().request_repaint();
         }
     }
 
@@ -274,7 +174,7 @@ impl NotificationUi {
                 ui.label(format!("Notifications ({})", self.queue.len()));
             }
 
-            ui.with_layout(Layout::right_to_left(egui::Align::TOP), |ui| {
+            ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
                 let close_res = ui.button(icons::regular::X).on_hover_text("Close");
 
                 if close_res.clicked() {
@@ -294,7 +194,7 @@ impl NotificationUi {
         });
 
         // Notifications
-        egui::ScrollArea::vertical()
+        ScrollArea::vertical()
             .min_scrolled_height(panel_height / 2.)
             .max_height(panel_height)
             .show(ui, |ui| {
@@ -374,8 +274,8 @@ impl From<&AppNotification> for NotificationLevel {
             Not::HostError(HostError::InitSessionError(..)) => Level::Error,
             Not::HostError(HostError::NativeError(err))
             | Not::SessionError(SessionError::NativeError(err)) => match err.severity {
-                stypes::Severity::WARNING => Level::Warning,
-                stypes::Severity::ERROR => Level::Error,
+                Severity::WARNING => Level::Warning,
+                Severity::ERROR => Level::Error,
             },
             Not::SessionError(..) => Level::Error,
             Not::Error(..) | Not::UiError(..) => Level::Error,
