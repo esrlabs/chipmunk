@@ -85,9 +85,9 @@ pub struct PresetsImported {
 /// Import source recognized by the preset parser.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ImportFormat {
-    /// Native v1 Chipmunk named preset document.
+    /// Version 1 Chipmunk named preset document.
     Version1,
-    /// Native v2 Chipmunk named preset document.
+    /// Version 2 Chipmunk named preset document.
     Version2,
     /// Legacy Chipmunk V3 TypeScript frontend export.
     Legacy,

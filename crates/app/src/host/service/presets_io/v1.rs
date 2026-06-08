@@ -1,4 +1,4 @@
-//! Native v1 preset import compatibility.
+//! Version 1 preset document import compatibility.
 //!
 //! Unlike v2, v1 stores only filter/search-value definitions. Row enabled
 //! state and colors are not present, so conversion immediately applies runtime
@@ -29,38 +29,33 @@ use crate::host::ui::registry::presets::Preset;
 
 use super::{validate_filter_entry, validate_name, validate_search_value_entry};
 
-/// Preset payload stored in native v1 preset documents.
+/// Preset payload stored in v1 preset documents.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-struct NativePresetV1 {
+struct DocumentPreset {
     name: String,
     filters: Vec<SearchFilter>,
     search_values: Vec<SearchFilter>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct NativeDocumentV1 {
+struct PresetDocument {
     kind: String,
     version: u8,
-    presets: Vec<NativePresetV1>,
+    presets: Vec<DocumentPreset>,
 }
 
-/// Parses a native v1 document object into runtime presets with default row state.
-pub fn parse_native_v1_document(
-    root: serde_json::Map<String, Value>,
-) -> Result<Vec<Preset>, String> {
-    let document: NativeDocumentV1 = serde_json::from_value(Value::Object(root))
-        .map_err(|err| format!("invalid native preset document: {err}"))?;
-    document
-        .presets
-        .iter()
-        .try_for_each(validate_native_preset_v1)?;
+/// Parses a v1 document object into runtime presets with default row state.
+pub fn parse_document(root: serde_json::Map<String, Value>) -> Result<Vec<Preset>, String> {
+    let document: PresetDocument = serde_json::from_value(Value::Object(root))
+        .map_err(|err| format!("invalid preset document: {err}"))?;
+    document.presets.iter().try_for_each(validate_preset)?;
     let presets = document.presets.into_iter().map(Preset::from).collect();
 
     Ok(presets)
 }
 
-fn validate_native_preset_v1(preset: &NativePresetV1) -> Result<(), String> {
-    let NativePresetV1 {
+fn validate_preset(preset: &DocumentPreset) -> Result<(), String> {
+    let DocumentPreset {
         name,
         filters,
         search_values,
@@ -79,8 +74,8 @@ fn validate_native_preset_v1(preset: &NativePresetV1) -> Result<(), String> {
     Ok(())
 }
 
-impl From<NativePresetV1> for Preset {
-    fn from(value: NativePresetV1) -> Self {
+impl From<DocumentPreset> for Preset {
+    fn from(value: DocumentPreset) -> Self {
         Preset::with_default_state(
             Uuid::new_v4(),
             value.name,

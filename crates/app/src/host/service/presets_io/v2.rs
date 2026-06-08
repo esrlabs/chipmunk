@@ -1,6 +1,6 @@
-//! Current native preset document serialization and import.
+//! Current preset document serialization and import.
 //!
-//! Version 2 native documents store named filter and search-value row snapshots,
+//! Version 2 documents store named filter and search-value row snapshots,
 //! including enabled state and colors.
 
 use egui::Color32;
@@ -21,83 +21,77 @@ use super::{
 
 type Rgba = [u8; 4];
 
-/// Preset payload stored in the current native preset document.
+/// Preset payload stored in the current preset document.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-struct NativePresetV2 {
+struct DocumentPreset {
     name: String,
-    filters: Vec<NativeFilterEntry>,
-    search_values: Vec<NativeSearchValueEntry>,
+    filters: Vec<DocumentFilterEntry>,
+    search_values: Vec<DocumentSearchValueEntry>,
 }
 
-/// Filter row payload stored in the current native preset document.
+/// Filter row payload stored in the current preset document.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-struct NativeFilterEntry {
+struct DocumentFilterEntry {
     filter: SearchFilter,
     enabled: bool,
-    colors: NativeColorPair,
+    colors: DocumentColorPair,
 }
 
-/// Chart/search-value row payload stored in the current native preset document.
+/// Chart/search-value row payload stored in the current preset document.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-struct NativeSearchValueEntry {
+struct DocumentSearchValueEntry {
     filter: SearchFilter,
     enabled: bool,
     color: Rgba,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-struct NativeColorPair {
+struct DocumentColorPair {
     fg: Rgba,
     bg: Rgba,
 }
 
 /// Versioned preset document stored on disk.
 #[derive(Debug, Serialize, Deserialize)]
-struct NativeDocumentV2 {
+struct PresetDocument {
     kind: String,
     version: u8,
-    presets: Vec<NativePresetV2>,
+    presets: Vec<DocumentPreset>,
 }
 
-/// Serializes runtime presets into the native v2 document format.
-pub fn serialize_native_v2_presets(presets: Vec<Preset>) -> Result<String, String> {
+/// Serializes runtime presets into the v2 document format.
+pub fn serialize_presets(presets: Vec<Preset>) -> Result<String, String> {
     // Runtime preset ids are intentionally ignored here because the file format
     // stores only named row snapshots.
-    let presets = presets.into_iter().map(NativePresetV2::from).collect();
+    let presets = presets.into_iter().map(DocumentPreset::from).collect();
 
-    serialize_native_v2_document(presets)
+    serialize_document(presets)
 }
 
-fn serialize_native_v2_document(presets: Vec<NativePresetV2>) -> Result<String, String> {
-    presets.iter().try_for_each(validate_native_preset_v2)?;
+fn serialize_document(presets: Vec<DocumentPreset>) -> Result<String, String> {
+    presets.iter().try_for_each(validate_preset)?;
 
-    let document = NativeDocumentV2 {
+    let document = PresetDocument {
         kind: DOCUMENT_KIND.to_owned(),
         version: DOCUMENT_VERSION,
         presets,
     };
 
-    serde_json::to_string_pretty(&document)
-        .map_err(|err| format!("invalid native preset document: {err}"))
+    serde_json::to_string_pretty(&document).map_err(|err| format!("invalid preset document: {err}"))
 }
 
-/// Parses a native v2 document object into runtime presets.
-pub fn parse_native_v2_document(
-    root: serde_json::Map<String, Value>,
-) -> Result<Vec<Preset>, String> {
-    let document: NativeDocumentV2 = serde_json::from_value(Value::Object(root))
-        .map_err(|err| format!("invalid native preset document: {err}"))?;
-    document
-        .presets
-        .iter()
-        .try_for_each(validate_native_preset_v2)?;
+/// Parses a v2 document object into runtime presets.
+pub fn parse_document(root: serde_json::Map<String, Value>) -> Result<Vec<Preset>, String> {
+    let document: PresetDocument = serde_json::from_value(Value::Object(root))
+        .map_err(|err| format!("invalid preset document: {err}"))?;
+    document.presets.iter().try_for_each(validate_preset)?;
     let presets = document.presets.into_iter().map(Preset::from).collect();
 
     Ok(presets)
 }
 
-fn validate_native_preset_v2(preset: &NativePresetV2) -> Result<(), String> {
-    let NativePresetV2 {
+fn validate_preset(preset: &DocumentPreset) -> Result<(), String> {
+    let DocumentPreset {
         name,
         filters,
         search_values,
@@ -106,7 +100,7 @@ fn validate_native_preset_v2(preset: &NativePresetV2) -> Result<(), String> {
     validate_name(name)?;
 
     for entry in filters {
-        let NativeFilterEntry {
+        let DocumentFilterEntry {
             filter,
             enabled: _,
             colors: _,
@@ -115,7 +109,7 @@ fn validate_native_preset_v2(preset: &NativePresetV2) -> Result<(), String> {
     }
 
     for entry in search_values {
-        let NativeSearchValueEntry {
+        let DocumentSearchValueEntry {
             filter,
             enabled: _,
             color: _,
@@ -126,35 +120,35 @@ fn validate_native_preset_v2(preset: &NativePresetV2) -> Result<(), String> {
     Ok(())
 }
 
-impl From<Preset> for NativePresetV2 {
+impl From<Preset> for DocumentPreset {
     fn from(value: Preset) -> Self {
         Self {
             name: value.name,
             filters: value
                 .filters
                 .into_iter()
-                .map(NativeFilterEntry::from)
+                .map(DocumentFilterEntry::from)
                 .collect(),
             search_values: value
                 .search_values
                 .into_iter()
-                .map(NativeSearchValueEntry::from)
+                .map(DocumentSearchValueEntry::from)
                 .collect(),
         }
     }
 }
 
-impl From<PresetFilterEntry> for NativeFilterEntry {
+impl From<PresetFilterEntry> for DocumentFilterEntry {
     fn from(value: PresetFilterEntry) -> Self {
         Self {
             filter: value.filter,
             enabled: value.enabled,
-            colors: NativeColorPair::from(value.colors),
+            colors: DocumentColorPair::from(value.colors),
         }
     }
 }
 
-impl From<PresetSearchValueEntry> for NativeSearchValueEntry {
+impl From<PresetSearchValueEntry> for DocumentSearchValueEntry {
     fn from(value: PresetSearchValueEntry) -> Self {
         Self {
             filter: value.filter,
@@ -164,7 +158,7 @@ impl From<PresetSearchValueEntry> for NativeSearchValueEntry {
     }
 }
 
-impl From<ColorPair> for NativeColorPair {
+impl From<ColorPair> for DocumentColorPair {
     fn from(value: ColorPair) -> Self {
         Self {
             fg: color_to_rgba(value.fg),
@@ -173,8 +167,8 @@ impl From<ColorPair> for NativeColorPair {
     }
 }
 
-impl From<NativePresetV2> for Preset {
-    fn from(value: NativePresetV2) -> Self {
+impl From<DocumentPreset> for Preset {
+    fn from(value: DocumentPreset) -> Self {
         Self {
             // Import always creates fresh runtime ids. Name collision handling is
             // deferred to the UI registry import path.
@@ -194,20 +188,20 @@ impl From<NativePresetV2> for Preset {
     }
 }
 
-impl From<NativeFilterEntry> for PresetFilterEntry {
-    fn from(value: NativeFilterEntry) -> Self {
+impl From<DocumentFilterEntry> for PresetFilterEntry {
+    fn from(value: DocumentFilterEntry) -> Self {
         Self::new(value.filter, value.enabled, ColorPair::from(value.colors))
     }
 }
 
-impl From<NativeSearchValueEntry> for PresetSearchValueEntry {
-    fn from(value: NativeSearchValueEntry) -> Self {
+impl From<DocumentSearchValueEntry> for PresetSearchValueEntry {
+    fn from(value: DocumentSearchValueEntry) -> Self {
         Self::new(value.filter, value.enabled, color_from_rgba(value.color))
     }
 }
 
-impl From<NativeColorPair> for ColorPair {
-    fn from(value: NativeColorPair) -> Self {
+impl From<DocumentColorPair> for ColorPair {
+    fn from(value: DocumentColorPair) -> Self {
         Self::new(color_from_rgba(value.fg), color_from_rgba(value.bg))
     }
 }
@@ -276,7 +270,7 @@ mod tests {
     }
 
     #[test]
-    fn native_v2_round_trip_preserves_state() {
+    fn v2_round_trip_preserves_state() {
         let source = vec![Preset {
             id: Uuid::new_v4(),
             name: "Errors".to_owned(),
@@ -314,7 +308,7 @@ mod tests {
     }
 
     #[test]
-    fn native_rejects_blank_name() {
+    fn rejects_blank_name() {
         import_named_presets(
             r#"{"kind":"chipmunk_named_presets","version":2,"presets":[{"name":"   ","filters":[],"search_values":[]}]}"#,
         )
@@ -322,7 +316,7 @@ mod tests {
     }
 
     #[test]
-    fn native_rejects_invalid_filter() {
+    fn rejects_invalid_filter() {
         import_named_presets(
             r#"{"kind":"chipmunk_named_presets","version":2,"presets":[{"name":"Broken","filters":[{"filter":{"value":"(","is_regex":true,"ignore_case":true,"is_word":false},"enabled":true,"colors":{"fg":[255,255,255,255],"bg":[0,0,0,255]}}],"search_values":[]}]}"#,
         )
@@ -330,7 +324,7 @@ mod tests {
     }
 
     #[test]
-    fn native_rejects_invalid_search_value() {
+    fn rejects_invalid_search_value() {
         import_named_presets(
             r#"{"kind":"chipmunk_named_presets","version":2,"presets":[{"name":"Broken","filters":[],"search_values":[{"filter":{"value":"cpu=(.+)","is_regex":true,"ignore_case":true,"is_word":false},"enabled":true,"color":[255,255,255,255]}]}]}"#,
         )
@@ -363,7 +357,7 @@ mod tests {
     }
 
     #[test]
-    fn import_native_document_preserves_duplicate_names() {
+    fn import_versioned_document_preserves_duplicate_names() {
         let json = r#"
         {
           "kind": "chipmunk_named_presets",
