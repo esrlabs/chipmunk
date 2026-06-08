@@ -71,6 +71,10 @@ jobs:
             libxcb-shape0-dev \
             libxcb-xfixes0-dev \
             libxcb-xkb-dev \
+            binutils \
+            desktop-file-utils \
+            dpkg-dev \
+            rpm \
             pkg-config
       - name: Install rust
         uses: dtolnay/rust-toolchain@stable
@@ -158,5 +162,7 @@ jobs:
           # public release assets.
           files: |
             ./target/dist/*.tgz
+            ./target/dist/*.deb
+            ./target/dist/*.rpm
             ./target/dist/*.msi
             ./target/dist/*.pkg
