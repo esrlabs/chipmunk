@@ -258,6 +258,54 @@ impl FiltersState {
         true
     }
 
+    /// Adds or updates a filter row with explicit enabled state and colors.
+    pub fn set_filter_entry_state(
+        &mut self,
+        registry: &mut FilterRegistry,
+        id: Uuid,
+        enabled: bool,
+        colors: ColorPair,
+    ) -> bool {
+        if let Some(item) = self.filter_entries.iter_mut().find(|item| item.id == id) {
+            let changed = item.enabled != enabled || item.colors != colors;
+            item.enabled = enabled;
+            item.colors = colors;
+            return changed;
+        }
+
+        self.filter_entries
+            .push(AppliedFilterState::new(id, enabled, colors));
+        registry.apply_filter_to_session(id, self.session_id);
+
+        true
+    }
+
+    /// Adds or updates a search-value row with explicit enabled state and color.
+    pub fn set_search_value_entry_state(
+        &mut self,
+        registry: &mut FilterRegistry,
+        id: Uuid,
+        enabled: bool,
+        color: Color32,
+    ) -> bool {
+        if let Some(item) = self
+            .search_value_entries
+            .iter_mut()
+            .find(|item| item.id == id)
+        {
+            let changed = item.enabled != enabled || item.color != color;
+            item.enabled = enabled;
+            item.color = color;
+            return changed;
+        }
+
+        self.search_value_entries
+            .push(AppliedSearchValueState::new(id, enabled, color));
+        registry.apply_search_value_to_session(id, self.session_id);
+
+        true
+    }
+
     /// Updates the enabled flag for an existing filter and reports
     /// whether it changed.
     pub fn set_filter_enabled(&mut self, id: &Uuid, enabled: bool) -> bool {
