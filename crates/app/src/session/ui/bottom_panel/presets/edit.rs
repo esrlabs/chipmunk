@@ -110,6 +110,38 @@ impl PresetsUI {
         true
     }
 
+    /// Toggles a filter row in the active edit draft.
+    pub fn toggle_filter_in_draft(&mut self, preset_id: Uuid, index: usize) -> bool {
+        let Some(edit_state) = self.edit_state.as_mut() else {
+            return false;
+        };
+        if edit_state.preset_id != preset_id {
+            return false;
+        }
+
+        let Some(entry) = edit_state.draft_filters.get_mut(index) else {
+            return false;
+        };
+        entry.enabled = !entry.enabled;
+        true
+    }
+
+    /// Toggles a chart/search-value row in the active edit draft.
+    pub fn toggle_search_value_in_draft(&mut self, preset_id: Uuid, index: usize) -> bool {
+        let Some(edit_state) = self.edit_state.as_mut() else {
+            return false;
+        };
+        if edit_state.preset_id != preset_id {
+            return false;
+        }
+
+        let Some(entry) = edit_state.draft_search_values.get_mut(index) else {
+            return false;
+        };
+        entry.enabled = !entry.enabled;
+        true
+    }
+
     /// Removes a filter row from the active edit draft.
     pub fn remove_filter_from_draft(&mut self, preset_id: Uuid, index: usize) -> bool {
         let Some(edit_state) = self.edit_state.as_mut() else {
@@ -305,6 +337,26 @@ mod tests {
     }
 
     #[test]
+    fn toggle_updates_draft_enabled_state() {
+        let (mut presets, _, _) = new_presets();
+        let mut registry = HostRegistry::default();
+        let preset_id = add_preset_with_default_state(
+            &mut registry,
+            "first",
+            vec![SearchFilter::plain("filter")],
+            vec![SearchFilter::plain("chart")],
+        );
+        presets.start_edit_from_preset(registry.presets.get(&preset_id).unwrap());
+
+        assert!(presets.toggle_filter_in_draft(preset_id, 0));
+        assert!(presets.toggle_search_value_in_draft(preset_id, 0));
+
+        let edit_state = presets.edit_state.as_ref().unwrap();
+        assert!(!edit_state.draft_filters[0].enabled);
+        assert!(!edit_state.draft_search_values[0].enabled);
+    }
+
+    #[test]
     fn save_commits_draft() {
         let (mut presets, _, _) = new_presets();
         let mut registry = HostRegistry::default();
@@ -328,6 +380,8 @@ mod tests {
                 .regex(true)
                 .ignore_case(true),
         ]);
+        edit_state.draft_filters[1].enabled = false;
+        edit_state.draft_search_values[0].enabled = false;
 
         presets.save_edit(&mut registry, first_id);
 
@@ -349,6 +403,9 @@ mod tests {
                 .collect::<Vec<_>>(),
             vec!["duration=(\\d+)".to_owned()]
         );
+        assert!(preset.filters[0].enabled);
+        assert!(!preset.filters[1].enabled);
+        assert!(!preset.search_values[0].enabled);
         assert!(presets.edit_state.is_none());
     }
 }

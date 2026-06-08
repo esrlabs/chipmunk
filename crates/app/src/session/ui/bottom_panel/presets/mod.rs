@@ -70,6 +70,10 @@ pub enum PresetAction {
     AddFilter(Uuid, SearchFilter),
     /// Add a chart/search-value to a preset edit draft.
     AddSearchValue(Uuid, SearchFilter),
+    /// Toggle a filter row in a preset edit draft.
+    ToggleFilterEnabled(Uuid, usize),
+    /// Toggle a chart/search-value row in a preset edit draft.
+    ToggleSearchValueEnabled(Uuid, usize),
     /// Remove a filter from a preset edit draft.
     RemoveFilter(Uuid, usize),
     /// Remove a chart/search-value from a preset edit draft.
@@ -267,6 +271,12 @@ impl PresetsUI {
             }
             PresetAction::AddSearchValue(id, filter) => {
                 self.add_search_value_to_draft(id, filter);
+            }
+            PresetAction::ToggleFilterEnabled(id, index) => {
+                self.toggle_filter_in_draft(id, index);
+            }
+            PresetAction::ToggleSearchValueEnabled(id, index) => {
+                self.toggle_search_value_in_draft(id, index);
             }
             PresetAction::RemoveFilter(id, index) => {
                 self.remove_filter_from_draft(id, index);
