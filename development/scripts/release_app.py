@@ -24,6 +24,12 @@ import subprocess
 import tarfile
 from pathlib import Path
 
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from development.packaging.linux import LinuxPackageConfig, package_linux_installers
+
 try:
     import tomllib
 except ModuleNotFoundError:
@@ -61,8 +67,9 @@ def main():
         artifacts = [package_portable(version), package_windows_msi(version)]
     else:
         artifacts = [package_portable(version)]
+        artifacts.extend(package_linux_installers(linux_package_config(version)))
 
-    artifacts.append(package_cli_portable(cli_version_value))
+    artifacts.append(package_cli_portable(cli_version_value, code_sign=args.code_sign))
 
     for artifact in artifacts:
         print("Chipmunk release artifact created: {}".format(artifact))
@@ -121,13 +128,17 @@ def package_portable(version):
     return archive
 
 
-def package_cli_portable(version):
+def package_cli_portable(version, code_sign=False):
     """Create the portable CLI archive using the legacy flat layout."""
     archive_root = "chipmunk-cli@{}-{}-portable".format(version, platform_name())
     staging_dir = app_release_path() / archive_root
 
     reset_staging_dir(staging_dir)
-    shutil.copy2(cli_binary_path(), staging_dir / cli_binary_name())
+    cli = staging_dir / cli_binary_name()
+    shutil.copy2(cli_binary_path(), cli)
+
+    if is_macos():
+        sign_and_notarize_macos_cli(cli, code_sign=code_sign)
 
     archive = app_release_path() / "{}.tgz".format(archive_root)
     write_flat_tgz_archive(staging_dir, archive)
@@ -334,25 +345,34 @@ def write_windows_license_rtf(path):
     """Copy the license text shown by the Windows installer UI."""
     shutil.copy2(windows_license_rtf_path(), path)
 
+
+def sign_macos_executable(path, error, entitlements=None):
+    """Sign a single macOS executable with the Developer ID Application identity."""
+    signing_id = require_env("SIGNING_ID")
+    cmd = [
+        "codesign",
+        "--force",
+        "--sign",
+        signing_id,
+        "--timestamp",
+        "--options",
+        "runtime",
+    ]
+    if entitlements is not None:
+        cmd.extend(["--entitlements", str(entitlements)])
+    cmd.append(str(path))
+    run(cmd, error=error)
+
+
 def sign_app(app_root):
     """Sign the app bundle with the Developer ID Application identity."""
     signing_id = require_env("SIGNING_ID")
     executable = app_root / "Contents" / "MacOS" / "chipmunk"
 
-    run(
-        [
-            "codesign",
-            "--force",
-            "--sign",
-            signing_id,
-            "--timestamp",
-            "--options",
-            "runtime",
-            "--entitlements",
-            str(entitlements_path()),
-            str(executable),
-        ],
+    sign_macos_executable(
+        executable,
         error="Signing chipmunk executable failed",
+        entitlements=entitlements_path(),
     )
     run(
         [
@@ -375,6 +395,34 @@ def sign_app(app_root):
         ["codesign", "--verify", "--verbose=4", str(app_root)],
         error="Verifying chipmunk app bundle signature failed",
     )
+
+
+def sign_and_notarize_macos_cli(executable, code_sign):
+    """Sign and notarize the staged macOS CLI binary before archiving it."""
+    if not code_sign:
+        return
+    if not signing_allowed():
+        print(
+            "Skipping macOS CLI code signing because required environment "
+            "variables are missing or SKIP_NOTARIZE is set.",
+            file=sys.stderr,
+        )
+        return
+
+    sign_macos_executable(executable, error="Signing chipmunk CLI failed")
+    run(
+        ["codesign", "--verify", "--verbose=4", str(executable)],
+        error="Verifying chipmunk CLI signature failed",
+    )
+
+    notarization_dir = app_release_path() / "cli-notarization"
+    notarization_archive = notarization_dir / "chipmunk-cli-notarization.zip"
+    notarization_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        zip_macos_path(executable, notarization_archive)
+        notarize_archive(notarization_archive)
+    finally:
+        shutil.rmtree(notarization_dir, ignore_errors=True)
 
 
 def notarize_archive(archive):
@@ -410,8 +458,13 @@ def notarize_archive(archive):
 
 def zip_macos_bundle(app_root, archive):
     """Create the zip format Apple expects for app bundle notarization."""
+    zip_macos_path(app_root, archive)
+
+
+def zip_macos_path(source_path, archive):
+    """Create the zip format Apple expects for notarization uploads."""
     run(
-        ["ditto", "-c", "-k", "--keepParent", str(app_root), str(archive)],
+        ["ditto", "-c", "-k", "--keepParent", str(source_path), str(archive)],
         error="Creating macOS chipmunk zip archive failed",
     )
 
@@ -618,7 +671,7 @@ def sign_windows_file(path):
 
 
 def repo_root():
-    return Path(__file__).resolve().parents[2]
+    return REPO_ROOT
 
 
 def app_root():
@@ -693,6 +746,18 @@ def entitlements_path():
 
 def macos_pkg_postinstall_path():
     return app_root() / "data" / "mac" / "pkg-scripts" / "postinstall"
+
+
+def linux_package_config(version):
+    return LinuxPackageConfig(
+        version=version,
+        dist_dir=app_release_path(),
+        app_binary=app_binary_path(),
+        desktop_file=app_root() / "data" / "linux" / "chipmunk.desktop",
+        icon_dir=app_root() / "data" / "icons" / "png",
+        readme=repo_readme_path(),
+        license_file=repo_root() / "LICENSE.txt",
+    )
 
 
 def platform_name():

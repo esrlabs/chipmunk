@@ -1,0 +1,15 @@
+Package: chipmunk
+Version: {version}
+Section: devel
+Priority: optional
+Architecture: {architecture}
+Maintainer: Alexandru Frincu <alexandru.frincu@accenture.com>
+{depends_field}Installed-Size: {installed_size}
+Homepage: https://github.com/esrlabs/chipmunk
+Description: Fast Logfile Viewer for Analyzing Large Logfiles
+ Chipmunk is a fast logfile viewer designed for analyzing large logfiles.
+ It features super-fast search capabilities and is an invaluable tool for
+ developers who need to analyze log data.
+ .
+ This package provides a user-friendly interface for searching and analyzing
+ logfiles of any size.
