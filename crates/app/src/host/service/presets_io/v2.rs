@@ -301,12 +301,12 @@ mod tests {
         assert!(json.contains("\"version\": 2"));
         assert_eq!(parsed.format, ImportFormat::Version2);
         assert_eq!(preset_snapshot(&parsed.presets), preset_snapshot(&source));
-        assert_eq!(parsed.presets[0].filters[0].enabled, false);
+        assert!(!parsed.presets[0].filters[0].enabled);
         assert_eq!(
             parsed.presets[0].filters[0].colors,
             source[0].filters[0].colors
         );
-        assert_eq!(parsed.presets[0].search_values[0].enabled, false);
+        assert!(!parsed.presets[0].search_values[0].enabled);
         assert_eq!(
             parsed.presets[0].search_values[0].color,
             source[0].search_values[0].color
