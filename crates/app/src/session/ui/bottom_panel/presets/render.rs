@@ -1,8 +1,8 @@
 //! Preset card rendering for browse and edit modes.
 
 use egui::{
-    Align, Frame, Key, Layout, Margin, Response, RichText, ScrollArea, Sense, Sides, StrokeKind,
-    TextEdit, Ui, UiBuilder, vec2,
+    Align, Color32, Frame, Key, Layout, Margin, Response, RichText, ScrollArea, Sense, Sides,
+    StrokeKind, TextEdit, Ui, UiBuilder, vec2,
 };
 use uuid::Uuid;
 
@@ -36,6 +36,8 @@ mod card_metrics {
 #[derive(Debug, Clone, Copy)]
 struct PresetItemRow<'a> {
     label: &'a str,
+    enabled: bool,
+    color: Color32,
     index: usize,
     len: usize,
 }
@@ -89,10 +91,25 @@ impl PresetsUI {
                 ui.set_height(card_metrics::PRESET_CARD_CONTENT_HEIGHT);
                 if is_editing {
                     self.render_edit_header(preset.id, ui, pending_action);
+                    if let Some(edit_state) = self
+                        .edit_state
+                        .as_ref()
+                        .filter(|state| state.preset_id == preset.id)
+                    {
+                        let summary = entries_summary(
+                            &edit_state.draft_filters,
+                            &edit_state.draft_search_values,
+                        );
+                        ui.label(RichText::new(summary).weak().size(11.0));
+                    }
                 } else if self.is_exporting() {
                     self.render_export_header(preset, ui, pending_action);
+                    let summary = entries_summary(&preset.filters, &preset.search_values);
+                    ui.label(RichText::new(summary).weak().size(11.0));
                 } else {
                     self.render_browse_header(preset, ui, pending_action);
+                    let summary = entries_summary(&preset.filters, &preset.search_values);
+                    ui.label(RichText::new(summary).weak().size(11.0));
                 }
 
                 ui.add_space(card_metrics::PRESET_CARD_HEADER_GAP);
@@ -210,7 +227,7 @@ impl PresetsUI {
         }
 
         for item in items {
-            self.render_filter_row(ui, &item.filter);
+            self.render_filter_row(ui, item);
         }
     }
 
@@ -225,34 +242,53 @@ impl PresetsUI {
         }
 
         for item in items {
-            self.render_search_value_row(ui, &item.filter);
+            self.render_search_value_row(ui, item);
         }
     }
 
     /// Renders a browse row for a filter, including its matching flags.
-    fn render_filter_row(&self, ui: &mut Ui, filter: &SearchFilter) {
+    fn render_filter_row(&self, ui: &mut Ui, item: &PresetFilterEntry) {
         Self::item_frame(ui).show(ui, |ui| {
             Sides::new().shrink_left().truncate().show(
                 ui,
                 |ui| {
-                    ui.label(filter.value.as_str());
+                    Self::render_readonly_checkbox(ui, item.enabled);
+                    Self::render_color_swatch(ui, item.colors.bg);
+                    Self::render_item_label(ui, item.filter.value.as_str(), item.enabled);
                 },
                 |ui| {
-                    self.render_filter_flag(ui, icons::regular::ASTERISK, filter.is_regex());
-                    self.render_filter_flag(ui, icons::regular::TEXT_T, filter.is_word());
-                    self.render_filter_flag(ui, icons::regular::TEXT_AA, !filter.is_ignore_case());
+                    self.render_filter_flag(
+                        ui,
+                        icons::regular::ASTERISK,
+                        item.filter.is_regex(),
+                        item.enabled,
+                    );
+                    self.render_filter_flag(
+                        ui,
+                        icons::regular::TEXT_T,
+                        item.filter.is_word(),
+                        item.enabled,
+                    );
+                    self.render_filter_flag(
+                        ui,
+                        icons::regular::TEXT_AA,
+                        !item.filter.is_ignore_case(),
+                        item.enabled,
+                    );
                 },
             );
         });
     }
 
     /// Renders a browse row for a chart/search-value entry.
-    fn render_search_value_row(&self, ui: &mut Ui, filter: &SearchFilter) {
+    fn render_search_value_row(&self, ui: &mut Ui, item: &PresetSearchValueEntry) {
         Self::item_frame(ui).show(ui, |ui| {
             Sides::new().shrink_left().truncate().show(
                 ui,
                 |ui| {
-                    ui.label(filter.value.as_str());
+                    Self::render_readonly_checkbox(ui, item.enabled);
+                    Self::render_color_swatch(ui, item.color);
+                    Self::render_item_label(ui, item.filter.value.as_str(), item.enabled);
                 },
                 |_ui| {},
             );
@@ -267,13 +303,61 @@ impl PresetsUI {
     }
 
     /// Renders a filter flag icon with active or weak emphasis.
-    fn render_filter_flag(&self, ui: &mut Ui, icon: &str, active: bool) {
-        let color = if active {
+    fn render_filter_flag(&self, ui: &mut Ui, icon: &str, active: bool, enabled: bool) {
+        let color = if active && enabled {
             ui.visuals().text_color()
         } else {
             ui.visuals().weak_text_color()
         };
         ui.label(RichText::new(icon).size(12.0).color(color));
+    }
+
+    /// Renders the saved enabled state without allowing browse-mode changes.
+    fn render_readonly_checkbox(ui: &mut Ui, enabled: bool) {
+        let mut value = enabled;
+        let response = ui
+            .add_enabled_ui(false, |ui| ui.checkbox(&mut value, ""))
+            .inner;
+        response.on_disabled_hover_ui(|ui| {
+            ui.set_max_width(ui.spacing().tooltip_width);
+            if enabled {
+                ui.label("Saved as enabled");
+            } else {
+                ui.label("Saved as disabled");
+            }
+        });
+    }
+
+    /// Renders an editable enabled-state checkbox and returns whether it changed.
+    fn render_enabled_checkbox(ui: &mut Ui, enabled: bool) -> bool {
+        let mut value = enabled;
+        ui.checkbox(&mut value, "")
+            .on_hover_ui(|ui| {
+                ui.set_max_width(ui.spacing().tooltip_width);
+                if enabled {
+                    ui.label("Save this row as disabled");
+                } else {
+                    ui.label("Save this row as enabled");
+                }
+            })
+            .changed()
+    }
+
+    /// Renders a row label with disabled rows visually muted.
+    fn render_item_label(ui: &mut Ui, label: &str, enabled: bool) {
+        if enabled {
+            ui.label(label);
+        } else {
+            ui.label(RichText::new(label).weak());
+        }
+    }
+
+    /// Renders the compact row color swatch.
+    fn render_color_swatch(ui: &mut Ui, color: Color32) {
+        const ITEM_SWATCH_SIZE: egui::Vec2 = vec2(10.0, 20.0);
+
+        let (response, painter) = ui.allocate_painter(ITEM_SWATCH_SIZE, Sense::hover());
+        painter.rect_filled(response.rect, 2.0, color);
     }
 
     /// Renders the editable filter and chart lists for the active draft.
@@ -455,10 +539,13 @@ impl PresetsUI {
             self.render_edit_item_row(
                 PresetItemRow {
                     label: entry.filter.value.as_str(),
+                    enabled: entry.enabled,
+                    color: entry.colors.bg,
                     index,
                     len: draft_filters.len(),
                 },
                 ui,
+                |row| PresetAction::ToggleFilterEnabled(preset_id, row),
                 |from, to| PresetAction::MoveFilter(preset_id, from, to),
                 |row| PresetAction::RemoveFilter(preset_id, row),
                 pending_action,
@@ -530,10 +617,13 @@ impl PresetsUI {
             self.render_edit_item_row(
                 PresetItemRow {
                     label: entry.filter.value.as_str(),
+                    enabled: entry.enabled,
+                    color: entry.color,
                     index,
                     len: draft_search_values.len(),
                 },
                 ui,
+                |row| PresetAction::ToggleSearchValueEnabled(preset_id, row),
                 |from, to| PresetAction::MoveSearchValue(preset_id, from, to),
                 |row| PresetAction::RemoveSearchValue(preset_id, row),
                 pending_action,
@@ -542,23 +632,32 @@ impl PresetsUI {
     }
 
     /// Renders one editable preset row and emits deferred mutations for its controls.
-    fn render_edit_item_row<FMove, FRemove>(
+    fn render_edit_item_row<FToggle, FMove, FRemove>(
         &self,
         row: PresetItemRow<'_>,
         ui: &mut Ui,
+        toggle_action: FToggle,
         move_action: FMove,
         remove_action: FRemove,
         pending_action: &mut Option<PresetAction>,
     ) where
+        FToggle: Fn(usize) -> PresetAction,
         FMove: Fn(usize, usize) -> PresetAction,
         FRemove: Fn(usize) -> PresetAction,
     {
-        Sides::new().shrink_left().truncate().show(
+        let (toggle, controls) = Sides::new().shrink_left().truncate().show(
             ui,
             |ui| {
-                ui.label(row.label);
+                let mut action = None;
+                if Self::render_enabled_checkbox(ui, row.enabled) {
+                    action = Some(toggle_action(row.index));
+                }
+                Self::render_color_swatch(ui, row.color);
+                Self::render_item_label(ui, row.label, row.enabled);
+                action
             },
             |ui| {
+                let mut action = None;
                 // Mutations are deferred until after rendering so the
                 // immediate-mode traversal does not edit the active list in place.
                 if ui
@@ -569,7 +668,7 @@ impl PresetsUI {
                     .on_hover_text("Remove from preset")
                     .clicked()
                 {
-                    *pending_action = Some(remove_action(row.index));
+                    action = Some(remove_action(row.index));
                 }
 
                 let can_move_down = row.index + 1 < row.len;
@@ -584,7 +683,7 @@ impl PresetsUI {
                     .on_hover_text("Move down")
                     .clicked()
                 {
-                    *pending_action = Some(move_action(row.index, row.index + 1));
+                    action = Some(move_action(row.index, row.index + 1));
                 }
 
                 let can_move_up = row.index > 0;
@@ -599,10 +698,15 @@ impl PresetsUI {
                     .on_hover_text("Move up")
                     .clicked()
                 {
-                    *pending_action = Some(move_action(row.index, row.index - 1));
+                    action = Some(move_action(row.index, row.index - 1));
                 }
+                action
             },
         );
+
+        if let Some(action) = toggle.or(controls) {
+            *pending_action = Some(action);
+        }
     }
 }
 
@@ -627,6 +731,28 @@ impl PresetBrowseSection {
 /// Formats a section header with its current item count.
 fn section_title(title: &str, count: usize) -> String {
     format!("{title} ({count})")
+}
+
+/// Formats the compact card summary for filters, charts, and disabled rows.
+fn entries_summary(
+    filters: &[PresetFilterEntry],
+    search_values: &[PresetSearchValueEntry],
+) -> String {
+    let disabled_count = filters.iter().filter(|entry| !entry.enabled).count()
+        + search_values.iter().filter(|entry| !entry.enabled).count();
+
+    let filters_count = filters.len();
+    let filters_label = if filters_count == 1 {
+        "filter"
+    } else {
+        "filters"
+    };
+    let charts_count = search_values.len();
+    let charts_label = if charts_count == 1 { "chart" } else { "charts" };
+
+    format!(
+        "{filters_count} {filters_label} · {charts_count} {charts_label} · {disabled_count} disabled"
+    )
 }
 
 fn render_filter_picker_button(ui: &mut Ui, filter: &SearchFilter) -> Response {
