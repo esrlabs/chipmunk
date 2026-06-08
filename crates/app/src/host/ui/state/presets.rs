@@ -1,6 +1,7 @@
 //! Host UI handlers for preset import and export messages.
 
 use std::{
+    borrow::Cow,
     fmt::Write,
     path::{Path, PathBuf},
 };
@@ -50,23 +51,13 @@ fn format_preset_import_report(
     format: ImportFormat,
     renamed_count: usize,
 ) -> String {
-    let source = match format {
-        ImportFormat::Version1 | ImportFormat::Version2 => "preset file",
-        ImportFormat::Legacy => "legacy preset file",
-    };
-
+    let file_label = file_label(path);
     let mut message = if imported_count == 0 {
-        format!(
-            "No presets were imported from {} '{}'.",
-            source,
-            path.display()
-        )
+        format!("No presets were imported from '{file_label}'.")
     } else {
         format!(
-            "Imported {imported_count} {} from {} '{}'.",
-            pluralize(imported_count, "preset", "presets"),
-            source,
-            path.display()
+            "Imported {imported_count} {} from '{file_label}'.",
+            pluralize(imported_count, "preset", "presets")
         )
     };
 
@@ -74,7 +65,7 @@ fn format_preset_import_report(
         // writing to String should never fail
         let _ = write!(
             message,
-            " Renamed {renamed_count} {} to avoid name collisions.",
+            "\nRenamed {renamed_count} {} to avoid duplicate names.",
             pluralize(renamed_count, "preset", "presets")
         );
     }
@@ -82,7 +73,8 @@ fn format_preset_import_report(
     match format {
         ImportFormat::Version1 => {
             message.push_str(
-                " V1 preset files do not store row colors or enabled state, so defaults were applied. Re-export these presets to preserve that state in future imports.",
+                "\nThis older preset file does not include all current preset settings. \
+                    Export these presets again to preserve the complete settings for future imports.",
             );
         }
         ImportFormat::Version2 | ImportFormat::Legacy => {}
@@ -92,11 +84,17 @@ fn format_preset_import_report(
 }
 
 fn format_preset_export_report(path: &Path, count: usize) -> String {
+    let file_label = file_label(path);
     format!(
-        "Exported {count} {} to '{}'.",
-        pluralize(count, "preset", "presets"),
-        path.display()
+        "Exported {count} {} to '{file_label}'.",
+        pluralize(count, "preset", "presets")
     )
+}
+
+fn file_label(path: &Path) -> Cow<'_, str> {
+    path.file_name()
+        .map(|file_name| file_name.to_string_lossy())
+        .unwrap_or_else(|| Cow::Owned(path.display().to_string()))
 }
 
 fn pluralize<'a>(count: usize, singular: &'a str, plural: &'a str) -> &'a str {
