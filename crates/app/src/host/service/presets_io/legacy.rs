@@ -257,7 +257,7 @@ fn parse_legacy_collection(content: &str) -> Result<LegacyCollectionOutcome, Jso
     Ok(outcome)
 }
 
-/// Converts one stringified legacy filter entry into a native filter row snapshot.
+/// Converts one stringified legacy filter entry into a preset filter row snapshot.
 fn parse_legacy_filter(payload: &str, index: usize) -> Result<PresetFilterEntry, JsonError> {
     let value: Value = serde_json::from_str(payload)?;
     let filter = value
@@ -292,7 +292,7 @@ fn parse_legacy_filter(payload: &str, index: usize) -> Result<PresetFilterEntry,
     Ok(entry)
 }
 
-/// Converts one stringified legacy chart entry into a native search-value row snapshot.
+/// Converts one stringified legacy chart entry into a preset search-value row snapshot.
 fn parse_legacy_chart(payload: &str, index: usize) -> Result<PresetSearchValueEntry, JsonError> {
     let value: Value = serde_json::from_str(payload)?;
     let text = value
@@ -300,7 +300,7 @@ fn parse_legacy_chart(payload: &str, index: usize) -> Result<PresetSearchValueEn
         .and_then(Value::as_str)
         .ok_or_else(|| JsonError::io(IoError::other("missing chart filter")))?;
     // Legacy chart entries are really regex-backed search values, not literal
-    // filters, so they map to the search-value side of the native model.
+    // filters, so they map to the search-value side of the preset model.
     let filter = SearchFilter::plain(text).regex(true).ignore_case(true);
     if !validate_search_value_filter(&filter).is_eligible() {
         return Err(JsonError::io(IoError::other("invalid legacy chart")));
@@ -369,7 +369,7 @@ fn parse_legacy_filter_colors(value: &Value, index: usize) -> ColorPair {
     ColorPair::new(fg, bg)
 }
 
-/// Reads a legacy chart color, defaulting to the native search-value palette.
+/// Reads a legacy chart color, defaulting to the search-value palette.
 fn parse_legacy_chart_color(value: &Value, index: usize) -> Color32 {
     let default = colors::search_value_color(index);
     let Some(color) = value.get("color") else {
@@ -387,7 +387,7 @@ fn parse_legacy_chart_color(value: &Value, index: usize) -> Color32 {
     })
 }
 
-/// Returns the native default filter color pair for a legacy row index.
+/// Returns the default filter color pair for a legacy row index.
 fn default_filter_colors(index: usize) -> ColorPair {
     colors::FILTER_HIGHLIGHT_COLORS[index % colors::FILTER_HIGHLIGHT_COLORS.len()].clone()
 }

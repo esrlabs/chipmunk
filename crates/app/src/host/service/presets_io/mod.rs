@@ -1,6 +1,6 @@
 //! Service-side import and export for named preset documents.
 //!
-//! This module owns the native on-disk JSON schema, parses the legacy export
+//! This module owns the versioned on-disk JSON schema, parses the legacy export
 //! shape for backward compatibility, and validates imported filters before the
 //! UI applies them into the runtime preset registry.
 
@@ -72,13 +72,13 @@ pub enum LegacyEntryKind {
     Unsupported(String),
 }
 
-/// Validate then serializes a preset snapshot into the native named-presets
+/// Validate then serializes a preset snapshot into the versioned named-presets
 /// JSON document.
 pub fn serialize_named_presets(presets: Vec<Preset>) -> Result<String, String> {
-    v2::serialize_native_v2_presets(presets)
+    v2::serialize_presets(presets)
 }
 
-/// Parses a native preset document or a supported legacy export.
+/// Parses a versioned preset document or a supported legacy export.
 ///
 /// Returned presets already have fresh runtime ids assigned so the UI can hand
 /// them to the registry import path directly.
@@ -86,7 +86,7 @@ pub fn import_named_presets(text: &str) -> Result<ImportReport, String> {
     let value = parse_root_value(text)?;
     let (format, presets, warnings) = match value {
         Value::Object(root) => {
-            let (format, presets) = parse_native_document_from_value(root)?;
+            let (format, presets) = parse_versioned_document(root)?;
             (format, presets, Vec::new())
         }
         Value::Array(items) => {
@@ -108,18 +108,18 @@ pub fn import_named_presets(text: &str) -> Result<ImportReport, String> {
 fn parse_root_value(text: &str) -> Result<Value, String> {
     let trimmed = text.trim_start();
     serde_json::from_str(text).map_err(|err| {
-        // The legacy export uses a top-level array while the native format uses
+        // The legacy export uses a top-level array while the versioned format uses
         // an object, so the first non-whitespace token is enough to classify
         // syntax failures for the user-facing error.
         if trimmed.starts_with('[') {
             format!("invalid legacy preset export: {err}")
         } else {
-            format!("invalid native preset document: {err}")
+            format!("invalid preset document: {err}")
         }
     })
 }
 
-fn parse_native_document_from_value(
+fn parse_versioned_document(
     root: serde_json::Map<String, Value>,
 ) -> Result<(ImportFormat, Vec<Preset>), String> {
     let kind = root
@@ -138,18 +138,18 @@ fn parse_native_document_from_value(
 
     match version {
         1 => {
-            let presets = v1::parse_native_v1_document(root)?;
+            let presets = v1::parse_document(root)?;
             Ok((ImportFormat::Version1, presets))
         }
         DOCUMENT_VERSION => {
-            let presets = v2::parse_native_v2_document(root)?;
+            let presets = v2::parse_document(root)?;
             Ok((ImportFormat::Version2, presets))
         }
         _ => Err(format!("unsupported preset document version: {version}")),
     }
 }
 
-/// Validates that a preset name is usable in native imports and exports.
+/// Validates that a preset name is usable in versioned imports and exports.
 pub fn validate_name(name: &str) -> Result<(), String> {
     if name.trim().is_empty() {
         return Err("preset name cannot be blank".to_owned());
@@ -218,18 +218,18 @@ mod tests {
     use super::*;
 
     #[test]
-    fn native_rejects_kind() {
+    fn rejects_unsupported_document_kind() {
         import_named_presets(r#"{"kind":"wrong","version":2,"presets":[]}"#).unwrap_err();
     }
 
     #[test]
-    fn native_rejects_version() {
+    fn rejects_unsupported_document_version() {
         import_named_presets(r#"{"kind":"chipmunk_named_presets","version":3,"presets":[]}"#)
             .unwrap_err();
     }
 
     #[test]
-    fn import_rejects_object_without_native_kind() {
+    fn import_rejects_object_without_document_kind() {
         import_named_presets(r#"{"presets":[]}"#).unwrap_err();
     }
 }
