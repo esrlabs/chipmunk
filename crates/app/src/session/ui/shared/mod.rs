@@ -308,6 +308,28 @@ impl SessionShared {
         self.recent_revision
     }
 
+    /// Updates one applied filter color pair and tracks recent-session dirtiness.
+    ///
+    /// Returns `true` only when the stored color pair changed.
+    pub fn set_filter_colors(&mut self, filter_id: &Uuid, colors: ColorPair) -> bool {
+        let changed = self.filters.set_filter_colors(filter_id, colors);
+        if changed {
+            self.bump_recent_revision();
+        }
+        changed
+    }
+
+    /// Updates one applied search-value color and tracks recent-session dirtiness.
+    ///
+    /// Returns `true` only when the stored color changed.
+    pub fn set_search_value_color(&mut self, value_id: &Uuid, color: Color32) -> bool {
+        let changed = self.filters.set_search_value_color(value_id, color);
+        if changed {
+            self.bump_recent_revision();
+        }
+        changed
+    }
+
     /// Updates one applied filter enabled flag and tracks recent-session dirtiness.
     pub fn set_filter_enabled(&mut self, filter_id: &Uuid, enabled: bool) -> bool {
         let changed = self.filters.set_filter_enabled(filter_id, enabled);
@@ -353,33 +375,21 @@ impl SessionShared {
         changed
     }
 
-    /// Applies a filter with an explicit enabled state and tracks recent-session dirtiness.
+    /// Applies a filter with explicit state and tracks recent-session dirtiness.
+    ///
+    /// `Some(colors)` applies explicit colors. `None` assigns default colors for
+    /// new rows and preserves existing row colors. Returns `true` when the row
+    /// was added or its stored state changed.
     pub fn apply_filter_with_state(
         &mut self,
         registry: &mut FilterRegistry,
         filter_id: Uuid,
         enabled: bool,
+        colors: Option<ColorPair>,
     ) -> bool {
         let changed = self
             .filters
-            .apply_filter_with_state(registry, filter_id, enabled);
-        if changed {
-            self.bump_recent_revision();
-        }
-        changed
-    }
-
-    /// Applies full filter row state and tracks recent-session dirtiness.
-    pub fn set_filter_entry_state(
-        &mut self,
-        registry: &mut FilterRegistry,
-        filter_id: Uuid,
-        enabled: bool,
-        colors: ColorPair,
-    ) -> bool {
-        let changed = self
-            .filters
-            .set_filter_entry_state(registry, filter_id, enabled, colors);
+            .apply_filter_with_state(registry, filter_id, enabled, colors);
         if changed {
             self.bump_recent_revision();
         }
@@ -413,33 +423,21 @@ impl SessionShared {
         changed
     }
 
-    /// Applies a search value with an explicit enabled state and tracks recent-session dirtiness.
+    /// Applies a search value with explicit state and tracks recent-session dirtiness.
+    ///
+    /// `Some(color)` applies an explicit color. `None` assigns a default color
+    /// for new rows and preserves existing row colors. Returns `true` when the
+    /// row was added or its stored state changed.
     pub fn apply_search_value_with_state(
         &mut self,
         registry: &mut FilterRegistry,
         value_id: Uuid,
         enabled: bool,
+        color: Option<Color32>,
     ) -> bool {
         let changed = self
             .filters
-            .apply_search_value_with_state(registry, value_id, enabled);
-        if changed {
-            self.bump_recent_revision();
-        }
-        changed
-    }
-
-    /// Applies full search-value row state and tracks recent-session dirtiness.
-    pub fn set_search_value_entry_state(
-        &mut self,
-        registry: &mut FilterRegistry,
-        value_id: Uuid,
-        enabled: bool,
-        color: Color32,
-    ) -> bool {
-        let changed = self
-            .filters
-            .set_search_value_entry_state(registry, value_id, enabled, color);
+            .apply_search_value_with_state(registry, value_id, enabled, color);
         if changed {
             self.bump_recent_revision();
         }
@@ -565,6 +563,35 @@ mod tests {
         let value_id = value_def.id;
         registry.add_search_value(value_def);
         shared.filters.apply_search_value(registry, value_id);
+    }
+
+    #[test]
+    fn color_setters_bump_recent_revision_only_on_change() {
+        let mut shared = new_shared();
+        let mut registry = FilterRegistry::default();
+        let filter_id =
+            add_filter_def(&mut shared, &mut registry, SearchFilter::plain("status=ok"));
+        let value_def = SearchValueDefinition::new(
+            SearchFilter::plain("cpu=(\\d+)")
+                .regex(true)
+                .ignore_case(true),
+        );
+        let value_id = value_def.id;
+        registry.add_search_value(value_def);
+        shared.filters.apply_search_value(&mut registry, value_id);
+        let baseline = shared.recent_revision();
+
+        let colors = ColorPair::new(Color32::from_rgb(1, 2, 3), Color32::from_rgb(4, 5, 6));
+        assert!(shared.set_filter_colors(&filter_id, colors.clone()));
+        assert_eq!(shared.recent_revision(), baseline + 1);
+        assert!(!shared.set_filter_colors(&filter_id, colors));
+        assert_eq!(shared.recent_revision(), baseline + 1);
+
+        let color = Color32::from_rgb(7, 8, 9);
+        assert!(shared.set_search_value_color(&value_id, color));
+        assert_eq!(shared.recent_revision(), baseline + 2);
+        assert!(!shared.set_search_value_color(&value_id, color));
+        assert_eq!(shared.recent_revision(), baseline + 2);
     }
 
     #[test]

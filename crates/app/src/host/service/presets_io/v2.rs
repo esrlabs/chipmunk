@@ -3,14 +3,13 @@
 //! Version 2 documents store named filter and search-value row snapshots,
 //! including enabled state and colors.
 
-use egui::Color32;
 use processor::search::filter::SearchFilter;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use uuid::Uuid;
 
 use crate::host::{
-    common::colors::ColorPair,
+    common::colors::{ColorPair, StoredColorPair, StoredRgba, color_from_rgba, color_to_rgba},
     ui::registry::presets::{Preset, PresetFilterEntry, PresetSearchValueEntry},
 };
 
@@ -18,8 +17,6 @@ use super::{
     DOCUMENT_KIND, DOCUMENT_VERSION, validate_filter_entry, validate_name,
     validate_search_value_entry,
 };
-
-type Rgba = [u8; 4];
 
 /// Preset payload stored in the current preset document.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -34,7 +31,7 @@ struct DocumentPreset {
 struct DocumentFilterEntry {
     filter: SearchFilter,
     enabled: bool,
-    colors: DocumentColorPair,
+    colors: StoredColorPair,
 }
 
 /// Chart/search-value row payload stored in the current preset document.
@@ -42,13 +39,7 @@ struct DocumentFilterEntry {
 struct DocumentSearchValueEntry {
     filter: SearchFilter,
     enabled: bool,
-    color: Rgba,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-struct DocumentColorPair {
-    fg: Rgba,
-    bg: Rgba,
+    color: StoredRgba,
 }
 
 /// Versioned preset document stored on disk.
@@ -143,7 +134,7 @@ impl From<PresetFilterEntry> for DocumentFilterEntry {
         Self {
             filter: value.filter,
             enabled: value.enabled,
-            colors: DocumentColorPair::from(value.colors),
+            colors: StoredColorPair::from(value.colors),
         }
     }
 }
@@ -154,15 +145,6 @@ impl From<PresetSearchValueEntry> for DocumentSearchValueEntry {
             filter: value.filter,
             enabled: value.enabled,
             color: color_to_rgba(value.color),
-        }
-    }
-}
-
-impl From<ColorPair> for DocumentColorPair {
-    fn from(value: ColorPair) -> Self {
-        Self {
-            fg: color_to_rgba(value.fg),
-            bg: color_to_rgba(value.bg),
         }
     }
 }
@@ -198,20 +180,6 @@ impl From<DocumentSearchValueEntry> for PresetSearchValueEntry {
     fn from(value: DocumentSearchValueEntry) -> Self {
         Self::new(value.filter, value.enabled, color_from_rgba(value.color))
     }
-}
-
-impl From<DocumentColorPair> for ColorPair {
-    fn from(value: DocumentColorPair) -> Self {
-        Self::new(color_from_rgba(value.fg), color_from_rgba(value.bg))
-    }
-}
-
-fn color_to_rgba(color: Color32) -> Rgba {
-    color.to_srgba_unmultiplied()
-}
-
-fn color_from_rgba([r, g, b, a]: Rgba) -> Color32 {
-    Color32::from_rgba_unmultiplied(r, g, b, a)
 }
 
 #[cfg(test)]

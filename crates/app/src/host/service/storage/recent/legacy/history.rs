@@ -8,9 +8,13 @@ use serde_json::{Map, Value};
 use processor::search::filter::SearchFilter;
 
 use crate::host::{
-    common::parsers::ParserNames,
+    common::{
+        colors::{StoredColorPair, StoredRgba},
+        parsers::ParserNames,
+    },
     ui::storage::recent::session::{
-        RecentSessionSource, RecentSessionStateSnapshot, SearchFilterSnapshot,
+        RecentFilterSnapshot, RecentSearchValueSnapshot, RecentSessionSource,
+        RecentSessionStateSnapshot,
     },
 };
 
@@ -280,7 +284,7 @@ fn parse_collection_entry_object(
 fn parse_filters(
     value: &Value,
     default_enabled: bool,
-    output: &mut Vec<SearchFilterSnapshot>,
+    output: &mut Vec<RecentFilterSnapshot>,
 ) -> usize {
     parse_one_or_many(value, |item| parse_filter(item, default_enabled), output)
 }
@@ -289,7 +293,7 @@ fn parse_filters(
 fn parse_charts(
     value: &Value,
     default_enabled: bool,
-    output: &mut Vec<SearchFilterSnapshot>,
+    output: &mut Vec<RecentSearchValueSnapshot>,
 ) -> usize {
     parse_one_or_many(value, |item| parse_chart(item, default_enabled), output)
 }
@@ -313,7 +317,7 @@ fn parse_one_or_many<T>(
 }
 
 /// Parses one filter snapshot, returning `None` when filter text is missing.
-fn parse_filter(value: &Value, default_enabled: bool) -> Option<SearchFilterSnapshot> {
+fn parse_filter(value: &Value, default_enabled: bool) -> Option<RecentFilterSnapshot> {
     let filter_value = value.get("filter").unwrap_or(value);
     let text = if let Some(text) = filter_value.as_str() {
         text
@@ -331,19 +335,23 @@ fn parse_filter(value: &Value, default_enabled: bool) -> Option<SearchFilterSnap
         .or_else(|| bool_from_value(filter_value.get("active")))
         .unwrap_or(default_enabled);
 
-    let snapshot = SearchFilterSnapshot {
+    let colors =
+        parse_legacy_filter_colors(value).or_else(|| parse_legacy_filter_colors(filter_value));
+
+    let snapshot = RecentFilterSnapshot {
         filter: SearchFilter::plain(text)
             .regex(reg)
             .word(word)
             .ignore_case(!cases),
         enabled,
+        colors,
     };
 
     Some(snapshot)
 }
 
 /// Parses one chart search-value snapshot, returning `None` when filter text is missing.
-fn parse_chart(value: &Value, default_enabled: bool) -> Option<SearchFilterSnapshot> {
+fn parse_chart(value: &Value, default_enabled: bool) -> Option<RecentSearchValueSnapshot> {
     let chart_value = value.get("chart").unwrap_or(value);
     let text = chart_value
         .get("filter")
@@ -354,12 +362,66 @@ fn parse_chart(value: &Value, default_enabled: bool) -> Option<SearchFilterSnaps
         .or_else(|| bool_from_value(chart_value.get("active")))
         .unwrap_or(default_enabled);
 
-    let snapshot = SearchFilterSnapshot {
+    let color = parse_legacy_chart_color(value).or_else(|| parse_legacy_chart_color(chart_value));
+
+    let snapshot = RecentSearchValueSnapshot {
         filter: SearchFilter::plain(text).regex(true).ignore_case(true),
         enabled,
+        color,
     };
 
     Some(snapshot)
+}
+
+fn parse_legacy_filter_colors(value: &Value) -> Option<StoredColorPair> {
+    let colors = value.get("colors")?.as_object()?;
+    let fg = colors.get("color")?.as_str()?;
+    let bg = colors.get("background")?.as_str()?;
+
+    let color_pair = StoredColorPair {
+        fg: parse_legacy_hex_rgba(fg)?,
+        bg: parse_legacy_hex_rgba(bg)?,
+    };
+
+    Some(color_pair)
+}
+
+fn parse_legacy_chart_color(value: &Value) -> Option<StoredRgba> {
+    let color = value.get("color")?.as_str()?;
+    parse_legacy_hex_rgba(color)
+}
+
+/// Parses the only legacy color format this importer supports: `#RRGGBB`.
+fn parse_legacy_hex_rgba(value: &str) -> Option<StoredRgba> {
+    let bytes = value.as_bytes();
+    if bytes.len() != 7 || bytes[0] != b'#' {
+        return None;
+    }
+
+    let red = parse_hex_byte(&bytes[1..3])?;
+    let green = parse_hex_byte(&bytes[3..5])?;
+    let blue = parse_hex_byte(&bytes[5..7])?;
+
+    Some([red, green, blue, 255])
+}
+
+fn parse_hex_byte(pair: &[u8]) -> Option<u8> {
+    let [high, low] = pair else {
+        return None;
+    };
+    let high = hex_value(*high)?;
+    let low = hex_value(*low)?;
+
+    Some((high << 4) | low)
+}
+
+fn hex_value(byte: u8) -> Option<u8> {
+    match byte {
+        b'0'..=b'9' => Some(byte - b'0'),
+        b'a'..=b'f' => Some(byte - b'a' + 10),
+        b'A'..=b'F' => Some(byte - b'A' + 10),
+        _ => None,
+    }
 }
 
 /// Imports bookmark positions into `output` and returns the number of skipped entries.
@@ -511,9 +573,10 @@ mod tests {
                     relation_ids: HashSet::from([String::from("definition-id")]),
                     last_used: 1,
                     state: RecentSessionStateSnapshot {
-                        filters: vec![SearchFilterSnapshot {
+                        filters: vec![RecentFilterSnapshot {
                             filter: SearchFilter::plain("old"),
                             enabled: true,
+                            colors: None,
                         }],
                         ..Default::default()
                     },
@@ -523,8 +586,11 @@ mod tests {
                     relation_ids: HashSet::from([String::from("definition-id")]),
                     last_used: 2,
                     state: parsed_state(json!({
-                        "filters": [{ "filter": { "filter": "level=(warn|error)", "reg": true, "word": true, "cases": true } }],
-                        "charts": [{ "filter": "cpu=(\\d+)" }],
+                        "filters": [{
+                            "filter": { "filter": "level=(warn|error)", "reg": true, "word": true, "cases": true },
+                            "colors": { "color": "#010203", "background": "#040506" }
+                        }],
+                        "charts": [{ "filter": "cpu=(\\d+)", "color": "#070809" }],
                         "disabled": [
                             { "filter": { "filter": "disabled filter", "active": true } },
                             { "chart": { "filter": "disabled chart", "active": true } }
@@ -550,6 +616,11 @@ mod tests {
         assert!(imported_filter.filter.is_word());
         assert!(!imported_filter.filter.is_ignore_case());
         assert!(imported_filter.enabled);
+        let expected_colors = StoredColorPair {
+            fg: [1, 2, 3, 255],
+            bg: [4, 5, 6, 255],
+        };
+        assert_eq!(imported_filter.colors, Some(expected_colors));
         let disabled_filter = state
             .filters
             .iter()
@@ -566,6 +637,7 @@ mod tests {
         assert!(imported_chart.filter.is_regex());
         assert!(imported_chart.filter.is_ignore_case());
         assert!(imported_chart.enabled);
+        assert_eq!(imported_chart.color, Some([7, 8, 9, 255]));
         let disabled_chart = state
             .search_values
             .iter()
@@ -573,6 +645,33 @@ mod tests {
             .expect("disabled chart should be imported");
         assert!(!disabled_chart.enabled);
         assert_eq!(state.bookmarks, vec![42]);
+    }
+
+    #[test]
+    fn missing_or_invalid_colors_do_not_skip_entries() {
+        let state = parsed_state(json!({
+            "filters": [
+                { "filter": { "filter": "missing colors" } },
+                {
+                    "filter": { "filter": "invalid colors" },
+                    "colors": { "color": "#010203", "background": "not-a-color" }
+                }
+            ],
+            "charts": [
+                { "filter": "missing=(\\d+)" },
+                { "filter": "invalid=(\\d+)", "color": "#123" }
+            ],
+        }));
+
+        assert_eq!(state.filters.len(), 2);
+        assert!(state.filters.iter().all(|filter| filter.colors.is_none()));
+        assert_eq!(state.search_values.len(), 2);
+        assert!(
+            state
+                .search_values
+                .iter()
+                .all(|chart| chart.color.is_none())
+        );
     }
 
     /// Verifies that stream history returns state with bookmarks removed.

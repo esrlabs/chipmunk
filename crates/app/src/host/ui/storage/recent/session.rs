@@ -13,7 +13,11 @@ use processor::search::filter::SearchFilter;
 use stypes::{FileFormat, ObserveOptions, ObserveOrigin, ParserType, Transport};
 use uuid::Uuid;
 
-use crate::host::common::{parsers::ParserNames, sources::StreamNames};
+use crate::host::common::{
+    colors::{StoredColorPair, StoredRgba},
+    parsers::ParserNames,
+    sources::StreamNames,
+};
 
 use super::source_key;
 
@@ -74,16 +78,36 @@ pub enum RecentSessionSource {
 /// Stored semantic state for reopening a session.
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct RecentSessionStateSnapshot {
-    pub filters: Vec<SearchFilterSnapshot>,
-    pub search_values: Vec<SearchFilterSnapshot>,
+    /// Applied filter rows restored when reopening the session.
+    pub filters: Vec<RecentFilterSnapshot>,
+    /// Applied chart/search-value rows restored when reopening the session.
+    pub search_values: Vec<RecentSearchValueSnapshot>,
+    /// Bookmarked row indexes restored when reopening the session.
     pub bookmarks: Vec<u64>,
 }
 
-/// Stored semantic filter or search-value row.
+/// Stored semantic filter row.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct SearchFilterSnapshot {
+pub struct RecentFilterSnapshot {
+    /// Filter definition persisted without its runtime registry ID.
     pub filter: SearchFilter,
+    /// Whether the filter is applied when the session is restored.
     pub enabled: bool,
+    /// Optional presentation colors; missing values use current defaults.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub colors: Option<StoredColorPair>,
+}
+
+/// Stored semantic chart/search-value row.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct RecentSearchValueSnapshot {
+    /// Search-value definition persisted without its runtime registry ID.
+    pub filter: SearchFilter,
+    /// Whether the search value is applied when the session is restored.
+    pub enabled: bool,
+    /// Optional presentation color; missing values use current defaults.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub color: Option<StoredRgba>,
 }
 
 impl RecentSessionRegistration {
@@ -453,16 +477,17 @@ fn supports_bookmarks(sources: &[RecentSessionSource]) -> bool {
 mod tests {
     use std::path::PathBuf;
 
+    use processor::search::filter::SearchFilter;
     use stypes::{
         DltParserSettings, ObserveOptions, ObserveOrigin, ParserType, TCPTransportConfig,
         Transport, UDPTransportConfig,
     };
 
-    use crate::common::time::unix_timestamp_now;
+    use crate::{common::time::unix_timestamp_now, host::common::colors::StoredColorPair};
 
     use super::{
-        RecentSessionRegistration, RecentSessionSnapshot, RecentSessionSource,
-        RecentSessionStateSnapshot, SearchFilterSnapshot,
+        RecentFilterSnapshot, RecentSearchValueSnapshot, RecentSessionRegistration,
+        RecentSessionSnapshot, RecentSessionSource, RecentSessionStateSnapshot,
     };
 
     fn snapshot_from_observe_options(options: ObserveOptions) -> RecentSessionSnapshot {
@@ -623,18 +648,21 @@ mod tests {
                 fibex_metadata: None,
             }),
             RecentSessionStateSnapshot {
-                filters: vec![SearchFilterSnapshot {
-                    filter: processor::search::filter::SearchFilter::plain("level=warn"),
+                filters: vec![RecentFilterSnapshot {
+                    filter: SearchFilter::plain("level=warn"),
                     enabled: true,
+                    colors: None,
                 }],
                 search_values: vec![
-                    SearchFilterSnapshot {
-                        filter: processor::search::filter::SearchFilter::plain("cpu"),
+                    RecentSearchValueSnapshot {
+                        filter: SearchFilter::plain("cpu"),
                         enabled: true,
+                        color: None,
                     },
-                    SearchFilterSnapshot {
-                        filter: processor::search::filter::SearchFilter::plain("mem"),
+                    RecentSearchValueSnapshot {
+                        filter: SearchFilter::plain("mem"),
                         enabled: false,
+                        color: None,
                     },
                 ],
                 bookmarks: vec![4, 9, 12],
@@ -657,6 +685,57 @@ mod tests {
         assert!(snapshot.tooltip().contains("- Filters: 1"));
         assert!(snapshot.tooltip().contains("- Charts: 2"));
         assert!(snapshot.tooltip().contains("- Bookmarks: 3"));
+    }
+
+    #[test]
+    fn state_deserializes_rows_without_colors() {
+        let value = serde_json::json!({
+            "filters": [{
+                "filter": SearchFilter::plain("level=warn"),
+                "enabled": true,
+            }],
+            "search_values": [{
+                "filter": SearchFilter::plain("cpu"),
+                "enabled": false,
+            }],
+            "bookmarks": [3],
+        });
+
+        let state: RecentSessionStateSnapshot =
+            serde_json::from_value(value).expect("old recent state should load");
+
+        assert_eq!(state.filters.len(), 1);
+        assert!(state.filters[0].colors.is_none());
+        assert_eq!(state.search_values.len(), 1);
+        assert!(state.search_values[0].color.is_none());
+        assert_eq!(state.bookmarks, vec![3]);
+    }
+
+    #[test]
+    fn state_round_trip_preserves_colors() {
+        let colors = StoredColorPair {
+            fg: [1, 2, 3, 4],
+            bg: [5, 6, 7, 8],
+        };
+        let state = RecentSessionStateSnapshot {
+            filters: vec![RecentFilterSnapshot {
+                filter: SearchFilter::plain("level=warn"),
+                enabled: true,
+                colors: Some(colors),
+            }],
+            search_values: vec![RecentSearchValueSnapshot {
+                filter: SearchFilter::plain("cpu"),
+                enabled: false,
+                color: Some([9, 10, 11, 12]),
+            }],
+            bookmarks: vec![4],
+        };
+
+        let json = serde_json::to_string(&state).expect("state should serialize");
+        let parsed: RecentSessionStateSnapshot =
+            serde_json::from_str(&json).expect("state should deserialize");
+
+        assert_eq!(parsed, state);
     }
 
     #[test]
