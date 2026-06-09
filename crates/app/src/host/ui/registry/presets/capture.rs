@@ -103,15 +103,21 @@ mod tests {
         shared
             .filters
             .apply_filter(&mut filters_registry, first_filter_id);
-        shared
-            .filters
-            .apply_filter_with_state(&mut filters_registry, second_filter_id, false);
+        shared.filters.apply_filter_with_state(
+            &mut filters_registry,
+            second_filter_id,
+            false,
+            None,
+        );
         shared
             .filters
             .apply_search_value(&mut filters_registry, first_value_id);
-        shared
-            .filters
-            .apply_search_value_with_state(&mut filters_registry, second_value_id, false);
+        shared.filters.apply_search_value_with_state(
+            &mut filters_registry,
+            second_value_id,
+            false,
+            None,
+        );
 
         let expected_filter_entries = shared.filters.filter_entries.clone();
         let expected_search_value_entries = shared.filters.search_value_entries.clone();

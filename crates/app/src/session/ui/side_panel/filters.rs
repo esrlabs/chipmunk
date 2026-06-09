@@ -787,10 +787,14 @@ impl FiltersUi {
         });
     }
 
-    fn render_color_picker_row(ui: &mut Ui, label: &str, color: &mut egui::Color32) {
+    /// Renders one color picker row.
+    ///
+    /// Returns `true` when egui reports that the picker changed `color`.
+    fn render_color_picker_row(ui: &mut Ui, label: &str, color: &mut egui::Color32) -> bool {
         ui.label(label);
-        ui.color_edit_button_srgba(color);
+        let changed = ui.color_edit_button_srgba(color).changed();
         ui.end_row();
+        changed
     }
 
     fn render_color_swatch(ui: &mut Ui, color: egui::Color32) {
@@ -816,33 +820,43 @@ impl FiltersUi {
         // when the semantic definition disappears from the registry.
         match selected_item {
             SelectedSidebarItem::Filter(filter_id) => {
-                if shared.filters.is_filter_applied(&filter_id)
-                    && registry.get_filter(&filter_id).is_some()
-                    && let Some(filter_entry) = shared
-                        .filters
-                        .filter_entries
-                        .iter_mut()
-                        .find(|item| item.id == filter_id)
+                let filter_colors = shared
+                    .filters
+                    .filter_entries
+                    .iter()
+                    .find(|item| item.id == filter_id)
+                    .map(|item| item.colors.clone());
+                if registry.get_filter(&filter_id).is_some()
+                    && let Some(mut filter_colors) = filter_colors
                 {
+                    let mut changed = false;
                     show_side_panel_group(ui, |ui| {
-                        Self::render_filter_editor(ui, &mut filter_entry.colors);
+                        changed = Self::render_filter_editor(ui, &mut filter_colors);
                     });
+                    if changed {
+                        shared.set_filter_colors(&filter_id, filter_colors);
+                    }
                 } else {
                     self.selected_item = None;
                 }
             }
             SelectedSidebarItem::SearchValue(value_id) => {
-                if shared.filters.is_search_value_applied(&value_id)
-                    && registry.get_search_value(&value_id).is_some()
-                    && let Some(value_entry) = shared
-                        .filters
-                        .search_value_entries
-                        .iter_mut()
-                        .find(|item| item.id == value_id)
+                let search_value_color = shared
+                    .filters
+                    .search_value_entries
+                    .iter()
+                    .find(|item| item.id == value_id)
+                    .map(|item| item.color);
+                if registry.get_search_value(&value_id).is_some()
+                    && let Some(mut search_value_color) = search_value_color
                 {
+                    let mut changed = false;
                     show_side_panel_group(ui, |ui| {
-                        Self::render_search_value_editor(ui, &mut value_entry.color);
+                        changed = Self::render_search_value_editor(ui, &mut search_value_color);
                     });
+                    if changed {
+                        shared.set_search_value_color(&value_id, search_value_color);
+                    }
                 } else {
                     self.selected_item = None;
                 }
@@ -850,23 +864,33 @@ impl FiltersUi {
         }
     }
 
-    fn render_filter_editor(ui: &mut Ui, colors: &mut ColorPair) {
+    /// Renders the selected filter color editor.
+    ///
+    /// Returns `true` when either color picker changed `colors`.
+    fn render_filter_editor(ui: &mut Ui, colors: &mut ColorPair) -> bool {
         ui.heading(RichText::new("Filter Details").size(16.0));
         ui.add_space(10.0);
 
+        let mut changed = false;
         Grid::new("filter_editor_colors").show(ui, |ui| {
-            Self::render_color_picker_row(ui, "Foreground", &mut colors.fg);
-            Self::render_color_picker_row(ui, "Background", &mut colors.bg);
+            changed |= Self::render_color_picker_row(ui, "Foreground", &mut colors.fg);
+            changed |= Self::render_color_picker_row(ui, "Background", &mut colors.bg);
         });
+        changed
     }
 
-    fn render_search_value_editor(ui: &mut Ui, color: &mut egui::Color32) {
+    /// Renders the selected chart/search-value color editor.
+    ///
+    /// Returns `true` when the color picker changed `color`.
+    fn render_search_value_editor(ui: &mut Ui, color: &mut egui::Color32) -> bool {
         ui.heading(RichText::new("Chart Details").size(16.0));
         ui.add_space(10.0);
 
+        let mut changed = false;
         Grid::new("search_value_editor_colors").show(ui, |ui| {
-            Self::render_color_picker_row(ui, "Color", color);
+            changed |= Self::render_color_picker_row(ui, "Color", color);
         });
+        changed
     }
 
     /// Applies the queued sidebar mutation and dispatches any required pipeline sync commands.
@@ -1062,7 +1086,7 @@ impl FiltersUi {
                     && was_applied
                 {
                     shared.unapply_filter(registry, &filter_id);
-                    shared.apply_search_value_with_state(registry, value_id, was_enabled);
+                    shared.apply_search_value_with_state(registry, value_id, was_enabled, None);
                     self.replace_selection(
                         SelectedSidebarItem::Filter(filter_id),
                         SelectedSidebarItem::SearchValue(value_id),
@@ -1100,7 +1124,7 @@ impl FiltersUi {
                     && was_applied
                 {
                     shared.unapply_search_value(registry, &value_id);
-                    shared.apply_filter_with_state(registry, filter_id, was_enabled);
+                    shared.apply_filter_with_state(registry, filter_id, was_enabled, None);
                     self.replace_selection(
                         SelectedSidebarItem::SearchValue(value_id),
                         SelectedSidebarItem::Filter(filter_id),

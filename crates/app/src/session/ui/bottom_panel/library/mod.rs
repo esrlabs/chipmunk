@@ -822,7 +822,7 @@ mod tests {
         let filter_id = add_filter_definition(&mut registry, "status=ok");
         shared
             .filters
-            .apply_filter_with_state(&mut registry, filter_id, false);
+            .apply_filter_with_state(&mut registry, filter_id, false, None);
 
         library.toggle_filter_definition(&mut shared, &mut actions, &mut registry, filter_id);
 
@@ -867,7 +867,7 @@ mod tests {
         let filter_id = add_filter_definition(&mut registry, "status=ok");
         shared
             .filters
-            .apply_filter_with_state(&mut registry, filter_id, false);
+            .apply_filter_with_state(&mut registry, filter_id, false, None);
 
         assert!(library.delete_filter_definition(
             &mut shared,
@@ -910,7 +910,7 @@ mod tests {
         let value_id = add_search_value_definition(&mut registry, "duration=(\\d+)");
         shared
             .filters
-            .apply_search_value_with_state(&mut registry, value_id, false);
+            .apply_search_value_with_state(&mut registry, value_id, false, None);
 
         library.toggle_search_value_definition(&mut shared, &mut actions, &mut registry, value_id);
 

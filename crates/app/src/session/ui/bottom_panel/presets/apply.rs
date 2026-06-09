@@ -65,8 +65,12 @@ impl PresetsUI {
                 colors,
             } = entry;
             let filter_id = registry.filters.add_filter(FilterDefinition::new(filter));
-            changed |=
-                shared.set_filter_entry_state(&mut registry.filters, filter_id, enabled, colors);
+            changed |= shared.apply_filter_with_state(
+                &mut registry.filters,
+                filter_id,
+                enabled,
+                Some(colors),
+            );
         }
 
         for entry in search_values {
@@ -78,11 +82,11 @@ impl PresetsUI {
             let value_id = registry
                 .filters
                 .add_search_value(SearchValueDefinition::new(filter));
-            changed |= shared.set_search_value_entry_state(
+            changed |= shared.apply_search_value_with_state(
                 &mut registry.filters,
                 value_id,
                 enabled,
-                color,
+                Some(color),
             );
         }
 
@@ -293,8 +297,8 @@ mod tests {
             )],
         );
 
-        shared.apply_filter_with_state(&mut registry.filters, filter_id, false);
-        shared.apply_search_value_with_state(&mut registry.filters, value_id, false);
+        shared.apply_filter_with_state(&mut registry.filters, filter_id, false, None);
+        shared.apply_search_value_with_state(&mut registry.filters, value_id, false, None);
 
         let outcome = presets.apply_preset(&mut shared, &mut actions, &mut registry, preset_id);
 
@@ -340,17 +344,17 @@ mod tests {
             )],
         );
 
-        shared.set_filter_entry_state(
+        shared.apply_filter_with_state(
             &mut registry.filters,
             existing_filter_id,
             true,
-            existing_filter_colors.clone(),
+            Some(existing_filter_colors.clone()),
         );
-        shared.set_search_value_entry_state(
+        shared.apply_search_value_with_state(
             &mut registry.filters,
             existing_value_id,
             true,
-            existing_value_color,
+            Some(existing_value_color),
         );
 
         let outcome = presets.apply_preset(&mut shared, &mut actions, &mut registry, preset_id);
@@ -494,12 +498,12 @@ mod tests {
             )],
         );
 
-        shared.set_filter_entry_state(&mut registry.filters, filter_id, true, filter_colors);
-        shared.set_search_value_entry_state(
+        shared.apply_filter_with_state(&mut registry.filters, filter_id, true, Some(filter_colors));
+        shared.apply_search_value_with_state(
             &mut registry.filters,
             value_id,
             true,
-            search_value_color,
+            Some(search_value_color),
         );
         let revision = shared.recent_revision();
 

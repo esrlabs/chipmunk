@@ -3,10 +3,15 @@ use std::sync::Arc;
 use tokio::sync::mpsc::Sender;
 
 use crate::{
-    host::ui::{
-        UiActions,
-        registry::filters::{FilterDefinition, FilterRegistry, SearchValueDefinition},
-        storage::recent::session::{RecentSessionStateSnapshot, SearchFilterSnapshot},
+    host::{
+        common::colors::{color_from_rgba, color_to_rgba},
+        ui::{
+            UiActions,
+            registry::filters::{FilterDefinition, FilterRegistry, SearchValueDefinition},
+            storage::recent::session::{
+                RecentFilterSnapshot, RecentSearchValueSnapshot, RecentSessionStateSnapshot,
+            },
+        },
     },
     session::command::SessionCommand,
 };
@@ -64,14 +69,16 @@ impl RecentSessionRuntime {
         let mut changed_filters = false;
         for snapshot in restore_state.filters {
             let filter_id = registry.add_filter(FilterDefinition::new(snapshot.filter));
-            shared.apply_filter_with_state(registry, filter_id, snapshot.enabled);
+            let colors = snapshot.colors.map(Into::into);
+            shared.apply_filter_with_state(registry, filter_id, snapshot.enabled, colors);
             changed_filters = true;
         }
 
         let mut changed_search_values = false;
         for snapshot in restore_state.search_values {
             let value_id = registry.add_search_value(SearchValueDefinition::new(snapshot.filter));
-            shared.apply_search_value_with_state(registry, value_id, snapshot.enabled);
+            let color = snapshot.color.map(color_from_rgba);
+            shared.apply_search_value_with_state(registry, value_id, snapshot.enabled, color);
             changed_search_values = true;
         }
 
@@ -195,9 +202,10 @@ pub fn capture_state_snapshot(
         .filter_map(|item| {
             registry
                 .get_filter(&item.id)
-                .map(|definition| SearchFilterSnapshot {
+                .map(|definition| RecentFilterSnapshot {
                     filter: definition.filter.clone(),
                     enabled: item.enabled,
+                    colors: Some(item.colors.clone().into()),
                 })
         })
         .collect();
@@ -209,9 +217,10 @@ pub fn capture_state_snapshot(
         .filter_map(|item| {
             registry
                 .get_search_value(&item.id)
-                .map(|definition| SearchFilterSnapshot {
+                .map(|definition| RecentSearchValueSnapshot {
                     filter: definition.filter.clone(),
                     enabled: item.enabled,
+                    color: Some(color_to_rgba(item.color)),
                 })
         })
         .collect();
@@ -238,6 +247,7 @@ pub fn capture_state_snapshot(
 mod tests {
     use std::path::PathBuf;
 
+    use egui::Color32;
     use tokio::{runtime::Runtime, sync::mpsc};
     use uuid::Uuid;
 
@@ -245,7 +255,14 @@ mod tests {
     use stypes::{FileFormat, ObserveOrigin, TCPTransportConfig, Transport};
 
     use crate::{
-        host::{common::parsers::ParserNames, ui::UiActions},
+        host::{
+            common::{
+                colors,
+                colors::{ColorPair, StoredColorPair, color_to_rgba},
+                parsers::ParserNames,
+            },
+            ui::UiActions,
+        },
         session::{types::ObserveOperation, ui::SessionInfo},
     };
 
@@ -287,44 +304,80 @@ mod tests {
             SearchFilter::plain("value-2").word(true),
         ));
 
-        shared.apply_filter_with_state(&mut registry, first_filter, true);
-        shared.apply_filter_with_state(&mut registry, second_filter, false);
-        shared.apply_search_value_with_state(&mut registry, first_value, false);
-        shared.apply_search_value_with_state(&mut registry, second_value, true);
+        shared.apply_filter_with_state(&mut registry, first_filter, true, None);
+        shared.apply_filter_with_state(&mut registry, second_filter, false, None);
+        shared.apply_search_value_with_state(&mut registry, first_value, false, None);
+        shared.apply_search_value_with_state(&mut registry, second_value, true, None);
         shared.insert_bookmark(9);
         shared.insert_bookmark(2);
 
         let state = file_runtime().capture_opened_state(&shared, &registry);
 
+        let first_filter_colors = colors::FILTER_HIGHLIGHT_COLORS[0].clone().into();
+        let second_filter_colors = colors::FILTER_HIGHLIGHT_COLORS[1].clone().into();
         assert_eq!(
             state.filters,
             vec![
-                SearchFilterSnapshot {
+                RecentFilterSnapshot {
                     filter: SearchFilter::plain("first"),
                     enabled: true,
+                    colors: Some(first_filter_colors),
                 },
-                SearchFilterSnapshot {
+                RecentFilterSnapshot {
                     filter: SearchFilter::plain("second").regex(true),
                     enabled: false,
+                    colors: Some(second_filter_colors),
                 },
             ]
         );
+        let first_value_color = color_to_rgba(colors::search_value_color(0));
+        let second_value_color = color_to_rgba(colors::search_value_color(1));
         assert_eq!(
             state.search_values,
             vec![
-                SearchFilterSnapshot {
+                RecentSearchValueSnapshot {
                     filter: SearchFilter::plain("value-1").ignore_case(true),
                     enabled: false,
+                    color: Some(first_value_color),
                 },
-                SearchFilterSnapshot {
+                RecentSearchValueSnapshot {
                     filter: SearchFilter::plain("value-2").word(true),
                     enabled: true,
+                    color: Some(second_value_color),
                 },
             ]
         );
         assert_eq!(state.bookmarks.len(), 2);
         assert!(state.bookmarks.contains(&2));
         assert!(state.bookmarks.contains(&9));
+    }
+
+    #[test]
+    fn captures_custom_colors() {
+        let mut shared = new_shared(ObserveOrigin::File(
+            String::from("source"),
+            FileFormat::Text,
+            PathBuf::from("source.log"),
+        ));
+        let mut registry = FilterRegistry::default();
+        let filter = SearchFilter::plain("first");
+        let filter_id = registry.add_filter(FilterDefinition::new(filter));
+        let search_value = SearchFilter::plain("value=(\\d+)");
+        let value_id = registry.add_search_value(SearchValueDefinition::new(search_value));
+        shared.apply_filter(&mut registry, filter_id);
+        shared.apply_search_value(&mut registry, value_id);
+        let filter_colors = ColorPair::new(Color32::from_rgb(1, 2, 3), Color32::from_rgb(4, 5, 6));
+        let value_color = Color32::from_rgb(7, 8, 9);
+        shared.set_filter_colors(&filter_id, filter_colors.clone());
+        shared.set_search_value_color(&value_id, value_color);
+
+        let state = file_runtime().capture_opened_state(&shared, &registry);
+
+        assert_eq!(state.filters[0].colors, Some(filter_colors.into()));
+        assert_eq!(
+            state.search_values[0].color,
+            Some(color_to_rgba(value_color))
+        );
     }
 
     #[test]
@@ -412,6 +465,112 @@ mod tests {
     }
 
     #[test]
+    fn restore_applies_stored_colors() {
+        let mut shared = new_shared(ObserveOrigin::File(
+            String::from("source"),
+            FileFormat::Text,
+            PathBuf::from("source.log"),
+        ));
+        let mut registry = FilterRegistry::default();
+        let mut recent = file_runtime();
+        let colors = StoredColorPair {
+            fg: [1, 2, 3, 4],
+            bg: [5, 6, 7, 8],
+        };
+        let restore_state = RecentSessionStateSnapshot {
+            filters: vec![RecentFilterSnapshot {
+                filter: SearchFilter::plain("level=warn"),
+                enabled: true,
+                colors: Some(colors),
+            }],
+            search_values: vec![RecentSearchValueSnapshot {
+                filter: SearchFilter::plain("cpu=(\\d+)"),
+                enabled: true,
+                color: Some([9, 10, 11, 12]),
+            }],
+            bookmarks: vec![],
+        };
+
+        recent.apply_restore(restore_state, &mut shared, &mut registry);
+
+        assert_eq!(
+            shared.filters.filter_entries[0].colors,
+            ColorPair::new(
+                Color32::from_rgba_unmultiplied(1, 2, 3, 4),
+                Color32::from_rgba_unmultiplied(5, 6, 7, 8),
+            )
+        );
+        assert_eq!(
+            shared.filters.search_value_entries[0].color,
+            Color32::from_rgba_unmultiplied(9, 10, 11, 12)
+        );
+    }
+
+    #[test]
+    fn restore_missing_colors_uses_defaults() {
+        let mut shared = new_shared(ObserveOrigin::File(
+            String::from("source"),
+            FileFormat::Text,
+            PathBuf::from("source.log"),
+        ));
+        let mut registry = FilterRegistry::default();
+        let mut recent = file_runtime();
+        let restore_state = RecentSessionStateSnapshot {
+            filters: vec![RecentFilterSnapshot {
+                filter: SearchFilter::plain("level=warn"),
+                enabled: true,
+                colors: None,
+            }],
+            search_values: vec![RecentSearchValueSnapshot {
+                filter: SearchFilter::plain("cpu=(\\d+)"),
+                enabled: true,
+                color: None,
+            }],
+            bookmarks: vec![],
+        };
+
+        recent.apply_restore(restore_state, &mut shared, &mut registry);
+
+        assert_eq!(
+            shared.filters.filter_entries[0].colors,
+            colors::FILTER_HIGHLIGHT_COLORS[0].clone()
+        );
+        assert_eq!(
+            shared.filters.search_value_entries[0].color,
+            colors::search_value_color(0)
+        );
+    }
+
+    #[test]
+    fn color_only_edit_updates_recent_state() {
+        let mut shared = new_shared(ObserveOrigin::File(
+            String::from("source"),
+            FileFormat::Text,
+            PathBuf::from("source.log"),
+        ));
+        let mut registry = FilterRegistry::default();
+        let filter_id = registry.add_filter(FilterDefinition::new(SearchFilter::plain("first")));
+        shared.apply_filter(&mut registry, filter_id);
+        let mut recent = file_runtime();
+        let _ = recent.capture_opened_state(&shared, &registry);
+
+        shared.set_filter_colors(
+            &filter_id,
+            ColorPair::new(Color32::from_rgb(1, 2, 3), Color32::from_rgb(4, 5, 6)),
+        );
+
+        let update = recent
+            .take_state_update(&shared, &registry)
+            .expect("color-only edit should update recent state");
+
+        let expected_colors = StoredColorPair {
+            fg: [1, 2, 3, 255],
+            bg: [4, 5, 6, 255],
+        };
+        assert_eq!(update.filters[0].colors, Some(expected_colors));
+    }
+
+    #[test]
     fn restore_search_waits_for_session_file_ready() {
         let runtime = Runtime::new().expect("runtime should initialize");
         let mut actions = UiActions::new(runtime.handle().clone());
@@ -426,13 +585,15 @@ mod tests {
         let filter = SearchFilter::plain("level=warn");
         let search_value = SearchFilter::plain("cpu=(\\d+)");
         let restore_state = RecentSessionStateSnapshot {
-            filters: vec![SearchFilterSnapshot {
+            filters: vec![RecentFilterSnapshot {
                 filter: filter.clone(),
                 enabled: true,
+                colors: None,
             }],
-            search_values: vec![SearchFilterSnapshot {
+            search_values: vec![RecentSearchValueSnapshot {
                 filter: search_value.clone(),
                 enabled: true,
+                color: None,
             }],
             bookmarks: vec![],
         };

@@ -323,12 +323,13 @@ mod tests {
         common::time::unix_timestamp_now,
         host::{
             command::OpenRecentSessionParam,
+            common::colors::StoredColorPair,
             service::storage::{STORAGE_DIR, storage_path_from_home},
             ui::storage::{
                 recent::{
                     session::{
-                        RecentSessionRegistration, RecentSessionReopenMode, RecentSessionSnapshot,
-                        RecentSessionSource, SearchFilterSnapshot,
+                        RecentFilterSnapshot, RecentSearchValueSnapshot, RecentSessionRegistration,
+                        RecentSessionReopenMode, RecentSessionSnapshot, RecentSessionSource,
                     },
                     storage::{MAX_RECENT_SESSIONS, RecentSessionsStorage},
                 },
@@ -640,9 +641,10 @@ mod tests {
                                 "reg": true,
                                 "word": true,
                                 "cases": true,
-                            }
+                            },
+                            "colors": { "color": "#010203", "background": "#040506" }
                         }],
-                        "charts": [{ "filter": "cpu=(\\d+)" }],
+                        "charts": [{ "filter": "cpu=(\\d+)", "color": "#070809" }],
                         "bookmark": [{ "position": 42 }],
                     }
                 }),
@@ -660,12 +662,18 @@ mod tests {
         assert!(filter.filter.is_word());
         assert!(!filter.filter.is_ignore_case());
         assert!(filter.enabled);
+        let expected_colors = StoredColorPair {
+            fg: [1, 2, 3, 255],
+            bg: [4, 5, 6, 255],
+        };
+        assert_eq!(filter.colors, Some(expected_colors));
         assert_eq!(state.search_values.len(), 1);
         let chart = &state.search_values[0];
         assert_eq!(chart.filter.value, "cpu=(\\d+)");
         assert!(chart.filter.is_regex());
         assert!(chart.filter.is_ignore_case());
         assert!(chart.enabled);
+        assert_eq!(chart.color, Some([7, 8, 9, 255]));
         assert_eq!(state.bookmarks, vec![42]);
     }
 
@@ -862,13 +870,19 @@ mod tests {
         fs::write(&config_path, "test").expect("config file should be written");
         let mut storage = RecentSessionsStorage::default();
         let mut snapshot = file_snapshot(config_path);
-        snapshot.state.filters = vec![SearchFilterSnapshot {
+        let colors = StoredColorPair {
+            fg: [1, 2, 3, 4],
+            bg: [5, 6, 7, 8],
+        };
+        snapshot.state.filters = vec![RecentFilterSnapshot {
             filter: SearchFilter::plain("status=ok").ignore_case(true),
             enabled: false,
+            colors: Some(colors),
         }];
-        snapshot.state.search_values = vec![SearchFilterSnapshot {
+        snapshot.state.search_values = vec![RecentSearchValueSnapshot {
             filter: SearchFilter::plain("cpu=(\\d+)").regex(true),
             enabled: true,
+            color: Some([9, 10, 11, 12]),
         }];
         snapshot.state.bookmarks = vec![2, 9];
         storage.register_session(snapshot);
@@ -893,9 +907,10 @@ mod tests {
     #[test]
     fn restore_modes_split_state() {
         let mut snapshot = stream_snapshot("127.0.0.1:5555");
-        snapshot.state.filters = vec![SearchFilterSnapshot {
+        snapshot.state.filters = vec![RecentFilterSnapshot {
             filter: SearchFilter::plain("status=ok"),
             enabled: true,
+            colors: None,
         }];
 
         let restore_request = resolve_open_request(OpenRecentSessionParam {

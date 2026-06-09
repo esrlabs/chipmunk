@@ -219,134 +219,112 @@ impl FiltersState {
         colors::next_search_value_color(&used_colors)
     }
 
-    /// Adds the filter to the session or updates its enabled state in place.
-    fn set_filter_entry(&mut self, registry: &mut FilterRegistry, id: Uuid, enabled: bool) -> bool {
-        if let Some(item) = self.filter_entries.iter_mut().find(|item| item.id == id) {
-            let changed = item.enabled != enabled;
-            item.enabled = enabled;
-            return changed;
-        }
+    /// Updates filter colors for an existing row.
+    ///
+    /// Returns `true` only when the row exists and its stored color pair changed.
+    pub fn set_filter_colors(&mut self, id: &Uuid, colors: ColorPair) -> bool {
+        let Some(item) = self.filter_entries.iter_mut().find(|item| item.id == *id) else {
+            return false;
+        };
 
-        let colors = self.next_filter_color_pair();
-        self.filter_entries
-            .push(AppliedFilterState::new(id, enabled, colors));
-        registry.apply_filter_to_session(id, self.session_id);
-        true
+        let changed = item.colors != colors;
+        item.colors = colors;
+
+        changed
     }
 
-    /// Adds the search value to the session or updates its enabled state in place.
-    fn set_search_value_entry(
-        &mut self,
-        registry: &mut FilterRegistry,
-        id: Uuid,
-        enabled: bool,
-    ) -> bool {
-        if let Some(item) = self
+    /// Updates search-value color for an existing row.
+    ///
+    /// Returns `true` only when the row exists and its stored color changed.
+    pub fn set_search_value_color(&mut self, id: &Uuid, color: Color32) -> bool {
+        let Some(item) = self
             .search_value_entries
             .iter_mut()
-            .find(|item| item.id == id)
-        {
-            let changed = item.enabled != enabled;
-            item.enabled = enabled;
-            return changed;
-        }
+            .find(|item| item.id == *id)
+        else {
+            return false;
+        };
 
-        let color = self.next_search_value_color();
-        self.search_value_entries
-            .push(AppliedSearchValueState::new(id, enabled, color));
-        registry.apply_search_value_to_session(id, self.session_id);
-        true
-    }
+        let changed = item.color != color;
+        item.color = color;
 
-    /// Adds or updates a filter row with explicit enabled state and colors.
-    pub fn set_filter_entry_state(
-        &mut self,
-        registry: &mut FilterRegistry,
-        id: Uuid,
-        enabled: bool,
-        colors: ColorPair,
-    ) -> bool {
-        if let Some(item) = self.filter_entries.iter_mut().find(|item| item.id == id) {
-            let changed = item.enabled != enabled || item.colors != colors;
-            item.enabled = enabled;
-            item.colors = colors;
-            return changed;
-        }
-
-        self.filter_entries
-            .push(AppliedFilterState::new(id, enabled, colors));
-        registry.apply_filter_to_session(id, self.session_id);
-
-        true
-    }
-
-    /// Adds or updates a search-value row with explicit enabled state and color.
-    pub fn set_search_value_entry_state(
-        &mut self,
-        registry: &mut FilterRegistry,
-        id: Uuid,
-        enabled: bool,
-        color: Color32,
-    ) -> bool {
-        if let Some(item) = self
-            .search_value_entries
-            .iter_mut()
-            .find(|item| item.id == id)
-        {
-            let changed = item.enabled != enabled || item.color != color;
-            item.enabled = enabled;
-            item.color = color;
-            return changed;
-        }
-
-        self.search_value_entries
-            .push(AppliedSearchValueState::new(id, enabled, color));
-        registry.apply_search_value_to_session(id, self.session_id);
-
-        true
+        changed
     }
 
     /// Updates the enabled flag for an existing filter and reports
     /// whether it changed.
     pub fn set_filter_enabled(&mut self, id: &Uuid, enabled: bool) -> bool {
-        if let Some(item) = self.filter_entries.iter_mut().find(|item| item.id == *id) {
-            let changed = item.enabled != enabled;
-            item.enabled = enabled;
-            return changed;
-        }
+        let Some(item) = self.filter_entries.iter_mut().find(|item| item.id == *id) else {
+            return false;
+        };
 
-        false
+        let changed = item.enabled != enabled;
+        item.enabled = enabled;
+
+        changed
     }
 
     /// Updates the enabled flag for an existing search value and reports
     /// whether it changed.
     pub fn set_search_value_enabled(&mut self, id: &Uuid, enabled: bool) -> bool {
-        if let Some(item) = self
+        let Some(item) = self
             .search_value_entries
             .iter_mut()
             .find(|item| item.id == *id)
-        {
-            let changed = item.enabled != enabled;
-            item.enabled = enabled;
-            return changed;
-        }
+        else {
+            return false;
+        };
 
-        false
+        let changed = item.enabled != enabled;
+        item.enabled = enabled;
+
+        changed
     }
 
     /// Adds a filter to the session in the enabled state.
     pub fn apply_filter(&mut self, registry: &mut FilterRegistry, id: Uuid) -> bool {
-        self.set_filter_entry(registry, id, true)
+        self.apply_filter_with_state(registry, id, true, None)
     }
 
-    /// Adds a filter to the session while preserving an explicit enabled state.
+    /// Adds or updates a filter row with explicit state.
+    ///
+    /// # Arguments
+    ///
+    /// - `registry`: Registry that tracks session usage for the filter definition.
+    /// - `id`: Registry ID of the filter definition to apply.
+    /// - `enabled`: Enabled state to store on the applied row.
+    /// - `colors`: Explicit row colors. `None` assigns default colors for new
+    ///   rows and preserves existing row colors.
+    ///
+    /// # Returns
+    ///
+    /// `true` when the row was added or its stored state changed.
     pub fn apply_filter_with_state(
         &mut self,
         registry: &mut FilterRegistry,
         id: Uuid,
         enabled: bool,
+        colors: Option<ColorPair>,
     ) -> bool {
-        self.set_filter_entry(registry, id, enabled)
+        if let Some(item) = self.filter_entries.iter_mut().find(|item| item.id == id) {
+            let changed = match &colors {
+                Some(colors) => item.enabled != enabled || item.colors != *colors,
+                None => item.enabled != enabled,
+            };
+            item.enabled = enabled;
+            if let Some(colors) = colors {
+                item.colors = colors;
+            }
+
+            return changed;
+        }
+
+        let colors = colors.unwrap_or_else(|| self.next_filter_color_pair());
+        self.filter_entries
+            .push(AppliedFilterState::new(id, enabled, colors));
+        registry.apply_filter_to_session(id, self.session_id);
+
+        true
     }
 
     /// Removes the filter from the session entirely.
@@ -386,17 +364,51 @@ impl FiltersState {
 
     /// Adds a search value to the session in the enabled state.
     pub fn apply_search_value(&mut self, registry: &mut FilterRegistry, id: Uuid) -> bool {
-        self.set_search_value_entry(registry, id, true)
+        self.apply_search_value_with_state(registry, id, true, None)
     }
 
-    /// Adds a search value to the session while preserving an explicit enabled state.
+    /// Adds or updates a search-value row with explicit state.
+    ///
+    /// # Arguments
+    ///
+    /// - `registry`: Registry that tracks session usage for the search-value definition.
+    /// - `id`: Registry ID of the search-value definition to apply.
+    /// - `enabled`: Enabled state to store on the applied row.
+    /// - `color`: Explicit row color. `None` assigns a default color for new
+    ///   rows and preserves existing row colors.
+    ///
+    /// # Returns
+    ///
+    /// `true` when the row was added or its stored state changed.
     pub fn apply_search_value_with_state(
         &mut self,
         registry: &mut FilterRegistry,
         id: Uuid,
         enabled: bool,
+        color: Option<Color32>,
     ) -> bool {
-        self.set_search_value_entry(registry, id, enabled)
+        if let Some(item) = self
+            .search_value_entries
+            .iter_mut()
+            .find(|item| item.id == id)
+        {
+            let changed = match color {
+                Some(color) => {
+                    let changed = item.enabled != enabled || item.color != color;
+                    item.color = color;
+                    changed
+                }
+                None => item.enabled != enabled,
+            };
+            item.enabled = enabled;
+            return changed;
+        }
+
+        let color = color.unwrap_or_else(|| self.next_search_value_color());
+        self.search_value_entries
+            .push(AppliedSearchValueState::new(id, enabled, color));
+        registry.apply_search_value_to_session(id, self.session_id);
+        true
     }
 
     /// Removes the search value from the session entirely.
@@ -568,7 +580,7 @@ mod tests {
         let mut registry = FilterRegistry::default();
         let filter_id = add_plain_filter_definition(&mut registry, "first");
 
-        state.apply_filter_with_state(&mut registry, filter_id, false);
+        state.apply_filter_with_state(&mut registry, filter_id, false, None);
         let entry = state
             .filter_entries
             .iter_mut()
@@ -585,6 +597,39 @@ mod tests {
             .expect("filter entry should exist");
         assert!(entry.enabled);
         assert_eq!(entry.colors, ColorPair::new(Color32::WHITE, Color32::BLACK));
+    }
+
+    #[test]
+    fn set_filter_colors_reports_only_changes() {
+        let mut state = new_state();
+        let mut registry = FilterRegistry::default();
+        let filter_id = add_plain_filter_definition(&mut registry, "first");
+        state.apply_filter(&mut registry, filter_id);
+
+        let colors = ColorPair::new(Color32::from_rgb(1, 2, 3), Color32::from_rgb(4, 5, 6));
+
+        assert!(state.set_filter_colors(&filter_id, colors.clone()));
+        assert!(!state.set_filter_colors(&filter_id, colors.clone()));
+        assert_eq!(state.filter_entries[0].colors, colors);
+        assert!(!state.set_filter_colors(
+            &Uuid::new_v4(),
+            ColorPair::new(Color32::WHITE, Color32::BLACK)
+        ));
+    }
+
+    #[test]
+    fn set_search_value_color_reports_only_changes() {
+        let mut state = new_state();
+        let mut registry = FilterRegistry::default();
+        let value_id = add_search_value_definition(&mut registry, "first=(\\d+)");
+        state.apply_search_value(&mut registry, value_id);
+
+        let color = Color32::from_rgb(7, 8, 9);
+
+        assert!(state.set_search_value_color(&value_id, color));
+        assert!(!state.set_search_value_color(&value_id, color));
+        assert_eq!(state.search_value_entries[0].color, color);
+        assert!(!state.set_search_value_color(&Uuid::new_v4(), Color32::WHITE));
     }
 
     #[test]
@@ -725,7 +770,7 @@ mod tests {
         let filter_id = add_regex_filter_definition(&mut registry, "cpu=(\\d+)");
         let existing_value_id = add_search_value_definition(&mut registry, "temp=(\\d+)");
 
-        state.apply_filter_with_state(&mut registry, filter_id, false);
+        state.apply_filter_with_state(&mut registry, filter_id, false, None);
         state.apply_search_value(&mut registry, existing_value_id);
         let was_enabled = state.is_filter_enabled(&filter_id);
 
@@ -734,7 +779,7 @@ mod tests {
             .expect("eligible filter should convert");
 
         state.unapply_filter(&mut registry, &filter_id);
-        state.apply_search_value_with_state(&mut registry, converted_value_id, was_enabled);
+        state.apply_search_value_with_state(&mut registry, converted_value_id, was_enabled, None);
 
         let entry = state
             .search_value_entries
@@ -752,7 +797,7 @@ mod tests {
         let filter_id = add_regex_filter_definition(&mut registry, "cpu=(\\d+)");
         let existing_value_id = add_search_value_definition(&mut registry, "cpu=(\\d+)");
 
-        state.apply_filter_with_state(&mut registry, filter_id, false);
+        state.apply_filter_with_state(&mut registry, filter_id, false, None);
         state.apply_search_value(&mut registry, existing_value_id);
         state.set_search_value_enabled(&existing_value_id, false);
         let original_color = state
@@ -768,7 +813,7 @@ mod tests {
             .expect("eligible filter should convert");
 
         state.unapply_filter(&mut registry, &filter_id);
-        state.apply_search_value_with_state(&mut registry, converted_value_id, was_enabled);
+        state.apply_search_value_with_state(&mut registry, converted_value_id, was_enabled, None);
 
         assert_eq!(converted_value_id, existing_value_id);
         assert_eq!(registry.search_value_map().len(), 1);
@@ -785,7 +830,7 @@ mod tests {
         let value_id = add_search_value_definition(&mut registry, "cpu=(\\d+)");
         let existing_filter_id = add_plain_filter_definition(&mut registry, "status=ok");
 
-        state.apply_search_value_with_state(&mut registry, value_id, false);
+        state.apply_search_value_with_state(&mut registry, value_id, false, None);
         state.apply_filter(&mut registry, existing_filter_id);
         let was_enabled = state.is_search_value_enabled(&value_id);
 
@@ -794,7 +839,7 @@ mod tests {
             .expect("search value should convert");
 
         state.unapply_search_value(&mut registry, &value_id);
-        state.apply_filter_with_state(&mut registry, converted_filter_id, was_enabled);
+        state.apply_filter_with_state(&mut registry, converted_filter_id, was_enabled, None);
 
         let entry = state
             .filter_entries
@@ -812,7 +857,7 @@ mod tests {
         let value_id = add_search_value_definition(&mut registry, "cpu=(\\d+)");
         let existing_filter_id = add_regex_filter_definition(&mut registry, "cpu=(\\d+)");
 
-        state.apply_search_value_with_state(&mut registry, value_id, false);
+        state.apply_search_value_with_state(&mut registry, value_id, false, None);
         state.apply_filter(&mut registry, existing_filter_id);
         state.set_filter_enabled(&existing_filter_id, false);
         let original_colors = state
@@ -829,7 +874,7 @@ mod tests {
             .expect("search value should convert");
 
         state.unapply_search_value(&mut registry, &value_id);
-        state.apply_filter_with_state(&mut registry, converted_filter_id, was_enabled);
+        state.apply_filter_with_state(&mut registry, converted_filter_id, was_enabled, None);
 
         assert_eq!(converted_filter_id, existing_filter_id);
         assert_eq!(registry.filters_map().len(), 1);
@@ -848,7 +893,7 @@ mod tests {
         let replacement_id = add_plain_filter_definition(&mut registry, "replacement");
 
         state.apply_filter(&mut registry, first_id);
-        state.apply_filter_with_state(&mut registry, second_id, false);
+        state.apply_filter_with_state(&mut registry, second_id, false, None);
         let original_colors = state
             .filter_entries
             .iter()
@@ -874,7 +919,7 @@ mod tests {
         let replacement_id = add_search_value_definition(&mut registry, "replacement=(\\d+)");
 
         state.apply_search_value(&mut registry, first_id);
-        state.apply_search_value_with_state(&mut registry, second_id, false);
+        state.apply_search_value_with_state(&mut registry, second_id, false, None);
         let original_color = state
             .search_value_entries
             .iter()

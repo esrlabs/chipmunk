@@ -1,4 +1,7 @@
+//! Shared color palettes, color pairs, and color serialization helpers.
+
 use egui::{Color32, Stroke};
+use serde::{Deserialize, Serialize};
 
 const MAIN_ACCENT_BACKGROUND_DARK: Color32 = Color32::from_rgb(36, 44, 58);
 const MAIN_ACCENT_BACKGROUND_LIGHT: Color32 = Color32::from_rgb(220, 228, 240);
@@ -101,6 +104,43 @@ impl ColorPair {
     pub const fn new(fg: Color32, bg: Color32) -> Self {
         Self { fg, bg }
     }
+}
+
+/// Color bytes stored for serialization in unpremultiplied sRGBA order.
+pub type StoredRgba = [u8; 4];
+
+/// Foreground/background color pair stored for serialization.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct StoredColorPair {
+    /// Foreground color.
+    pub fg: StoredRgba,
+    /// Background color.
+    pub bg: StoredRgba,
+}
+
+impl From<ColorPair> for StoredColorPair {
+    fn from(value: ColorPair) -> Self {
+        Self {
+            fg: color_to_rgba(value.fg),
+            bg: color_to_rgba(value.bg),
+        }
+    }
+}
+
+impl From<StoredColorPair> for ColorPair {
+    fn from(value: StoredColorPair) -> Self {
+        Self::new(color_from_rgba(value.fg), color_from_rgba(value.bg))
+    }
+}
+
+/// Converts an egui color into stored unpremultiplied sRGBA bytes.
+pub fn color_to_rgba(color: Color32) -> StoredRgba {
+    color.to_srgba_unmultiplied()
+}
+
+/// Converts stored unpremultiplied sRGBA bytes into an egui color.
+pub fn color_from_rgba([r, g, b, a]: StoredRgba) -> Color32 {
+    Color32::from_rgba_unmultiplied(r, g, b, a)
 }
 
 /// Foreground/background colors used for temporary search highlighting.
