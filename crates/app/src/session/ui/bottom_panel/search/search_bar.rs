@@ -62,11 +62,14 @@ impl SearchBar {
         registry: &mut FilterRegistry,
         ui: &mut Ui,
     ) {
+        // Text id is needed to keep track if the text control is focused.
+        let text_id = ui.id().with("search_text");
+        let text_focused = ui.memory(|m| m.focused().is_some_and(|id| id == text_id));
         // - Capture enter before creating text edit to prevent it from stealing it.
         // - Check if backspace is pressed for handling temp filter without consuming it.
         let (enter_pressed, backspace_pressed, command_modifier) = ui.input_mut(|i| {
-            let backspace_pressed = i.key_pressed(Key::Backspace);
-            let enter_pressed = i.consume_key(Modifiers::NONE, Key::Enter);
+            let backspace_pressed = text_focused && i.key_pressed(Key::Backspace);
+            let enter_pressed = text_focused && i.consume_key(Modifiers::NONE, Key::Enter);
             (enter_pressed, backspace_pressed, i.modifiers.command)
         });
 
@@ -105,8 +108,6 @@ impl SearchBar {
             }
         }
 
-        // Text id is needed to keep track if the text control is focused.
-        let text_id = ui.id().with("search_text");
         let newly_visible = self.visibility_tracker.is_newly_visible(ui);
         // Don't focus search input on switching tabs if search table is focused.
         let should_focus = self.focus_requested

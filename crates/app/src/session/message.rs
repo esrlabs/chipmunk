@@ -82,6 +82,9 @@ pub enum SessionMessage {
         target: attachment::PreviewTarget,
         preview: Result<attachment::PreviewContent, SessionError>,
     },
+
+    /// Result of sending text into a source through SDE.
+    SdeSendFinished(Result<(), SessionError>),
 }
 
 /// Bookmark mutation confirmed by the session backend.

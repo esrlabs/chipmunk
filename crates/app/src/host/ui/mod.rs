@@ -495,7 +495,7 @@ fn render_tab_bar_utilities(
                 ui,
                 &mut state.preferences.panels_visibility.right,
                 icons::fill::SQUARE_HALF,
-                "Right panel",
+                "Right Panel",
             );
         }
 
@@ -504,7 +504,16 @@ fn render_tab_bar_utilities(
                 ui,
                 &mut state.preferences.panels_visibility.bottom,
                 icons::fill::SQUARE_HALF_BOTTOM,
-                "Bottom panel",
+                "Bottom Panel",
+            );
+        }
+
+        if tabs.show_sde_toggle() {
+            render_panel_toggle(
+                ui,
+                &mut state.preferences.sde_bar_visible,
+                icons::fill::TERMINAL_WINDOW,
+                "Stream Input",
             );
         }
     });

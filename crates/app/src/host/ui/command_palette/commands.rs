@@ -38,6 +38,7 @@ pub enum CommandAction {
     SetTheme(Theme),
     ToggleRightPanel,
     ToggleBottomPanel,
+    ToggleSdeBar,
     ConnectionSetup {
         stream: StreamNames,
         parser: ParserNames,
@@ -129,6 +130,10 @@ const COMMANDS: &[CommandDefinition] = &[
     CommandDefinition {
         title: "Toggle Bottom Panel",
         action: CommandAction::ToggleBottomPanel,
+    },
+    CommandDefinition {
+        title: "Toggle Stream Input",
+        action: CommandAction::ToggleSdeBar,
     },
     CommandDefinition {
         title: "Terminal with Plain Text",
@@ -314,6 +319,11 @@ pub fn execute_action(
         }
         CommandAction::ToggleBottomPanel => {
             let visible = &mut state.preferences.panels_visibility.bottom;
+            *visible = !*visible;
+            true
+        }
+        CommandAction::ToggleSdeBar => {
+            let visible = &mut state.preferences.sde_bar_visible;
             *visible = !*visible;
             true
         }
