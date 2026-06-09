@@ -1,9 +1,12 @@
 //! Legacy recent-action source and parser conversion.
+//!
+//! Recent actions are converted into native recent-session snapshots first. Saved
+//! filters/charts are attached later by matching these snapshots against legacy history
+//! definitions. Keep the source identities conservative: file paths are normalized for
+//! legacy case-insensitive matching, process cwd only tolerates trailing separators, and
+//! no basename or extension-only fallback is used.
 
-use std::{
-    ops::Not,
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
 
 use serde_json::{Map, Value, from_value};
 
@@ -318,7 +321,7 @@ fn parser_name_from_name(name: &str) -> Option<ParserNames> {
     match name {
         "Text" => Some(ParserNames::Text),
         "Dlt" => Some(ParserNames::Dlt),
-        "SomeIp" => Some(ParserNames::SomeIP),
+        "SomeIp" | "SomeIP" => Some(ParserNames::SomeIP),
         "Plugin" => Some(ParserNames::Plugins),
         _ => None,
     }
@@ -468,14 +471,26 @@ pub fn path_from_object(object: &Map<String, Value>) -> Option<PathBuf> {
 
 /// Normalizes paths only for case-insensitive legacy matching.
 pub fn normalize_path(path: &Path) -> String {
+    // Chipmunk 3 file descriptors stored lower-cased paths, so matching follows that.
     path.to_string_lossy().to_lowercase()
 }
 
-fn path_to_match_string(path: &Path) -> Option<String> {
-    path.as_os_str()
-        .is_empty()
-        .not()
-        .then(|| path.to_string_lossy().into_owned())
+/// Converts a process cwd path into the source matching identity.
+pub fn path_to_match_string(path: &Path) -> Option<String> {
+    process_cwd_to_match_string(&path.to_string_lossy())
+}
+
+/// Converts a legacy process cwd string into the source matching identity.
+pub fn process_cwd_to_match_string(path: &str) -> Option<String> {
+    // Chipmunk 3 can persist the same cwd with or without a trailing separator. This keeps
+    // exact cwd matching while avoiding that formatting-only mismatch.
+    if path.is_empty() {
+        return None;
+    }
+
+    let trimmed = path.trim_end_matches(['/', '\\']);
+    let normalized = if trimmed.is_empty() { path } else { trimmed };
+    Some(normalized.to_owned())
 }
 
 fn string_field<'a>(object: &'a Map<String, Value>, keys: &[&str]) -> Option<&'a str> {

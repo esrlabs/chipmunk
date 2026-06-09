@@ -1,6 +1,23 @@
 //! Legacy history definition, collection, and state import.
+//!
+//! Chipmunk 3 stores history separately from recent actions. Recent actions contain the
+//! source/parser to reopen, while history definitions and collections contain filters,
+//! charts, bookmarks, and disabled search entries. The importer joins them by matching a
+//! recent action to a history definition, then applying the newest related collection.
+//!
+//! The real Chipmunk 3 storage uses compact keys: `f` for file definitions, `c` for
+//! concat definitions, `s` for stream definitions, `p` for parser names, and `e` for
+//! collection entries. Collection entries also often store the actual filter/chart data
+//! as nested JSON strings.
+//!
+//! This importer intentionally does not reproduce Chipmunk 3 checksum matching. It only
+//! matches parser kind plus normalized paths or stream identities, without broad
+//! basename/extension fallbacks. That keeps one-time startup import cheap and avoids
+//! hashing large files or attaching history too broadly, but anonymized legacy file
+//! definitions can miss otherwise valid filters until checksum matching is explicitly
+//! added.
 
-use std::{collections::HashSet, path::Path};
+use std::{borrow::Cow, collections::HashSet, ops::Not, path::Path};
 
 use log::warn;
 use serde_json::{Map, Value};
@@ -22,7 +39,8 @@ use super::{
     LegacyStorageEntry,
     actions::{
         MatchSource, bool_from_value, match_source_from_sources, normalize_path, parse_parser_name,
-        parse_sources, parse_stream_match, path_from_object, supports_bookmarks,
+        parse_sources, parse_stream_match, path_from_object, process_cwd_to_match_string,
+        supports_bookmarks,
     },
     history_collections_path, history_definitions_path, load_optional_entries,
 };
@@ -94,6 +112,7 @@ fn parse_history_definition(uuid: &str, content: &Value) -> Option<HistoryDefini
         .or_else(|| content.get("parser"))
         .or_else(|| content.get("parser_kind"))
         .or_else(|| content.get("parserKind"))
+        .or_else(|| content.get("p"))
         .and_then(parse_parser_name)?;
 
     let definition = HistoryDefinition {
@@ -108,6 +127,23 @@ fn parse_history_definition(uuid: &str, content: &Value) -> Option<HistoryDefini
 /// Extracts a matchable source from a definition, returning `None` for unsupported shapes.
 fn parse_definition_source(content: &Value) -> Option<MatchSource> {
     if let Some(object) = content.as_object() {
+        // Chipmunk 3 minified history definitions use compact source keys.
+        if let Some(file) = object.get("f")
+            && let Some(path) = parse_definition_path(file)
+        {
+            return Some(MatchSource::Files(vec![path]));
+        }
+
+        if let Some(files) = object.get("c").and_then(Value::as_array)
+            && let Some(paths) = parse_definition_paths(files)
+        {
+            return Some(MatchSource::Files(paths));
+        }
+
+        if let Some(source) = object.get("s").and_then(parse_minified_stream_match) {
+            return Some(source);
+        }
+
         if let Some(path) = path_from_object(object) {
             let path = normalize_path(&path);
             return Some(MatchSource::Files(vec![path]));
@@ -117,18 +153,50 @@ fn parse_definition_source(content: &Value) -> Option<MatchSource> {
             .get("files")
             .or_else(|| object.get("Concat"))
             .and_then(Value::as_array)
+            && let Some(paths) = parse_definition_paths(files)
         {
-            let paths = files
-                .iter()
-                .filter_map(parse_definition_path)
-                .collect::<Vec<_>>();
-            if !paths.is_empty() {
-                return Some(MatchSource::Files(paths));
-            }
+            return Some(MatchSource::Files(paths));
         }
     }
 
     parse_stream_match(content)
+}
+
+/// Extracts a stream source from a compact Chipmunk 3 stream descriptor.
+fn parse_minified_stream_match(value: &Value) -> Option<MatchSource> {
+    // Legacy streams store a source kind plus two opaque identity strings. For current
+    // native stream types, `ma` maps to the identity used for matching and `mi` is only
+    // useful as process cwd.
+    let object = value.as_object()?;
+    let source = object.get("s").and_then(Value::as_str)?;
+    let major = object.get("ma").and_then(Value::as_str).unwrap_or("");
+    let minor = object.get("mi").and_then(Value::as_str).unwrap_or("");
+
+    match source {
+        "Process" if !major.is_empty() => Some(MatchSource::Process {
+            command: major.to_owned(),
+            cwd: process_cwd_to_match_string(minor),
+        }),
+        "TCP" if !major.is_empty() => Some(MatchSource::Tcp {
+            bind_addr: major.to_owned(),
+        }),
+        "UDP" if !major.is_empty() => Some(MatchSource::Udp {
+            bind_addr: major.to_owned(),
+        }),
+        "Serial" if !major.is_empty() => Some(MatchSource::Serial {
+            path: Some(major.to_owned()),
+        }),
+        _ => None,
+    }
+}
+
+/// Extracts all concat definition paths, rejecting partial or empty path lists.
+fn parse_definition_paths(files: &[Value]) -> Option<Vec<String>> {
+    let paths = files
+        .iter()
+        .map(parse_definition_path)
+        .collect::<Option<Vec<_>>>()?;
+    paths.is_empty().not().then_some(paths)
 }
 
 /// Extracts one normalized definition path, returning `None` when no path is present.
@@ -233,6 +301,9 @@ fn relation_ids(content: &Value) -> HashSet<String> {
 
 /// Imports collection entries into state and returns the number of skipped entries.
 fn parse_collection_entries(entries: &Value, state: &mut RecentSessionStateSnapshot) -> usize {
+    let decoded = decode_json_string(entries);
+    let entries = decoded.as_ref();
+
     if let Some(object) = entries.as_object() {
         return parse_collection_entry_object(object, state);
     }
@@ -244,7 +315,8 @@ fn parse_collection_entries(entries: &Value, state: &mut RecentSessionStateSnaps
     items
         .iter()
         .map(|item| {
-            if let Some(object) = item.as_object() {
+            let decoded = decode_json_string(item);
+            if let Some(object) = decoded.as_ref().as_object() {
                 parse_collection_entry_object(object, state)
             } else {
                 1
@@ -261,23 +333,114 @@ fn parse_collection_entry_object(
     let mut skipped = 0usize;
 
     let entry_type = object.get("type").and_then(Value::as_str);
+    let mut has_named_payload = false;
     for (key, value) in object {
         match key.as_str() {
-            "filters" => skipped += parse_filters(value, true, &mut state.filters),
-            "charts" => skipped += parse_charts(value, true, &mut state.search_values),
-            "bookmark" | "bookmarks" => skipped += parse_bookmarks(value, &mut state.bookmarks),
-            "disabled" => skipped += parse_disabled(value, state),
-            "type" => {}
-            _ => match entry_type {
-                Some("filters") => skipped += parse_filters(value, true, &mut state.filters),
-                Some("charts") => skipped += parse_charts(value, true, &mut state.search_values),
-                Some("bookmark") => skipped += parse_bookmarks(value, &mut state.bookmarks),
-                _ => {}
-            },
+            "filters" => {
+                has_named_payload = true;
+                skipped += parse_filters(value, true, &mut state.filters);
+            }
+            "charts" => {
+                has_named_payload = true;
+                skipped += parse_charts(value, true, &mut state.search_values);
+            }
+            "bookmark" | "bookmarks" => {
+                has_named_payload = true;
+                skipped += parse_bookmarks(value, &mut state.bookmarks);
+            }
+            "disabled" => {
+                has_named_payload = true;
+                skipped += parse_disabled(value, state);
+            }
+            _ => {}
         }
     }
 
+    if !has_named_payload && let Some(entry_type) = entry_type {
+        skipped += parse_typed_entry_object(entry_type, object, state);
+    }
+
     skipped
+}
+
+/// Imports one typed collection entry envelope into state.
+fn parse_typed_entry_object(
+    entry_type: &str,
+    object: &Map<String, Value>,
+    state: &mut RecentSessionStateSnapshot,
+) -> usize {
+    match entry_type {
+        "filters" => {
+            if object.contains_key("filter") || object.contains_key("text") {
+                let entry = Value::Object(object.clone());
+                return parse_filters(&entry, true, &mut state.filters);
+            }
+            typed_entry_payload(object)
+                .map(|value| parse_filters(value, true, &mut state.filters))
+                .unwrap_or(0)
+        }
+        "charts" => {
+            if object.contains_key("chart")
+                || object.contains_key("filter")
+                || object.contains_key("text")
+            {
+                let entry = Value::Object(object.clone());
+                return parse_charts(&entry, true, &mut state.search_values);
+            }
+            typed_entry_payload(object)
+                .map(|value| parse_charts(value, true, &mut state.search_values))
+                .unwrap_or(0)
+        }
+        "bookmark" | "bookmarks" => {
+            if object.contains_key("position") {
+                let entry = Value::Object(object.clone());
+                return parse_bookmarks(&entry, &mut state.bookmarks);
+            }
+            typed_entry_payload(object)
+                .map(|value| parse_bookmarks(value, &mut state.bookmarks))
+                .unwrap_or(0)
+        }
+        _ => 0,
+    }
+}
+
+/// Returns the payload from a typed collection entry, ignoring envelope metadata.
+fn typed_entry_payload(object: &Map<String, Value>) -> Option<&Value> {
+    for key in ["value", "payload", "entry", "data"] {
+        if let Some(value) = object.get(key) {
+            return Some(value);
+        }
+    }
+
+    let mut payload = None;
+    for (key, value) in object {
+        if is_typed_entry_metadata(key) {
+            continue;
+        }
+        if payload.is_some() {
+            return None;
+        }
+        payload = Some(value);
+    }
+
+    payload
+}
+
+fn is_typed_entry_metadata(key: &str) -> bool {
+    matches!(
+        key,
+        "type"
+            | "key"
+            | "uuid"
+            | "id"
+            | "name"
+            | "active"
+            | "enabled"
+            | "flags"
+            | "colors"
+            | "color"
+            | "widths"
+    )
 }
 
 /// Imports filter entries into `output` and returns the number of skipped entries.
@@ -286,7 +449,8 @@ fn parse_filters(
     default_enabled: bool,
     output: &mut Vec<RecentFilterSnapshot>,
 ) -> usize {
-    parse_one_or_many(value, |item| parse_filter(item, default_enabled), output)
+    let mut parse = |item: &Value| parse_filter(item, default_enabled);
+    parse_one_or_many(value, &mut parse, output)
 }
 
 /// Imports chart search-value entries into `output` and returns the number of skipped entries.
@@ -295,19 +459,24 @@ fn parse_charts(
     default_enabled: bool,
     output: &mut Vec<RecentSearchValueSnapshot>,
 ) -> usize {
-    parse_one_or_many(value, |item| parse_chart(item, default_enabled), output)
+    let mut parse = |item: &Value| parse_chart(item, default_enabled);
+    parse_one_or_many(value, &mut parse, output)
 }
 
 /// Parses either one legacy entry or an array, returning the number of skipped items.
 fn parse_one_or_many<T>(
     value: &Value,
-    mut parse: impl FnMut(&Value) -> Option<T>,
+    parse: &mut impl FnMut(&Value) -> Option<T>,
     output: &mut Vec<T>,
 ) -> usize {
+    let decoded = decode_json_string(value);
+    let value = decoded.as_ref();
+
     if let Some(items) = value.as_array() {
-        let initial_len = output.len();
-        output.extend(items.iter().filter_map(&mut parse));
-        items.len() - (output.len() - initial_len)
+        items
+            .iter()
+            .map(|item| parse_one_or_many(item, parse, output))
+            .sum()
     } else if let Some(item) = parse(value) {
         output.push(item);
         0
@@ -316,8 +485,21 @@ fn parse_one_or_many<T>(
     }
 }
 
+/// Decodes legacy collection payloads that store the actual entry as a JSON string.
+fn decode_json_string(value: &Value) -> Cow<'_, Value> {
+    if let Value::String(raw) = value
+        && let Ok(decoded) = serde_json::from_str::<Value>(raw)
+    {
+        return Cow::Owned(decoded);
+    }
+
+    Cow::Borrowed(value)
+}
+
 /// Parses one filter snapshot, returning `None` when filter text is missing.
 fn parse_filter(value: &Value, default_enabled: bool) -> Option<RecentFilterSnapshot> {
+    let decoded = decode_json_string(value);
+    let value = decoded.as_ref();
     let filter_value = value.get("filter").unwrap_or(value);
     let text = if let Some(text) = filter_value.as_str() {
         text
@@ -328,9 +510,10 @@ fn parse_filter(value: &Value, default_enabled: bool) -> Option<RecentFilterSnap
             .and_then(Value::as_str)?
     };
 
-    let reg = bool_from_value(filter_value.get("reg")).unwrap_or(false);
-    let word = bool_from_value(filter_value.get("word")).unwrap_or(false);
-    let cases = bool_from_value(filter_value.get("cases")).unwrap_or(false);
+    // Older entries put flags beside the filter text; newer legacy entries nest them.
+    let reg = is_filter_flag_enabled(value, filter_value, "reg");
+    let word = is_filter_flag_enabled(value, filter_value, "word");
+    let cases = is_filter_flag_enabled(value, filter_value, "cases");
     let enabled = bool_from_value(value.get("active"))
         .or_else(|| bool_from_value(filter_value.get("active")))
         .unwrap_or(default_enabled);
@@ -342,6 +525,7 @@ fn parse_filter(value: &Value, default_enabled: bool) -> Option<RecentFilterSnap
         filter: SearchFilter::plain(text)
             .regex(reg)
             .word(word)
+            // Legacy `cases` means case-sensitive; native storage keeps the inverse flag.
             .ignore_case(!cases),
         enabled,
         colors,
@@ -350,8 +534,26 @@ fn parse_filter(value: &Value, default_enabled: bool) -> Option<RecentFilterSnap
     Some(snapshot)
 }
 
+fn is_filter_flag_enabled(value: &Value, filter_value: &Value, key: &str) -> bool {
+    bool_from_value(filter_value.get(key))
+        .or_else(|| {
+            filter_value
+                .get("flags")
+                .and_then(|flags| bool_from_value(flags.get(key)))
+        })
+        .or_else(|| bool_from_value(value.get(key)))
+        .or_else(|| {
+            value
+                .get("flags")
+                .and_then(|flags| bool_from_value(flags.get(key)))
+        })
+        .unwrap_or(false)
+}
+
 /// Parses one chart search-value snapshot, returning `None` when filter text is missing.
 fn parse_chart(value: &Value, default_enabled: bool) -> Option<RecentSearchValueSnapshot> {
+    let decoded = decode_json_string(value);
+    let value = decoded.as_ref();
     let chart_value = value.get("chart").unwrap_or(value);
     let text = chart_value
         .get("filter")
@@ -426,18 +628,18 @@ fn hex_value(byte: u8) -> Option<u8> {
 
 /// Imports bookmark positions into `output` and returns the number of skipped entries.
 fn parse_bookmarks(value: &Value, output: &mut Vec<u64>) -> usize {
-    parse_one_or_many(
-        value,
-        |item| {
-            item.as_u64()
-                .or_else(|| item.get("position").and_then(Value::as_u64))
-        },
-        output,
-    )
+    let mut parse = |item: &Value| {
+        item.as_u64()
+            .or_else(|| item.get("position").and_then(Value::as_u64))
+    };
+    parse_one_or_many(value, &mut parse, output)
 }
 
 /// Imports disabled filters or charts into state and returns the number of skipped entries.
 fn parse_disabled(value: &Value, state: &mut RecentSessionStateSnapshot) -> usize {
+    let decoded = decode_json_string(value);
+    let value = decoded.as_ref();
+
     if let Some(items) = value.as_array() {
         return items.iter().map(|item| parse_disabled(item, state)).sum();
     }
@@ -447,6 +649,31 @@ fn parse_disabled(value: &Value, state: &mut RecentSessionStateSnapshot) -> usiz
     };
 
     let mut skipped = 0usize;
+    if let (Some(key), Some(value)) = (
+        object.get("key").and_then(Value::as_str),
+        object.get("value"),
+    ) {
+        // DisabledRequest stores which collection the nested JSON payload came from.
+        match key {
+            "filters" => {
+                let first_added = state.filters.len();
+                skipped += parse_filters(value, false, &mut state.filters);
+                for filter in &mut state.filters[first_added..] {
+                    filter.enabled = false;
+                }
+                return skipped;
+            }
+            "charts" => {
+                let first_added = state.search_values.len();
+                skipped += parse_charts(value, false, &mut state.search_values);
+                for chart in &mut state.search_values[first_added..] {
+                    chart.enabled = false;
+                }
+                return skipped;
+            }
+            _ => {}
+        }
+    }
     if let Some(filters) = object.get("filters").or_else(|| object.get("filter")) {
         let first_added = state.filters.len();
         skipped += parse_filters(filters, false, &mut state.filters);
@@ -535,10 +762,12 @@ impl LegacyHistory {
                     .iter()
                     .any(|id| definition_ids.contains(id.as_str()))
             })
+            // Chipmunk 3 can keep several collections for the same definition set.
             .max_by_key(|collection| collection.last_used)
             .map(|collection| {
                 let mut state = collection.state.clone();
                 if !supports_bookmarks(sources) {
+                    // Legacy bookmarks are line offsets and only make sense for file sessions.
                     state.bookmarks.clear();
                 }
                 state
@@ -551,7 +780,7 @@ mod tests {
     use std::path::PathBuf;
 
     use serde_json::json;
-    use stypes::{FileFormat, TCPTransportConfig, Transport};
+    use stypes::{FileFormat, ProcessTransportConfig, TCPTransportConfig, Transport};
 
     use super::*;
 
@@ -674,6 +903,217 @@ mod tests {
         );
     }
 
+    #[test]
+    fn parses_minified_file_definition() {
+        let content = json!({
+            "f": {
+                "e": ".log",
+                "n": "App.log",
+                "p": "/LOGS",
+                "s": 141,
+                "c": 1_729_517_173_233.153_f64,
+                "h": "ignored"
+            },
+            "p": "Text",
+            "u": "definition-id"
+        });
+        let definition =
+            parse_history_definition("definition-id", &content).expect("definition should parse");
+
+        assert_eq!(definition.uuid, "definition-id");
+        assert_eq!(definition.parser, ParserNames::Text);
+        assert_eq!(
+            definition.source,
+            MatchSource::Files(vec![String::from("/logs/app.log")])
+        );
+    }
+
+    #[test]
+    fn parses_minified_concat_definition() {
+        let content = json!({
+            "c": [
+                { "e": ".log", "n": "First.log", "p": "/LOGS", "h": "a" },
+                { "e": ".log", "n": "Second.log", "p": "/LOGS", "h": "b" }
+            ],
+            "p": "Text",
+            "u": "definition-id"
+        });
+        let definition =
+            parse_history_definition("definition-id", &content).expect("definition should parse");
+
+        assert_eq!(definition.parser, ParserNames::Text);
+        assert_eq!(
+            definition.source,
+            MatchSource::Files(vec![
+                String::from("/logs/first.log"),
+                String::from("/logs/second.log")
+            ])
+        );
+    }
+
+    #[test]
+    fn rejects_partial_minified_concat_definition() {
+        let content = json!({
+            "c": [
+                { "e": ".log", "n": "First.log", "p": "/LOGS", "h": "a" },
+                { "h": "missing-path" }
+            ],
+            "p": "Text",
+            "u": "definition-id"
+        });
+
+        assert!(parse_history_definition("definition-id", &content).is_none());
+    }
+
+    #[test]
+    fn parses_minified_stream_definition() {
+        let content = json!({
+            "s": { "s": "TCP", "mi": "", "ma": "127.0.0.1:7777" },
+            "p": "Dlt",
+            "u": "definition-id"
+        });
+        let definition =
+            parse_history_definition("definition-id", &content).expect("definition should parse");
+
+        assert_eq!(definition.parser, ParserNames::Dlt);
+        assert_eq!(
+            definition.source,
+            MatchSource::Tcp {
+                bind_addr: String::from("127.0.0.1:7777")
+            }
+        );
+    }
+
+    #[test]
+    fn attaches_minified_file_history_to_matching_recent_source() {
+        let definition_content = json!({
+            "f": { "e": ".dlt", "n": "images.dlt", "p": "/home/user/Desktop", "h": "ignored" },
+            "p": "Dlt",
+            "u": "definition-id"
+        });
+        let definition = parse_history_definition("definition-id", &definition_content)
+            .expect("definition should parse");
+        let collection_content = json!({
+            "r": ["definition-id"],
+            "l": 10,
+            "e": [{ "filters": { "filter": "log" } }]
+        });
+        let collection =
+            parse_history_collection(&collection_content).expect("collection should parse");
+        let history = LegacyHistory {
+            definitions: vec![definition],
+            collections: vec![collection],
+        };
+        let sources = vec![RecentSessionSource::File {
+            format: FileFormat::Binary,
+            path: PathBuf::from("/home/user/Desktop/images.dlt"),
+        }];
+
+        let state = history
+            .state_for(&sources, ParserNames::Dlt)
+            .expect("history should match");
+
+        assert_eq!(state.filters.len(), 1);
+        assert_eq!(state.filters[0].filter.value, "log");
+    }
+
+    #[test]
+    fn imports_flat_filter_flags() {
+        let state = parsed_state(json!({
+            "filters": [
+                {
+                    "filter": "nested flags",
+                    "flags": { "cases": true, "word": true, "reg": true }
+                },
+                {
+                    "filter": "sibling flags",
+                    "cases": true,
+                    "word": true,
+                    "reg": true
+                }
+            ]
+        }));
+
+        assert_eq!(state.filters.len(), 2);
+        for filter in state.filters {
+            assert!(filter.filter.is_regex());
+            assert!(filter.filter.is_word());
+            assert!(!filter.filter.is_ignore_case());
+        }
+    }
+
+    #[test]
+    fn imports_typed_collection_entry_payload_once() {
+        let filter = json!({
+            "filter": "log",
+            "flags": { "cases": false, "word": true, "reg": true },
+            "active": true
+        });
+
+        let state = parsed_state(json!({
+            "type": "filters",
+            "key": "filters",
+            "value": filter.to_string(),
+            "uuid": "entry-id"
+        }));
+
+        assert_eq!(state.filters.len(), 1);
+        assert_eq!(state.filters[0].filter.value, "log");
+        assert!(state.filters[0].filter.is_regex());
+        assert!(state.filters[0].filter.is_word());
+    }
+
+    #[test]
+    fn imports_nested_json_string_collection_entries() {
+        let filter = json!({
+            "filter": {
+                "filter": "log",
+                "flags": { "cases": false, "word": true, "reg": true }
+            },
+            "uuid": "filter-id",
+            "active": true,
+            "colors": { "color": "#000000", "background": "#e4e15b" }
+        });
+        let chart = json!({
+            "filter": "value=(\\d+)",
+            "uuid": "chart-id",
+            "active": true,
+            "color": "#010203"
+        });
+        let disabled_filter = json!({
+            "key": "filters",
+            "value": filter.to_string()
+        });
+
+        let state = parsed_state(json!([
+            { "filters": filter.to_string() },
+            { "charts": chart.to_string() },
+            { "bookmark": json!({ "position": 42 }).to_string() },
+            { "disabled": disabled_filter.to_string() }
+        ]));
+
+        assert_eq!(state.filters.len(), 2);
+        let enabled_filter = &state.filters[0];
+        assert_eq!(enabled_filter.filter.value, "log");
+        assert!(enabled_filter.filter.is_regex());
+        assert!(enabled_filter.filter.is_word());
+        assert!(enabled_filter.filter.is_ignore_case());
+        assert!(enabled_filter.enabled);
+        assert_eq!(
+            enabled_filter.colors,
+            Some(StoredColorPair {
+                fg: [0, 0, 0, 255],
+                bg: [228, 225, 91, 255]
+            })
+        );
+        assert!(!state.filters[1].enabled);
+
+        assert_eq!(state.search_values.len(), 1);
+        assert_eq!(state.search_values[0].filter.value, "value=(\\d+)");
+        assert_eq!(state.search_values[0].color, Some([1, 2, 3, 255]));
+        assert_eq!(state.bookmarks, vec![42]);
+    }
+
     /// Verifies that stream history returns state with bookmarks removed.
     #[test]
     fn does_not_attach_bookmarks_to_stream_history() {
@@ -708,6 +1148,42 @@ mod tests {
         assert!(state.bookmarks.is_empty());
     }
 
+    #[test]
+    fn matches_process_history_with_trailing_cwd_separator() {
+        let sources = vec![RecentSessionSource::Stream {
+            transport: Transport::Process(ProcessTransportConfig {
+                cwd: PathBuf::from("/home/user/"),
+                command: String::from("ls"),
+                shell: None,
+            }),
+        }];
+        let relation_ids = HashSet::from([String::from("definition-id")]);
+        let state = parsed_state(json!({ "filters": { "filter": "log" } }));
+        let history = LegacyHistory {
+            definitions: vec![HistoryDefinition {
+                uuid: String::from("definition-id"),
+                source: MatchSource::Process {
+                    command: String::from("ls"),
+                    cwd: Some(String::from("/home/user")),
+                },
+                parser: ParserNames::Text,
+            }],
+            collections: vec![HistoryCollection {
+                relation_ids,
+                last_used: 1,
+                state,
+                skipped_entries: 0,
+            }],
+        };
+
+        let state = history
+            .state_for(&sources, ParserNames::Text)
+            .expect("history should match");
+
+        assert_eq!(state.filters.len(), 1);
+        assert_eq!(state.filters[0].filter.value, "log");
+    }
+
     /// Verifies that unmatched history returns no state.
     #[test]
     fn leaves_history_empty_without_matching_definition() {
@@ -733,6 +1209,40 @@ mod tests {
         }];
 
         assert!(history.state_for(&sources, ParserNames::Text).is_none());
+    }
+
+    #[test]
+    fn does_not_match_minified_file_definition_by_checksum() {
+        // Documents the deliberate no-checksum trade-off in the legacy importer.
+        let content = json!({
+            "f": {
+                "e": ".dlt",
+                "n": "anonymized.dlt",
+                "p": "/legacy/anonymized",
+                "h": "matching-checksum-is-ignored"
+            },
+            "p": "Dlt",
+            "u": "definition-id"
+        });
+        let definition =
+            parse_history_definition("definition-id", &content).expect("definition should parse");
+        let relation_ids = HashSet::from([String::from("definition-id")]);
+        let state = parsed_state(json!({ "filters": { "filter": "log" } }));
+        let history = LegacyHistory {
+            definitions: vec![definition],
+            collections: vec![HistoryCollection {
+                relation_ids,
+                last_used: 1,
+                state,
+                skipped_entries: 0,
+            }],
+        };
+        let sources = vec![RecentSessionSource::File {
+            format: FileFormat::Binary,
+            path: PathBuf::from("/home/user/images.dlt"),
+        }];
+
+        assert!(history.state_for(&sources, ParserNames::Dlt).is_none());
     }
 
     /// Parses test entries into state and asserts that no entries were skipped.
