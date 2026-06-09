@@ -122,6 +122,14 @@ pub enum SessionCommand {
         restore_state: RecentSessionStateSnapshot,
     },
 
+    /// Send text into an SDE-capable observed source.
+    SendSdeText {
+        /// Operation that should receive the text.
+        target: Uuid,
+        /// User-entered text before service-side line ending normalization.
+        text: String,
+    },
+
     /// Cancel the running operation with the given id.
     CancelOperation { id: Uuid },
     /// Gracefully terminate the session service.

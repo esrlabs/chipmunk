@@ -362,6 +362,11 @@ impl HostTabs {
         matches!(self.active(), HostTab::Session(_))
     }
 
+    /// Returns whether the active tab has stream input controls available.
+    pub fn show_sde_toggle(&self) -> bool {
+        matches!(self.active(), HostTab::Session(session) if session.sde_available())
+    }
+
     /// Applies published plugin-state changes to open tabs that depend on plugin data.
     pub fn handle_plugins_changed(&mut self, plugins: &PluginsState) {
         for tab in self.tabs_mut() {

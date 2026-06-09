@@ -1,4 +1,5 @@
 use std::{
+    ops::ControlFlow,
     rc::Rc,
     sync::{Arc, mpsc::Receiver as StdReceiver},
 };
@@ -6,6 +7,7 @@ use std::{
 use egui::{CentralPanel, Context, Frame, Margin, Panel, Ui};
 use log::warn;
 use tokio::sync::mpsc::{Sender, error::TrySendError};
+use uuid::Uuid;
 
 use crate::{
     common::ui::{
@@ -33,7 +35,10 @@ use crate::{
         error::SessionError,
         message::{BookmarkUpdate, SessionMessage},
         types::{OperationPhase, attachment::PreviewTarget},
-        ui::shared::{SearchSyncOutcome, SearchTableSync, SessionSignal},
+        ui::{
+            sde_bar::SdeBarUi,
+            shared::{SearchSyncOutcome, SearchTableSync, SessionSignal},
+        },
     },
 };
 use bottom_panel::{BottomPanelUI, BottomTabType};
@@ -48,6 +53,7 @@ pub mod definitions;
 mod export_modal;
 mod logs_table;
 mod recent;
+mod sde_bar;
 mod shared;
 mod shortcuts;
 mod side_panel;
@@ -65,6 +71,7 @@ pub struct Session {
     shared: SessionShared,
     pub recent_session: RecentSessionRuntime,
     logs_table: LogsTable,
+    sde_bar: SdeBarUi,
     bottom_panel: BottomPanelUI,
     side_panel: SidePanelUi,
     attachment_modal: attachment_modal::AttachmentModalUi,
@@ -98,6 +105,8 @@ impl Session {
             host_cmd_tx,
             Rc::clone(&shared.schema),
         );
+        let sde_bar = SdeBarUi::new(senders.cmd_tx.clone(), &shared);
+
         let recent_session = match tracking {
             Some(init) => RecentSessionRuntime::new(init.source_key, init.supports_bookmarks),
             None => RecentSessionRuntime::untracked(),
@@ -109,6 +118,7 @@ impl Session {
             shared,
             recent_session,
             logs_table,
+            sde_bar,
             bottom_panel,
             attachment_modal: attachment_modal::AttachmentModalUi::new(),
             cmd_tx: senders.cmd_tx,
@@ -117,6 +127,11 @@ impl Session {
 
     pub fn get_info(&self) -> &SessionInfo {
         self.shared.get_info()
+    }
+
+    /// Returns whether this session currently has stream input controls available.
+    pub fn sde_available(&self) -> bool {
+        self.sde_bar.is_available()
     }
 
     pub fn render_content(
@@ -129,6 +144,7 @@ impl Session {
         let Self {
             cmd_tx,
             logs_table,
+            sde_bar,
             bottom_panel,
             side_panel,
             shared,
@@ -170,6 +186,19 @@ impl Session {
                 ui.take_available_height();
                 bottom_panel.render_content(shared, actions, registry, ui);
             });
+
+        if preferences.sde_bar_visible && sde_bar.is_available() {
+            Panel::bottom("sde_bar")
+                .resizable(false)
+                .show_separator_line(false)
+                .exact_size(30.0)
+                .frame(Frame::NONE.outer_margin(Margin::same(2)))
+                .show_inside(ui, |ui| {
+                    ui.push_id(shared.get_id(), |ui| {
+                        sde_bar.render_content(actions, ui);
+                    });
+                });
+        }
 
         CentralPanel::default()
             .frame(Frame::central_panel(ui.style()).inner_margin(Margin::ZERO))
@@ -310,6 +339,7 @@ impl Session {
                     let appended_sources =
                         RecentSessionSource::from_observe_origin(observe_op.origin.clone());
                     self.shared.add_operation(*observe_op);
+                    self.sde_bar.refresh_targets(&self.shared);
 
                     let current_source_key = match self.recent_session.source_key() {
                         Some(key) => Arc::clone(key),
@@ -336,39 +366,10 @@ impl Session {
                     operation_id,
                     phase,
                 } => {
-                    // Observe processing starts after the backend creates or links the session file.
-                    let observe_started_processing = phase == OperationPhase::Processing
-                        && self
-                            .shared
-                            .observe
-                            .operations()
-                            .iter()
-                            .any(|operation| operation.id == operation_id);
-
                     if self
-                        .shared
-                        .update_operation(operation_id, phase, actions)
-                        .consumed()
+                        .on_operation_updated(operation_id, phase, actions, &registry.filters)
+                        .is_break()
                     {
-                        if observe_started_processing {
-                            let outcome = self
-                                .recent_session
-                                .on_session_file_ready(&mut self.shared, &registry.filters);
-                            if let Some(outcome) = outcome {
-                                let SearchSyncOutcome {
-                                    commands,
-                                    log_search_dropped,
-                                } = outcome;
-
-                                if log_search_dropped {
-                                    self.handle_search_dropped();
-                                }
-
-                                for cmd in commands {
-                                    actions.try_send_command(&self.cmd_tx, cmd);
-                                }
-                            }
-                        }
                         continue;
                     }
                     // Potential components which keep track for operations can go here.
@@ -387,6 +388,9 @@ impl Session {
                             self.shared.attachments.attachments().len()
                         );
                     }
+                }
+                SessionMessage::SdeSendFinished(result) => {
+                    self.sde_bar.handle_result(result, actions);
                 }
                 SessionMessage::AttachmentPreview {
                     attachment_id,
@@ -423,6 +427,59 @@ impl Session {
             self.shared.signals.is_empty(),
             "Session messages must not emit render-frame signals."
         );
+    }
+
+    fn on_operation_updated(
+        &mut self,
+        operation_id: Uuid,
+        phase: OperationPhase,
+        actions: &mut UiActions,
+        registry: &FilterRegistry,
+    ) -> ControlFlow<()> {
+        let is_observe_operation = self
+            .shared
+            .observe
+            .operations()
+            .iter()
+            .any(|operation| operation.id == operation_id);
+
+        // Observe processing starts after the backend creates or links the session file.
+        let observe_started_processing =
+            phase == OperationPhase::Processing && is_observe_operation;
+
+        if !self
+            .shared
+            .update_operation(operation_id, phase, actions)
+            .consumed()
+        {
+            return ControlFlow::Continue(());
+        }
+
+        if is_observe_operation {
+            self.sde_bar.refresh_targets(&self.shared);
+        }
+
+        if observe_started_processing {
+            let outcome = self
+                .recent_session
+                .on_session_file_ready(&mut self.shared, registry);
+            if let Some(outcome) = outcome {
+                let SearchSyncOutcome {
+                    commands,
+                    log_search_dropped,
+                } = outcome;
+
+                if log_search_dropped {
+                    self.handle_search_dropped();
+                }
+
+                for cmd in commands {
+                    actions.try_send_command(&self.cmd_tx, cmd);
+                }
+            }
+        }
+
+        ControlFlow::Break(())
     }
 
     /// Applies the restored recent-session state through the normal session and registry path.

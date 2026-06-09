@@ -12,7 +12,9 @@ use uuid::Uuid;
 
 use processor::grabber::LineRange;
 use session_core::session::Session;
-use stypes::{CallbackEvent, ComputationError, ObserveOptions, ObserveOrigin, Transport};
+use stypes::{
+    CallbackEvent, ComputationError, ObserveOptions, ObserveOrigin, SdeRequest, Transport,
+};
 
 mod export;
 mod tracker;
@@ -586,6 +588,19 @@ impl SessionService {
                     self.send_operation_failed(operation_id).await;
                     return Err(error);
                 }
+            }
+            SessionCommand::SendSdeText { target, text } => {
+                let text = format!("{text}\r\n");
+                let result = self
+                    .session
+                    .send_into_sde(target, SdeRequest::WriteText(text))
+                    .await
+                    .map(|_| ())
+                    .map_err(SessionError::from);
+
+                self.senders
+                    .send_session_msg(SessionMessage::SdeSendFinished(result))
+                    .await;
             }
             SessionCommand::CancelOperation { id } => {
                 self.session.abort(Uuid::new_v4(), id)?;

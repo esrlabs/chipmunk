@@ -128,6 +128,7 @@ fn action_icon(action: CommandAction) -> &'static str {
         CommandAction::ToggleRightPanel | CommandAction::ToggleBottomPanel => {
             icons::regular::SIDEBAR
         }
+        CommandAction::ToggleSdeBar => icons::regular::TERMINAL_WINDOW,
         CommandAction::ConnectionSetup { .. } => icons::regular::TERMINAL,
     }
 }
