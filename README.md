@@ -1,6 +1,6 @@
 
 [![LICENSE](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE.txt)
-[![](https://github.com/esrlabs/chipmunk/actions/workflows/release_next.yml/badge.svg)](https://github.com/esrlabs/chipmunk/actions/workflows/release_next.yml)
+[![](https://github.com/esrlabs/chipmunk/actions/workflows/release.yml/badge.svg)](https://github.com/esrlabs/chipmunk/actions/workflows/release.yml)
 [![](https://github.com/esrlabs/chipmunk/actions/workflows/lint_master.yml/badge.svg)](https://github.com/esrlabs/chipmunk/actions/workflows/lint_master.yml)
 
 `chipmunk` is a native desktop application, written in Rust, for viewing log files with no limitations on file size. 1 GB, 2 GB, 10 GB? `chipmunk` is limited only by your disk space - nothing more. With no unnecessary copying, files of any size open with the same speed. But `chipmunk` goes beyond just working with files: it also allows you to create network connections to collect logs via TCP, UDP, Serial, or from the output of a running command.

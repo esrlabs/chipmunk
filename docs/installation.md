@@ -1,4 +1,4 @@
-`chipmunk` is available as a prebuilt desktop application from the [GitHub releases page](https://github.com/esrlabs/chipmunk/releases). Release builds include the built-in updater, so the application can notify you and update itself when a newer version is available.
+`chipmunk` is available as a prebuilt desktop application from the [GitHub releases page](https://github.com/esrlabs/chipmunk/releases). Release builds include the built-in updater, so the application can notify you and update itself when a newer version is available. The built-in updater supports both installer-based and portable installations.
 
 You can also install the native application from source with Cargo:
 
@@ -14,17 +14,21 @@ just install-app
 
 ### macOS
 
-Download the macOS release and move `chipmunk.app` to your Applications folder.
+Download one of the macOS release artifacts:
 
-Or install using Homebrew:
+- `.pkg` installer, which installs Chipmunk into Applications
+- portable `.tgz` archive containing `chipmunk.app`
 
-```sh
-brew install --cask chipmunk
-```
+For the portable archive, unpack it and move `chipmunk.app` to your Applications folder.
 
 ### Windows
 
-Download and unpack the Windows release to a folder of your choosing. Use `chipmunk.exe` to start Chipmunk.
+Download one of the Windows release artifacts:
+
+- `.msi` installer, which installs Chipmunk into Program Files
+- portable `.tgz` archive containing `chipmunk.exe`
+
+For the portable archive, unpack it to a folder of your choosing and use `chipmunk.exe` to start Chipmunk.
 
 Requirements:
 
@@ -32,6 +36,10 @@ Requirements:
 
 ### Linux
 
-Download and unpack the Linux release to a folder of your choosing. Use the `chipmunk` executable to start Chipmunk.
+Download one of the Linux release artifacts:
 
-Each release also provides `.deb` and `.rpm` packages.
+- `.deb` package for Debian/Ubuntu-based distributions
+- `.rpm` package for Fedora/RHEL/openSUSE-based distributions
+- portable `.tgz` archive containing the `chipmunk` executable
+
+For the portable archive, unpack it to a folder of your choosing and use the `chipmunk` executable to start Chipmunk.
