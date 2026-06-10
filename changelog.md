@@ -1,3 +1,23 @@
+# 4.0.0 (10.06.2026)
+
+**Chipmunk 4.0.0** is the first stable release of the new native version of Chipmunk.
+
+This release replaces the previous Electron-based app with a much lighter and faster native application, reducing the **runtime footprint by more than 4x**.
+
+## Highlights
+
+- Memory usage reduced from around **500 MB to less than 100 MB.**
+- CPU usage for the same workload reduced from around **16% to around 4%.**
+- Startup is now almost instant compared to about one second before.
+- Chipmunk is now shipped as a single native application binary.
+- No more Electron sandboxing or runtime issues.
+- The app is much more responsive, with several long-standing UI issues fixed.
+- Added a command palette for faster keyboard-driven workflows.
+- Improved chart visuals.
+- Added installers for all supported operating systems.
+
+This rewrite also gives us a stronger base for future development, helping us deliver requested features and bug fixes faster in upcoming releases.
+
 # 3.19.6 (30.04.2026)
 
 ## Added
