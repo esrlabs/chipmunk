@@ -1,8 +1,8 @@
 //! Source Data Exchange input bar for live observed sources.
 
 use egui::{
-    Align, Button, Frame, Id, Key, Layout, Margin, Modifiers, Popup, RectAlign, RichText, Stroke,
-    TextEdit, Ui,
+    Align, AtomExt, Button, Frame, Id, Key, Layout, Margin, Modifiers, Popup, RectAlign, RichText,
+    Stroke, TextEdit, Ui, vec2,
 };
 use egui_extras::{Size, StripBuilder};
 use tokio::sync::mpsc::Sender;
@@ -153,15 +153,20 @@ impl SdeBarUi {
     }
 
     fn render_target_picker(&mut self, ui: &mut Ui) {
-        const TARGET_ICON_SIZE: f32 = 16.0;
+        // Keep the icon box fixed so the larger glyph does not make rows taller.
+        let target_atoms = |target: &SdeTarget| {
+            (
+                RichText::new(target.icon)
+                    .size(14.0)
+                    .atom_size(vec2(14.0, 15.0)),
+                target.label.as_str().atom_shrink(true),
+            )
+        };
 
         let selected_target = self.selected_target();
         let hover_label = selected_target.map(|target| target.label.as_str());
         let button = match selected_target {
-            Some(target) => Button::new((
-                RichText::new(target.icon).size(TARGET_ICON_SIZE),
-                target.label.as_str(),
-            )),
+            Some(target) => Button::new(target_atoms(target)),
             None => Button::new("Select target"),
         }
         .frame_when_inactive(false)
@@ -183,10 +188,7 @@ impl SdeBarUi {
                 for target in &self.targets {
                     let button = Button::selectable(
                         selected_target == Some(target.id),
-                        (
-                            RichText::new(target.icon).size(TARGET_ICON_SIZE),
-                            target.label.as_str(),
-                        ),
+                        target_atoms(target),
                     );
                     if ui.add(button).clicked() {
                         selected_target = Some(target.id);
