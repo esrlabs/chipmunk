@@ -1,3 +1,9 @@
+# 4.0.1 (12.06.2026)
+
+# Changes:
+* Improve graphics backend reliability on older devices and some Linux systems.
+* Improve unsupported file detection and related notification messages.
+
 # 4.0.0 (10.06.2026)
 
 **Chipmunk 4.0.0** is the first stable release of the new native version of Chipmunk.
