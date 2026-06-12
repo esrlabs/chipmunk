@@ -63,7 +63,12 @@ eframe = { workspace = true, default-features = false, features = [
   "default_fonts",
   "persistence",
   "wayland",
-  "wgpu",
+  # glow is more stable on older devices than the default wgpu backend and is
+  # sufficient for current Chipmunk features.
+  #
+  # The main wgpu issue seen so far is on hybrid Linux systems, where selecting
+  # the high-performance adapter can fail during startup surface configuration.
+  "glow",
   "x11",
 ] }
 

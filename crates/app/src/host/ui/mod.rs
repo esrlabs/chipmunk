@@ -603,7 +603,7 @@ impl eframe::App for Host {
         self.storage.schedule_save(&mut self.ui_actions);
     }
 
-    fn on_exit(&mut self) {
+    fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
         trace!("App Shutdown requested.");
 
         const SESSION_SHUTDOWN_GRACE: Duration =
