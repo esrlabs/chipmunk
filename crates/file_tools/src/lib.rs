@@ -1,5 +1,7 @@
+//! Utilities for lightweight file content classification.
+
 use std::{
-    fs::{File, metadata},
+    fs::File,
     io::{Read, Result},
     path::Path,
     str::from_utf8,
@@ -7,17 +9,23 @@ use std::{
 
 const BYTES_TO_READ: u64 = 10240;
 
-pub fn is_binary(file_path: impl AsRef<Path>) -> Result<bool> {
+/// Returns whether the beginning of the file is valid UTF-8 text.
+pub fn is_utf8_text(file_path: impl AsRef<Path>) -> Result<bool> {
     let buffer = fetch_starting_chunk(file_path.as_ref())?;
-    Ok(from_utf8(&buffer).map_or(true, |_file_content| false))
+    let is_text = from_utf8(&buffer).is_ok();
+    Ok(is_text)
+}
+
+/// Returns whether the beginning of the file is not valid UTF-8 text.
+pub fn is_binary(file_path: impl AsRef<Path>) -> Result<bool> {
+    let is_binary = !is_utf8_text(file_path)?;
+    Ok(is_binary)
 }
 
 fn fetch_starting_chunk(file_path: &Path) -> Result<Vec<u8>> {
-    let bytes_to_read: u64 = (metadata(file_path)?.len().max(1) - 1).min(BYTES_TO_READ);
-
     let mut buffer = Vec::new();
     File::open(file_path)?
-        .take(bytes_to_read)
+        .take(BYTES_TO_READ)
         .read_to_end(&mut buffer)?;
     Ok(buffer)
 }
@@ -92,6 +100,22 @@ mod test {
         assert!(!is_binary(String::from(
             "../../development/resources/empty.txt"
         ))?);
+        Ok(())
+    }
+
+    #[test]
+    fn test_is_binary_when_single_byte_is_invalid_utf8() -> Result<()> {
+        let path = std::env::temp_dir().join(format!(
+            "chipmunk_invalid_utf8_{}_{}.bin",
+            std::process::id(),
+            line!()
+        ));
+        std::fs::write(&path, [0xff])?;
+
+        let result = is_binary(&path);
+        std::fs::remove_file(&path)?;
+
+        assert!(result?);
         Ok(())
     }
 }

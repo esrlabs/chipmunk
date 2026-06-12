@@ -429,7 +429,14 @@ impl HostService {
     async fn open_single_file(&self, file_path: PathBuf) -> Result<(), HostError> {
         log::trace!("Opening file: {}", file_path.display());
 
-        let format = file::get_file_format(&file_path).map_err(InitSessionError::IO)?;
+        let format = match file::detect_file_format(&file_path).map_err(InitSessionError::IO)? {
+            file::FileFormatDetection::Supported(format) => format,
+            file::FileFormatDetection::UnsupportedTextEncoding => {
+                let message = file::unsupported_text_encoding_message(&file_path);
+                let init_error = InitSessionError::Other(message);
+                return Err(HostError::InitSessionError(init_error));
+            }
+        };
         let parser = match format {
             FileFormat::PcapNG | FileFormat::PcapLegacy => {
                 ParserConfig::SomeIP(SomeIpParserConfig::new())
@@ -494,7 +501,15 @@ impl HostService {
             paths
                 .into_iter()
                 .map(|path| {
-                    file::get_file_format(&path).map(|format| SourceFileInfo::new(path, format))
+                    file::detect_file_format(&path).map(|detection| {
+                        let format = match detection {
+                            file::FileFormatDetection::Supported(format) => format,
+                            file::FileFormatDetection::UnsupportedTextEncoding => {
+                                FileFormat::Binary
+                            }
+                        };
+                        SourceFileInfo::new(path, format)
+                    })
                 })
                 .collect::<std::io::Result<Vec<_>>>()
         })
@@ -525,29 +540,49 @@ impl HostService {
     }
 
     pub async fn open_multi_files(&self, paths: Vec<PathBuf>) -> Result<(), HostError> {
-        let files = tokio::task::spawn_blocking(move || {
-            paths
-                .into_iter()
-                .filter_map(|path| {
-                    file::get_file_format(&path)
-                        .inspect_err(|err| {
-                            log::warn!(
-                                "Error while checking file type. File will be skipped. \
+        let (files, unsupported_text_files): (Vec<(PathBuf, FileFormat)>, Vec<PathBuf>) =
+            tokio::task::spawn_blocking(move || {
+                paths
+                    .into_iter()
+                    .filter_map(|path| {
+                        let detection = file::detect_file_format(&path)
+                            .inspect_err(|err| {
+                                log::warn!(
+                                    "Error while checking file type. File will be skipped. \
                                 Path: {}. Error {err:?}",
-                                path.display()
-                            )
-                        })
-                        .ok()
-                        .map(|format| (path, format))
-                })
-                .collect_vec()
-        })
-        .await
-        .map_err(|_| {
-            HostError::InitSessionError(InitSessionError::Other(
-                "Determining file types failed.".into(),
-            ))
-        })?;
+                                    path.display()
+                                )
+                            })
+                            .ok()?;
+
+                        match detection {
+                            file::FileFormatDetection::Supported(format) => {
+                                Some(Ok((path, format)))
+                            }
+                            file::FileFormatDetection::UnsupportedTextEncoding => Some(Err(path)),
+                        }
+                    })
+                    .partition_result()
+            })
+            .await
+            .map_err(|_| {
+                HostError::InitSessionError(InitSessionError::Other(
+                    "Determining file types failed.".into(),
+                ))
+            })?;
+
+        for path in unsupported_text_files {
+            let message = file::unsupported_text_encoding_message(&path);
+            let notification = AppNotification::Warning(message);
+            self.communication
+                .senders
+                .send_notification(notification)
+                .await;
+        }
+
+        if files.is_empty() {
+            return Ok(());
+        }
 
         let state = MultiFileState::new(files);
 
