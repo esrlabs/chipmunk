@@ -202,8 +202,9 @@ mod tests {
         const SENDER: &str = "127.0.0.1:4002";
         const RECEIVER: &str = "127.0.0.1:5002";
 
-        const SENT_LEN: usize = MAX_DATAGRAM_SIZE;
-        const CONSUME_LEN: usize = MAX_DATAGRAM_SIZE / 2;
+        // MAX_DATAGRAM_SIZE not supported on some OS (eg MacOS) for UDP via local-host.
+        const SENT_LEN: usize = 8 * 1024;
+        const CONSUME_LEN: usize = SENT_LEN / 2;
 
         let send_socket = UdpSocket::bind(SENDER)
             .await

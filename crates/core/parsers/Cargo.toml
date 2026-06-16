@@ -24,6 +24,7 @@ thiserror.workspace = true
 rand.workspace = true
 someip-messages.workspace = true
 someip-payload.workspace = true
+stypes.workspace = true
 
 [dev-dependencies]
 stringreader.workspace = true

@@ -14,7 +14,7 @@ use uuid::Uuid;
 use parsers::dlt::DltFilterConfig;
 use stypes::{
     DltParserSettings, FileFormat, NativeError, NativeErrorKind, ObserveOptions, ObserveOrigin,
-    ParserType, Severity, SomeIpParserSettings, Transport,
+    ParserType, Severity, SomeIpParserSettings, SomeipFilterConfig, Transport,
 };
 
 use crate::{
@@ -22,9 +22,12 @@ use crate::{
     host::{
         command::{
             DltStatisticsParam, ExportPresetsParam, HostCommand, ScanFavoriteFoldersParam,
-            StartSessionParam,
+            SomeipStatisticsParam, StartSessionParam,
         },
-        common::{dlt_stats::dlt_statistics, parsers::ParserNames, sources::StreamNames},
+        common::{
+            dlt_stats::dlt_statistics, parsers::ParserNames, someip_stats::someip_statistics,
+            sources::StreamNames,
+        },
         communication::ServiceHandle,
         error::HostError,
         message::{HostMessage, ImportFormat, PluginReadmeLoaded, PresetsImported},
@@ -223,17 +226,24 @@ impl HostService {
             HostCommand::ConnectionSessionSetup { stream, parser } => {
                 self.connection_session_setup(stream, parser).await
             }
-
             HostCommand::DltStatistics(statistics_param) => {
                 let DltStatisticsParam {
                     session_setup_id,
                     source_paths,
                 } = *statistics_param;
 
-                self.collect_statistics(session_setup_id, source_paths)
+                self.collect_dlt_statistics(session_setup_id, source_paths)
                     .await?;
             }
+            HostCommand::SomeipStatistics(statistics_param) => {
+                let SomeipStatisticsParam {
+                    session_setup_id,
+                    source_paths,
+                } = *statistics_param;
 
+                self.collect_someip_statistics(session_setup_id, source_paths)
+                    .await?;
+            }
             HostCommand::StartSession(start_params) => {
                 let StartSessionParam {
                     parser,
@@ -432,7 +442,9 @@ impl HostService {
         let format = file::get_file_format(&file_path).map_err(InitSessionError::IO)?;
         let parser = match format {
             FileFormat::PcapNG | FileFormat::PcapLegacy => {
-                ParserConfig::SomeIP(SomeIpParserConfig::new())
+                ParserConfig::SomeIP(Box::new(SomeIpParserConfig::new(Some(vec![
+                    file_path.clone(),
+                ]))))
             }
             FileFormat::Text => ParserConfig::Text,
             FileFormat::Binary => {
@@ -619,7 +631,7 @@ impl HostService {
 
             let parser = match format {
                 FileFormat::PcapNG | FileFormat::PcapLegacy => {
-                    ParserConfig::SomeIP(SomeIpParserConfig::new())
+                    ParserConfig::SomeIP(Box::new(SomeIpParserConfig::new(Some(files.clone()))))
                 }
                 FileFormat::Text => ParserConfig::Text,
                 FileFormat::Binary => {
@@ -736,7 +748,7 @@ impl HostService {
 
         let parser = match parser {
             ParserNames::Dlt => ParserConfig::Dlt(Box::new(DltParserConfig::new(false, None))),
-            ParserNames::SomeIP => ParserConfig::SomeIP(SomeIpParserConfig::default()),
+            ParserNames::SomeIP => ParserConfig::SomeIP(Box::new(SomeIpParserConfig::new(None))),
             ParserNames::Text => ParserConfig::Text,
             ParserNames::Plugins => ParserConfig::Plugins(Box::new(PluginParserConfig::new())),
         };
@@ -749,7 +761,7 @@ impl HostService {
             .await;
     }
 
-    async fn collect_statistics(
+    async fn collect_dlt_statistics(
         &self,
         setup_session_id: Uuid,
         source_paths: Vec<PathBuf>,
@@ -774,6 +786,43 @@ impl HostService {
                             .await;
                         senders
                             .send_message(HostMessage::DltStatistics {
+                                setup_session_id,
+                                statistics: None,
+                            })
+                            .await;
+                    });
+                }
+            };
+        });
+
+        Ok(())
+    }
+
+    async fn collect_someip_statistics(
+        &self,
+        setup_session_id: Uuid,
+        source_paths: Vec<PathBuf>,
+    ) -> Result<(), HostError> {
+        let senders = self.communication.senders.clone();
+        tokio::task::spawn_blocking(move || {
+            match someip_statistics(source_paths) {
+                Ok(statistics) => {
+                    Handle::current().block_on(async move {
+                        senders
+                            .send_message(HostMessage::SomeipStatistics {
+                                setup_session_id,
+                                statistics: Some(Box::new(statistics)),
+                            })
+                            .await;
+                    });
+                }
+                Err(error) => {
+                    Handle::current().block_on(async move {
+                        senders
+                            .send_notification(AppNotification::Error(error))
+                            .await;
+                        senders
+                            .send_message(HostMessage::SomeipStatistics {
                                 setup_session_id,
                                 statistics: None,
                             })
@@ -983,6 +1032,19 @@ impl HostService {
                 ParserType::Dlt(dlt_config)
             }
             ParserConfig::SomeIP(config) => {
+                let selected_ids = &config.someip_tables.message_table.selected_ids;
+                let filter_config = if selected_ids.is_empty() {
+                    None
+                } else {
+                    let mut message_ids = Vec::new();
+                    for id in selected_ids {
+                        message_ids.push((id.service_id, id.method_id));
+                    }
+                    Some(SomeipFilterConfig {
+                        messages: message_ids,
+                    })
+                };
+
                 let fibex_file_paths = config.fibex_files.is_empty().not().then(|| {
                     config
                         .fibex_files
@@ -991,7 +1053,10 @@ impl HostService {
                         .collect()
                 });
 
-                let someip_settings = SomeIpParserSettings { fibex_file_paths };
+                let someip_settings = SomeIpParserSettings {
+                    filter_config,
+                    fibex_file_paths,
+                };
 
                 ParserType::SomeIp(someip_settings)
             }

@@ -345,11 +345,16 @@ fn parse_dlt_settings(payload: &Value) -> DltParserSettings {
 }
 
 fn parse_someip_settings(payload: &Value) -> SomeIpParserSettings {
-    let fibex_file_paths = payload
-        .as_object()
-        .and_then(|object| string_vec_field(object, &["fibex_file_paths", "fibexFilePaths"]));
+    let Some(object) = payload.as_object() else {
+        return SomeIpParserSettings::default();
+    };
 
-    SomeIpParserSettings { fibex_file_paths }
+    SomeIpParserSettings {
+        filter_config: object
+            .get("filter_config")
+            .and_then(|value| from_value(value.clone()).ok()),
+        fibex_file_paths: string_vec_field(object, &["fibex_file_paths", "fibexFilePaths"]),
+    }
 }
 
 fn parse_plugin_settings(payload: &Value) -> Result<PluginParserSettings, String> {

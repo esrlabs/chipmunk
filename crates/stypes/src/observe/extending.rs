@@ -82,6 +82,20 @@ impl DltParserSettings {
     }
 }
 
+impl Default for SomeIpParserSettings {
+    /// Provides a default implementation for `SomeIpParserSettings`.
+    ///
+    /// # Defaults
+    /// - `filter_config`: `None`
+    /// - `fibex_file_paths`: `None`
+    fn default() -> Self {
+        Self {
+            filter_config: None,
+            fibex_file_paths: None,
+        }
+    }
+}
+
 #[derive(Error, Debug)]
 /// Represents errors related to networking operations.
 pub enum NetError {

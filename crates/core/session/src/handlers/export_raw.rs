@@ -146,10 +146,14 @@ async fn export<S: ByteSource>(
             export_runner(producer, dest, sections, read_to_end, false, cancel).await
         }
         stypes::ParserType::SomeIp(settings) => {
+            let filter_config = settings.filter_config.clone();
             let parser = if let Some(files) = settings.fibex_file_paths.as_ref() {
-                SomeipParser::from_fibex_files(files.iter().map(PathBuf::from).collect())
+                SomeipParser::from_fibex_files(
+                    filter_config,
+                    files.iter().map(PathBuf::from).collect(),
+                )
             } else {
-                SomeipParser::new()
+                SomeipParser::new(filter_config)
             };
             let producer = MessageProducer::new(parser, source);
             export_runner(producer, dest, sections, read_to_end, false, cancel).await

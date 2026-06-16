@@ -3,7 +3,7 @@ source: session/tests/snapshot_tests/mod.rs
 description: Snapshot for SomeIP file with Pcapng byte source.
 info:
   fibex_file_paths:
-    - "../../../development/resources/someip.xml"
+    - "../../../development/resources/someip/someip.xml"
 snapshot_kind: text
 ---
 session_file:

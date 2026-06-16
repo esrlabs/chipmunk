@@ -30,6 +30,7 @@ mod dlt;
 pub mod process;
 mod recent;
 mod serial;
+mod someip;
 mod tcp;
 pub mod udp;
 
@@ -102,11 +103,11 @@ fn render_files(
     ui: &mut Ui,
 ) -> RenderOutcome {
     match parser {
+        ParserConfig::SomeIP(someip) => someip::render_statistics(someip, ui),
         ParserConfig::Dlt(dlt) if dlt.with_storage_header => dlt::render_statistics(dlt, ui),
-        ParserConfig::Dlt(..)
-        | ParserConfig::SomeIP(..)
-        | ParserConfig::Text
-        | ParserConfig::Plugins(..) => RenderOutcome::None,
+        ParserConfig::Dlt(..) | ParserConfig::Text | ParserConfig::Plugins(..) => {
+            RenderOutcome::None
+        }
     }
 }
 

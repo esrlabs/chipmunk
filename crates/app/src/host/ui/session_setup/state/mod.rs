@@ -5,7 +5,7 @@ use uuid::Uuid;
 use stypes::FileFormat;
 
 use crate::host::{
-    command::{DltStatisticsParam, HostCommand, StartSessionParam},
+    command::{DltStatisticsParam, HostCommand, SomeipStatisticsParam, StartSessionParam},
     common::{parsers::ParserNames, sources::StreamNames},
     ui::{
         UiActions,
@@ -54,7 +54,19 @@ impl SessionSetupState {
                     ParserConfig::Dlt(Box::new(DltParserConfig::new(false, None)))
                 }
             },
-            ParserNames::SomeIP => ParserConfig::SomeIP(SomeIpParserConfig::new()),
+            ParserNames::SomeIP => match &self.source {
+                ByteSourceConfig::File(file) => {
+                    ParserConfig::SomeIP(Box::new(SomeIpParserConfig::new(Some(vec![
+                        file.path.clone(),
+                    ]))))
+                }
+                ByteSourceConfig::Concat(files) => ParserConfig::SomeIP(Box::new(
+                    SomeIpParserConfig::new(Some(files.iter().map(|f| f.path.clone()).collect())),
+                )),
+                ByteSourceConfig::Stream(..) => {
+                    ParserConfig::SomeIP(Box::new(SomeIpParserConfig::new(None)))
+                }
+            },
             ParserNames::Text => ParserConfig::Text,
             ParserNames::Plugins => ParserConfig::Plugins(Box::new(PluginParserConfig::new())),
         };
@@ -108,7 +120,7 @@ impl SessionSetupState {
         self.source.is_valid() && self.parser.is_valid()
     }
 
-    pub fn collect_statistics(
+    pub fn collect_dlt_statistics(
         &mut self,
         cmd_tx: &Sender<crate::host::command::HostCommand>,
         actions: &mut UiActions,
@@ -124,6 +136,27 @@ impl SessionSetupState {
             };
 
             let cmd = HostCommand::DltStatistics(Box::new(param));
+
+            actions.try_send_command(cmd_tx, cmd);
+        }
+    }
+
+    pub fn collect_someip_statistics(
+        &mut self,
+        cmd_tx: &Sender<crate::host::command::HostCommand>,
+        actions: &mut UiActions,
+    ) {
+        debug_assert!(self.is_valid());
+
+        if let ParserConfig::SomeIP(config) = &mut self.parser
+            && let Some(source_paths) = config.source_paths.take()
+        {
+            let param = SomeipStatisticsParam {
+                session_setup_id: self.id,
+                source_paths,
+            };
+
+            let cmd = HostCommand::SomeipStatistics(Box::new(param));
 
             actions.try_send_command(cmd_tx, cmd);
         }
@@ -169,7 +202,7 @@ mod tests {
         let mut state = SessionSetupState::new(
             Uuid::new_v4(),
             ByteSourceConfig::File(file("trace.pcapng", FileFormat::PcapNG)),
-            ParserConfig::SomeIP(SomeIpParserConfig::new()),
+            ParserConfig::SomeIP(Box::new(SomeIpParserConfig::new(None))),
         );
 
         state.update_parser(ParserNames::Dlt);
@@ -185,7 +218,7 @@ mod tests {
         let mut state = SessionSetupState::new(
             Uuid::new_v4(),
             ByteSourceConfig::File(file("trace.dlt", FileFormat::Binary)),
-            ParserConfig::SomeIP(SomeIpParserConfig::new()),
+            ParserConfig::SomeIP(Box::new(SomeIpParserConfig::new(None))),
         );
 
         state.update_parser(ParserNames::Dlt);
@@ -204,7 +237,7 @@ mod tests {
                 file("first.pcap", FileFormat::PcapLegacy),
                 file("second.pcap", FileFormat::PcapLegacy),
             ]),
-            ParserConfig::SomeIP(SomeIpParserConfig::new()),
+            ParserConfig::SomeIP(Box::new(SomeIpParserConfig::new(None))),
         );
 
         state.update_parser(ParserNames::Dlt);
