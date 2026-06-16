@@ -110,7 +110,7 @@ anstyle-parse = "1.0"
 unicode-segmentation = "1.13"
 rayon = "1"
 socket2 = "0.5"
-someip-messages = { git = "https://github.com/esrlabs/someip" }
+someip-messages = { git = "https://github.com/esrlabs/someip", rev = "59b27a6689d72948c4569bc6037c2387c1a661ed" }
 tar = "0.4"
 flate2 = "1.1"
 

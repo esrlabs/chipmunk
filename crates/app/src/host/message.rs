@@ -6,7 +6,7 @@ use uuid::Uuid;
 
 use crate::{
     host::{
-        common::dlt_stats::DltStatistics,
+        common::{dlt_stats::DltStatistics, someip_stats::SomeipStatistics},
         ui::{
             multi_setup::state::MultiFileState,
             registry::presets::Preset,
@@ -34,6 +34,11 @@ pub enum HostMessage {
         setup_session_id: Uuid,
         /// Collected statistics, or `None` when collection failed.
         statistics: Option<Box<DltStatistics>>,
+    },
+    /// The collected Someip statistics on a file for a SessionSetup
+    SomeipStatistics {
+        setup_session_id: Uuid,
+        statistics: Option<Box<SomeipStatistics>>,
     },
     /// A new session has been successfully created.
     SessionCreated {

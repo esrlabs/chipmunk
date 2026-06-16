@@ -43,8 +43,8 @@ fn someip_legacy_producer(c: &mut Criterion) {
 
 fn create_someip_parser(config_path: Option<&PathBuf>) -> SomeipParser {
     match config_path {
-        Some(p) => SomeipParser::from_fibex_files(vec![p.to_owned()]),
-        None => SomeipParser::new(),
+        Some(p) => SomeipParser::from_fibex_files(None, vec![p.to_owned()]),
+        None => SomeipParser::new(None),
     }
 }
 

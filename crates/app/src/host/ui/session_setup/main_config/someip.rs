@@ -1,9 +1,9 @@
 use super::RenderOutcome;
-use crate::host::ui::session_setup::state::parsers::DltParserConfig;
+use crate::host::ui::session_setup::state::parsers::SomeIpParserConfig;
 use egui::{ScrollArea, Ui};
 
-pub fn render_statistics(parser: &mut DltParserConfig, ui: &mut Ui) -> RenderOutcome {
-    if parser.dlt_statistics.is_none() {
+pub fn render_statistics(parser: &mut SomeIpParserConfig, ui: &mut Ui) -> RenderOutcome {
+    if parser.someip_statistics.is_none() {
         ui.with_layout(egui::Layout::top_down(egui::Align::Center), |ui| {
             let available = ui.available_height();
             ui.add_space(available * 0.45);
@@ -11,21 +11,21 @@ pub fn render_statistics(parser: &mut DltParserConfig, ui: &mut Ui) -> RenderOut
             ui.vertical_centered(|ui| {
                 ui.spinner();
                 ui.add_space(8.0);
-                ui.label("Analyzing DLT structure...");
+                ui.label("Analyzing SOME/IP structure...");
             });
         });
 
-        return RenderOutcome::CollectDltStatistics;
+        return RenderOutcome::CollectSomeipStatistics;
     }
 
     ui.vertical(|ui| {
-        if parser.dlt_tables.take_changed() {
+        if parser.someip_tables.take_changed() {
             parser.update_summary();
         }
 
-        if let Some(dlt_statistics) = &parser.dlt_statistics {
-            summary::table(ui, &parser.dlt_summary);
-            summary::chart(ui, &parser.dlt_summary);
+        if let Some(someip_statistics) = &parser.someip_statistics {
+            summary::table(ui, &parser.someip_summary);
+            summary::chart(ui, &parser.someip_summary);
             ui.separator();
 
             ScrollArea::vertical()
@@ -34,23 +34,9 @@ pub fn render_statistics(parser: &mut DltParserConfig, ui: &mut Ui) -> RenderOut
                     ui.vertical(|ui| {
                         statistics::table(
                             ui,
-                            "Applications",
-                            &dlt_statistics.app_ids,
-                            &mut parser.dlt_tables.app_table,
-                        );
-                        ui.separator();
-                        statistics::table(
-                            ui,
-                            "Contexts",
-                            &dlt_statistics.ctx_ids,
-                            &mut parser.dlt_tables.ctx_table,
-                        );
-                        ui.separator();
-                        statistics::table(
-                            ui,
-                            "ECUs",
-                            &dlt_statistics.ecu_ids,
-                            &mut parser.dlt_tables.ecu_table,
+                            "Messages",
+                            &someip_statistics.messages,
+                            &mut parser.someip_tables.message_table,
                         );
                     });
                 });
@@ -65,24 +51,28 @@ pub mod summary {
     use egui_extras::{Column, TableBuilder};
     use egui_plot::{Bar, BarChart, Plot};
 
-    use crate::host::ui::session_setup::state::parsers::dlt::DltSummary;
+    use crate::host::ui::session_setup::state::parsers::someip::SomeipSummary;
 
-    const COLUMN_NAMES: [&str; 9] = [
-        "TOTAL", "FATAL", "ERROR", "WARN", "INFO", "DEBUG", "VERBOSE", "NONE", "INVALID",
+    const COLUMN_NAMES: [&str; 7] = [
+        "TOTAL",
+        "SD",
+        "EVENT",
+        "REQUEST",
+        "RESPONSE",
+        "FIREFORGET",
+        "ERROR",
     ];
 
-    const LEVEL_WITH_COLORS: [(&str, Color32); 8] = [
-        ("FATAL", Color32::from_rgb(220, 20, 60)),
-        ("ERROR", Color32::from_rgb(255, 69, 0)),
-        ("WARN", Color32::from_rgb(255, 140, 0)),
-        ("INFO", Color32::from_rgb(60, 179, 113)),
-        ("DEBUG", Color32::from_rgb(30, 144, 255)),
-        ("VERBOSE", Color32::from_rgb(138, 43, 226)),
-        ("NONE", Color32::from_rgb(192, 192, 192)),
-        ("INVALID", Color32::from_rgb(128, 128, 128)),
+    const MESSAGE_WITH_COLORS: [(&str, Color32); 6] = [
+        ("SD", Color32::from_rgb(255, 69, 0)),
+        ("EVENT", Color32::from_rgb(255, 140, 0)),
+        ("REQUEST", Color32::from_rgb(60, 179, 113)),
+        ("RESPONSE", Color32::from_rgb(30, 144, 255)),
+        ("FIREFORGET", Color32::from_rgb(138, 43, 226)),
+        ("ERROR", Color32::from_rgb(192, 192, 192)),
     ];
 
-    pub fn table(ui: &mut Ui, summary: &DltSummary) {
+    pub fn table(ui: &mut Ui, summary: &SomeipSummary) {
         let title = format!("Summary ({} / {})", summary.total.ids, summary.selected.ids);
         ui.label(RichText::new(title).strong());
         ui.add_space(5.0);
@@ -102,8 +92,8 @@ pub mod summary {
             })
             .body(|mut body| {
                 for (count, levels) in [
-                    (summary.total.count, summary.total.levels),
-                    (summary.selected.count, summary.selected.levels),
+                    (summary.total.count, summary.total.messages),
+                    (summary.selected.count, summary.selected.messages),
                 ] {
                     body.row(20.0, |mut row_ui| {
                         row_ui.col(|ui| {
@@ -119,13 +109,13 @@ pub mod summary {
             });
     }
 
-    pub fn chart(ui: &mut Ui, summary: &DltSummary) {
+    pub fn chart(ui: &mut Ui, summary: &SomeipSummary) {
         let mut charts: Vec<BarChart> = Vec::new();
 
-        for (i, (_, color)) in LEVEL_WITH_COLORS.iter().enumerate() {
-            let total = percent(summary.total.levels[i] as f64, summary.total.count as f64);
+        for (i, (_, color)) in MESSAGE_WITH_COLORS.iter().enumerate() {
+            let total = percent(summary.total.messages[i] as f64, summary.total.count as f64);
             let selected = percent(
-                summary.selected.levels[i] as f64,
+                summary.selected.messages[i] as f64,
                 summary.total.count as f64,
             );
             let mut chart = BarChart::new(
@@ -177,7 +167,7 @@ pub mod summary {
 
         // chart legend
         ui.horizontal(|ui| {
-            for (level, color) in LEVEL_WITH_COLORS.iter() {
+            for (level, color) in MESSAGE_WITH_COLORS.iter() {
                 let (rect, _) = ui.allocate_exact_size(vec2(10.0, 10.0), Sense::empty());
                 ui.painter().rect_filled(rect, 2.0, *color);
                 ui.label(RichText::new(*level).text_style(TextStyle::Small));
@@ -194,24 +184,31 @@ pub mod statistics {
     use egui::{Button, RichText, Sense, TextWrapMode, Ui};
     use egui_extras::{Column, TableBuilder};
     use rustc_hash::FxHashMap;
+    use someip_messages::MessageId;
     use std::cmp::Ordering;
 
     use crate::{
         common::phosphor::icons,
         host::{
-            common::dlt_stats::LevelDistribution,
-            ui::session_setup::state::parsers::dlt::TableConfig,
+            common::someip_stats::MessageDistribution,
+            ui::session_setup::state::parsers::someip::TableConfig,
         },
     };
 
-    const COLUMN_NAMES: [&str; 9] = [
-        "ID", "FATAL", "ERROR", "WARN", "INFO", "DEBUG", "VERBOSE", "NONE", "INVALID",
+    const COLUMN_NAMES: [&str; 7] = [
+        "ID",
+        "SD",
+        "EVENT",
+        "REQUEST",
+        "RESPONSE",
+        "FIREFORGET",
+        "ERROR",
     ];
 
     pub fn table(
         ui: &mut Ui,
         name: &str,
-        stats: &FxHashMap<String, LevelDistribution>,
+        stats: &FxHashMap<MessageId, MessageDistribution>,
         state: &mut TableConfig,
     ) {
         ui.horizontal(|ui| {
@@ -242,8 +239,8 @@ pub mod statistics {
         }
 
         let mut rows = Vec::new();
-        for (id, levels) in stats {
-            rows.push((id, levels.values()));
+        for (id, messages) in stats {
+            rows.push((id, messages.values()));
         }
         if let Some(sort) = state.column_sort {
             sort_rows(&mut rows, sort);
@@ -299,7 +296,7 @@ pub mod statistics {
                         row_ui.set_selected(is_selected);
 
                         row_ui.col(|ui| {
-                            ui.label(id);
+                            ui.label(format!("{}:{}", id.service_id, id.method_id));
                         });
 
                         for level in levels {
@@ -323,7 +320,7 @@ pub mod statistics {
             });
     }
 
-    fn is_sortable_column(rows: &[(&String, [usize; 8])], col: usize) -> bool {
+    fn is_sortable_column(rows: &[(&MessageId, [usize; 6])], col: usize) -> bool {
         let Some(first) = rows.first() else {
             return false;
         };
@@ -336,27 +333,25 @@ pub mod statistics {
             4 => row.1[3] != first.1[3],
             5 => row.1[4] != first.1[4],
             6 => row.1[5] != first.1[5],
-            7 => row.1[6] != first.1[6],
-            8 => row.1[7] != first.1[7],
             _ => false,
         })
     }
 
-    fn sort_rows(rows: &mut [(&String, [usize; 8])], sort: (usize, bool)) {
+    fn sort_rows(rows: &mut [(&MessageId, [usize; 6])], sort: (usize, bool)) {
         rows.sort_by(|a, b| {
+            let a_0 = (a.0.service_id, a.0.method_id);
+            let b_0 = (b.0.service_id, b.0.method_id);
             let ord = match sort.0 {
-                0 => a.0.cmp(b.0),
+                0 => a_0.cmp(&b_0),
                 1 => a.1[0].cmp(&b.1[0]),
                 2 => a.1[1].cmp(&b.1[1]),
                 3 => a.1[2].cmp(&b.1[2]),
                 4 => a.1[3].cmp(&b.1[3]),
                 5 => a.1[4].cmp(&b.1[4]),
                 6 => a.1[5].cmp(&b.1[5]),
-                7 => a.1[6].cmp(&b.1[6]),
-                8 => a.1[7].cmp(&b.1[7]),
                 _ => Ordering::Equal,
             }
-            .then_with(|| a.0.cmp(b.0));
+            .then_with(|| a_0.cmp(&b_0));
 
             if sort.1 { ord } else { ord.reverse() }
         });

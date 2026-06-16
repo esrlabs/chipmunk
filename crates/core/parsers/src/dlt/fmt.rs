@@ -607,14 +607,17 @@ impl fmt::Display for FormattableMessage<'_> {
                     })
                     && let Some(slice) = slices.get(1)
                 {
-                    match SomeipParser::parse_message(self.fibex_someip_metadata, slice, None) {
+                    match SomeipParser::parse_message(None, self.fibex_someip_metadata, slice, None)
+                    {
                         Ok((_, message)) => {
-                            let prefix = slices.first().map_or_else(String::default, |s| {
-                                parse_prefix(s)
-                                    .ok()
-                                    .map_or_else(String::default, |p| format!("{} ", p.1))
-                            });
-                            return write!(f, "SOME/IP {prefix}{message:?}");
+                            if let Some(message) = message {
+                                let prefix = slices.first().map_or_else(String::default, |s| {
+                                    parse_prefix(s)
+                                        .ok()
+                                        .map_or_else(String::default, |p| format!("{} ", p.1))
+                                });
+                                return write!(f, "SOME/IP {prefix}{message:?}");
+                            }
                         }
                         Err(error) => {
                             return write!(f, "SOME/IP '{error}' {slice:02X?}");

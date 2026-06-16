@@ -206,16 +206,23 @@ impl Display for DltLogLevel {
     }
 }
 
+/// The summary on DLT messages.
 #[derive(Debug, Default, Clone)]
 pub struct DltSummary {
+    /// The summary on all messages.
     pub total: LevelSummary,
+    /// The summary on selected messages.
     pub selected: LevelSummary,
 }
 
+/// A specific summary on DLT messages.
 #[derive(Debug, Default, Clone)]
 pub struct LevelSummary {
+    /// The number of message ids.
     pub ids: usize,
+    /// The total number of messages.
     pub count: usize,
+    /// The specific number of log levels.
     pub levels: [usize; 8],
 }
 

@@ -67,10 +67,10 @@ mod test {
             "../../development/resources/attachments.dlt"
         ))?);
         assert!(is_binary(String::from(
-            "../../development/resources/someip.pcap"
+            "../../development/resources/someip/udp/someip.pcap"
         ))?);
         assert!(is_binary(String::from(
-            "../../development/resources/someip.pcapng"
+            "../../development/resources/someip/udp/someip.pcapng"
         ))?);
         Ok(())
     }
@@ -84,7 +84,7 @@ mod test {
             "../../development/resources/sample_utf_8.txt"
         ))?);
         assert!(!is_binary(String::from(
-            "../../development/resources/someip.xml"
+            "../../development/resources/someip/someip.xml"
         ))?);
         Ok(())
     }

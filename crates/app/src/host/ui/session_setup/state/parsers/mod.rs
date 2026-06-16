@@ -9,13 +9,13 @@ pub use dlt::DltParserConfig;
 pub use plugins::PluginParserConfig;
 use stypes::ObserveOptions;
 
-use crate::host::ui::session_setup::state::parsers::someip::SomeIpParserConfig;
+pub use crate::host::ui::session_setup::state::parsers::someip::SomeIpParserConfig;
 
 /// Parser Configurations to be used in the front-end.
 #[derive(Debug, Clone)]
 pub enum ParserConfig {
     Dlt(Box<DltParserConfig>),
-    SomeIP(SomeIpParserConfig),
+    SomeIP(Box<SomeIpParserConfig>),
     Text,
     /// Parser plugin setup state.
     Plugins(Box<PluginParserConfig>),
@@ -27,9 +27,9 @@ impl ParserConfig {
             stypes::ParserType::Dlt(settings) => Self::Dlt(Box::new(
                 DltParserConfig::from_observe_options(settings, &options.origin),
             )),
-            stypes::ParserType::SomeIp(settings) => {
-                Self::SomeIP(SomeIpParserConfig::from_parser_settings(settings))
-            }
+            stypes::ParserType::SomeIp(settings) => Self::SomeIP(Box::new(
+                SomeIpParserConfig::from_observe_options(settings, &options.origin),
+            )),
             stypes::ParserType::Text(()) => Self::Text,
             stypes::ParserType::Plugin(settings) => {
                 let config = PluginParserConfig::from_settings(settings.clone());

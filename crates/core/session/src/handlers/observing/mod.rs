@@ -100,11 +100,13 @@ async fn run_source_intern<S: ByteSource>(
             run_producer(operation_api, state, source_id, producer, rx_tail, rx_sde).await
         }
         stypes::ParserType::SomeIp(settings) => {
+            let filter_config = settings.filter_config.clone();
             let someip_parser = match &settings.fibex_file_paths {
-                Some(paths) => {
-                    SomeipParser::from_fibex_files(paths.iter().map(PathBuf::from).collect())
-                }
-                None => SomeipParser::new(),
+                Some(paths) => SomeipParser::from_fibex_files(
+                    filter_config,
+                    paths.iter().map(PathBuf::from).collect(),
+                ),
+                None => SomeipParser::new(filter_config),
             };
             let producer = MessageProducer::new(someip_parser, source);
             run_producer(operation_api, state, source_id, producer, rx_tail, rx_sde).await

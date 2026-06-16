@@ -30,20 +30,26 @@ pub fn dlt_statistics(sources: Vec<PathBuf>) -> Result<DltStatistics, String> {
 /// The statistics-info of DLT files.
 #[derive(Debug, Default, Clone)]
 pub struct DltStatistics {
+    /// The total number of DLT messages.
     counter: usize,
+    /// The overall distribution of log-levels.
     pub total: LevelDistribution,
+    /// The app-id specific distribution of log-levels.
     pub app_ids: FxHashMap<String, LevelDistribution>,
+    // The context-id specific distribution of log-levels.
     pub ctx_ids: FxHashMap<String, LevelDistribution>,
+    /// The ecu-id specific distribution of log-levels.
     pub ecu_ids: FxHashMap<String, LevelDistribution>,
 }
 
 impl DltStatistics {
+    /// Returns the total number of message-ids.
     pub fn count(&self) -> usize {
         self.app_ids.len() + self.ctx_ids.len() + self.ecu_ids.len()
     }
 }
 
-/// The Level distribution of DLT messages.
+/// The level distribution of DLT messages.
 #[derive(Debug, Default, Clone)]
 pub struct LevelDistribution {
     pub fatal: FxHashSet<usize>,
@@ -57,6 +63,7 @@ pub struct LevelDistribution {
 }
 
 impl LevelDistribution {
+    /// Returns the total number of messages.
     pub fn count(&self) -> usize {
         self.fatal.len()
             + self.error.len()
@@ -68,6 +75,7 @@ impl LevelDistribution {
             + self.invalid.len()
     }
 
+    /// Returns the type specific numbers of messages.
     pub fn values(&self) -> [usize; 8] {
         [
             self.fatal.len(),

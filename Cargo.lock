@@ -299,6 +299,7 @@ dependencies = [
  "merging",
  "nucleo-matcher",
  "parsers",
+ "pcap-parser",
  "plugins_host",
  "processor",
  "regex",
@@ -312,6 +313,7 @@ dependencies = [
  "serialport",
  "session",
  "shell_tools",
+ "someip-messages",
  "sources",
  "stypes",
  "tar",
@@ -4100,6 +4102,7 @@ dependencies = [
  "someip-payload",
  "someip_tools",
  "stringreader",
+ "stypes",
  "thiserror 2.0.18",
 ]
 
@@ -5519,7 +5522,7 @@ dependencies = [
 [[package]]
 name = "someip-messages"
 version = "0.3.1"
-source = "git+https://github.com/esrlabs/someip#59b27a6689d72948c4569bc6037c2387c1a661ed"
+source = "git+https://github.com/esrlabs/someip?rev=59b27a6689d72948c4569bc6037c2387c1a661ed#59b27a6689d72948c4569bc6037c2387c1a661ed"
 dependencies = [
  "byteorder",
  "derive_builder",

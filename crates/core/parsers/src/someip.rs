@@ -15,6 +15,7 @@ use someip_payload::{
     fibex2som::FibexTypes,
     som::{SOMParser, SOMType},
 };
+use stypes::SomeipFilterConfig;
 
 use lazy_static::lazy_static;
 use log::{debug, error};
@@ -187,39 +188,47 @@ impl FibexTypeCache {
 
 /// A parser for SOME/IP log messages.
 pub struct SomeipParser {
+    filter_config: Option<SomeipFilterConfig>,
     fibex_metadata: Option<FibexMetadata>,
-}
-
-impl Default for SomeipParser {
-    fn default() -> Self {
-        Self::new()
-    }
 }
 
 impl SomeipParser {
     /// Creates a new parser.
-    pub fn new() -> Self {
+    pub fn new(filter_config: Option<SomeipFilterConfig>) -> Self {
         SomeipParser {
+            filter_config,
             fibex_metadata: None,
         }
     }
 
     /// Creates a new parser with the given files.
-    pub fn from_fibex_files(paths: Vec<PathBuf>) -> Self {
+    pub fn from_fibex_files(
+        filter_config: Option<SomeipFilterConfig>,
+        paths: Vec<PathBuf>,
+    ) -> Self {
         SomeipParser {
+            filter_config,
             fibex_metadata: FibexMetadata::from_fibex_files(paths),
         }
     }
 
     /// Parses a SOME/IP message (header and payload) from the given input.
+    /// Returns None if message was filtered out.
     pub(crate) fn parse_message(
+        filter_config: Option<&SomeipFilterConfig>,
         fibex_metadata: Option<&FibexMetadata>,
         input: &[u8],
         timestamp: Option<u64>,
-    ) -> Result<(usize, SomeipLogMessage), Error> {
+    ) -> Result<(usize, Option<SomeipLogMessage>), Error> {
         let time = timestamp.unwrap_or(0);
         match Message::from_slice(input) {
             Ok(Message::Sd(header, payload)) => {
+                let filtered = match filter_config {
+                    Some(config) => !config
+                        .messages
+                        .contains(&(header.message_id.service_id, header.message_id.method_id)),
+                    None => false,
+                };
                 let len = header.message_len();
                 debug!("at {time} : SD Message ({len} bytes)");
                 Ok((
@@ -228,14 +237,24 @@ impl SomeipParser {
                     } else {
                         len
                     },
-                    SomeipLogMessage::from(
-                        sd_message_string(&header, &payload),
-                        input[..len].to_vec(),
-                    ),
+                    if filtered {
+                        None
+                    } else {
+                        Some(SomeipLogMessage::from(
+                            sd_message_string(&header, &payload),
+                            input[..len].to_vec(),
+                        ))
+                    },
                 ))
             }
 
             Ok(Message::Rpc(header, payload)) => {
+                let filtered = match filter_config {
+                    Some(config) => !config
+                        .messages
+                        .contains(&(header.message_id.service_id, header.message_id.method_id)),
+                    None => false,
+                };
                 let len = header.message_len();
                 debug!("at {time} : RPC Message ({len:?} bytes)");
                 Ok((
@@ -244,14 +263,19 @@ impl SomeipParser {
                     } else {
                         len
                     },
-                    SomeipLogMessage::from(
-                        rpc_message_string(fibex_metadata, &header, &payload),
-                        input[..len].to_vec(),
-                    ),
+                    if filtered {
+                        None
+                    } else {
+                        Some(SomeipLogMessage::from(
+                            rpc_message_string(fibex_metadata, &header, &payload),
+                            input[..len].to_vec(),
+                        ))
+                    },
                 ))
             }
 
             Ok(Message::CookieClient) => {
+                let filtered = filter_config.is_some();
                 let len = Header::LENGTH;
                 debug!("at {time} : MCC Message");
                 Ok((
@@ -260,14 +284,19 @@ impl SomeipParser {
                     } else {
                         len
                     },
-                    SomeipLogMessage::from(
-                        String::from("MCC"), // Magic-Cookie-Client
-                        input[..len].to_vec(),
-                    ),
+                    if filtered {
+                        None
+                    } else {
+                        Some(SomeipLogMessage::from(
+                            String::from("MCC"), // Magic-Cookie-Client
+                            input[..len].to_vec(),
+                        ))
+                    },
                 ))
             }
 
             Ok(Message::CookieServer) => {
+                let filtered = filter_config.is_some();
                 let len = Header::LENGTH;
                 debug!("at {time} : MCS Message");
                 Ok((
@@ -276,10 +305,14 @@ impl SomeipParser {
                     } else {
                         len
                     },
-                    SomeipLogMessage::from(
-                        String::from("MCS"), // Magic-Cookie-Server
-                        input[..len].to_vec(),
-                    ),
+                    if filtered {
+                        None
+                    } else {
+                        Some(SomeipLogMessage::from(
+                            String::from("MCS"), // Magic-Cookie-Server
+                            input[..len].to_vec(),
+                        ))
+                    },
                 ))
             }
 
@@ -304,8 +337,13 @@ impl SingleParser for SomeipParser {
         input: &[u8],
         timestamp: Option<u64>,
     ) -> Result<ParseOutput<SomeipLogMessage>, Error> {
-        SomeipParser::parse_message(self.fibex_metadata.as_ref(), input, timestamp)
-            .map(|(rest, message)| ParseOutput::new(rest, Some(ParseYield::from(message))))
+        SomeipParser::parse_message(
+            self.filter_config.as_ref(),
+            self.fibex_metadata.as_ref(),
+            input,
+            timestamp,
+        )
+        .map(|(rest, message)| ParseOutput::new(rest, message.map(ParseYield::from)))
     }
 }
 
@@ -598,7 +636,7 @@ mod test {
     fn parse_error_no_data() {
         let input: &[u8] = &[];
 
-        let mut parser = SomeipParser::new();
+        let mut parser = SomeipParser::new(None);
         let result = parser.parse_item(input, None);
 
         match result {
@@ -617,7 +655,7 @@ mod test {
             0x01, 0x01, 0x01, 0x00, // proto(u8), version(u8), messageType,(u8) returnCode(u8)
         ];
 
-        let mut parser = SomeipParser::new();
+        let mut parser = SomeipParser::new(None);
         let result = parser.parse_item(input, None);
 
         match result {
@@ -636,7 +674,7 @@ mod test {
             0x01, 0x01, 0x01, 0x00, // proto(u8), version(u8), messageType,(u8) returnCode(u8)
         ];
 
-        let mut parser = SomeipParser::new();
+        let mut parser = SomeipParser::new(None);
 
         let ParseOutput { consumed, message } = parser.parse_item(input, None).unwrap();
         assert_eq!(consumed, input.len());
@@ -658,7 +696,7 @@ mod test {
             0x01, 0x01, 0x02, 0x00, // proto(u8), version(u8), messageType,(u8) returnCode(u8)
         ];
 
-        let mut parser = SomeipParser::new();
+        let mut parser = SomeipParser::new(None);
 
         let ParseOutput { consumed, message } = parser.parse_item(input, None).unwrap();
         assert_eq!(consumed, input.len());
@@ -680,7 +718,7 @@ mod test {
             0x01, 0x01, 0x02, 0x00, // proto(u8), version(u8), messageType,(u8) returnCode(u8)
         ];
 
-        let mut parser = SomeipParser::new();
+        let mut parser = SomeipParser::new(None);
 
         let ParseOutput { consumed, message } = parser.parse_item(input, None).unwrap();
         assert_eq!(consumed, input.len());
@@ -710,6 +748,7 @@ mod test {
 
         let fibex_metadata = test_metadata();
         let mut parser = SomeipParser {
+            filter_config: None,
             fibex_metadata: Some(fibex_metadata),
         };
 
@@ -740,7 +779,7 @@ mod test {
             0x01, 0x02, // payload([u8;2])
         ];
 
-        let mut parser = SomeipParser::new();
+        let mut parser = SomeipParser::new(None);
 
         let ParseOutput { consumed, message } = parser.parse_item(input, None).unwrap();
         assert_eq!(consumed, input.len());
@@ -771,6 +810,7 @@ mod test {
 
         let fibex_metadata = test_metadata();
         let mut parser = SomeipParser {
+            filter_config: None,
             fibex_metadata: Some(fibex_metadata),
         };
 
@@ -803,6 +843,7 @@ mod test {
 
         let fibex_metadata = test_metadata();
         let mut parser = SomeipParser {
+            filter_config: None,
             fibex_metadata: Some(fibex_metadata),
         };
 
@@ -835,6 +876,7 @@ mod test {
 
         let fibex_metadata = test_metadata();
         let mut parser = SomeipParser {
+            filter_config: None,
             fibex_metadata: Some(fibex_metadata),
         };
 
@@ -867,6 +909,7 @@ mod test {
 
         let fibex_metadata = test_metadata();
         let mut parser = SomeipParser {
+            filter_config: None,
             fibex_metadata: Some(fibex_metadata),
         };
 
@@ -899,6 +942,7 @@ mod test {
 
         let fibex_metadata = test_metadata();
         let mut parser = SomeipParser {
+            filter_config: None,
             fibex_metadata: Some(fibex_metadata),
         };
 
@@ -931,7 +975,7 @@ mod test {
             0x00, 0x00, 0x00, 0x00, // options-length(u32)
         ];
 
-        let mut parser = SomeipParser::new();
+        let mut parser = SomeipParser::new(None);
         let ParseOutput { consumed, message } = parser.parse_item(input, None).unwrap();
         assert_eq!(consumed, input.len());
 
@@ -977,7 +1021,7 @@ mod test {
             0x00, 0x11, 0x75, 0x30, // reserved(u8), proto(u8), port(u16)
         ];
 
-        let mut parser = SomeipParser::new();
+        let mut parser = SomeipParser::new(None);
 
         let ParseOutput { consumed, message } = parser.parse_item(input, None).unwrap();
         assert_eq!(consumed, input.len());

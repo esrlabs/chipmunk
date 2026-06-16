@@ -479,8 +479,8 @@ mod tests {
 
     use processor::search::filter::SearchFilter;
     use stypes::{
-        DltParserSettings, ObserveOptions, ObserveOrigin, ParserType, TCPTransportConfig,
-        Transport, UDPTransportConfig,
+        DltParserSettings, ObserveOptions, ObserveOrigin, ParserType, SomeIpParserSettings,
+        TCPTransportConfig, Transport, UDPTransportConfig,
     };
 
     use crate::{common::time::unix_timestamp_now, host::common::colors::StoredColorPair};
@@ -573,7 +573,8 @@ mod tests {
                     bind_addr: String::from("127.0.0.1:5556"),
                 }),
             ),
-            parser: ParserType::SomeIp(stypes::SomeIpParserSettings {
+            parser: ParserType::SomeIp(SomeIpParserSettings {
+                filter_config: None,
                 fibex_file_paths: Some(vec![String::from("/tmp/one.xml")]),
             }),
         });

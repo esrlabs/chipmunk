@@ -52,6 +52,8 @@ blake3.workspace = true
 nucleo-matcher.workspace = true
 anstyle-parse.workspace = true
 unicode-segmentation.workspace = true
+pcap-parser.workspace = true
+someip-messages.workspace = true
 
 #TODO: Replace env logger with log4rs
 env_logger.workspace = true

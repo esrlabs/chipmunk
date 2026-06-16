@@ -46,6 +46,7 @@ pub enum HostCommand {
     /// Reopen a recent-session snapshot with the requested intent.
     OpenRecentSession(Box<OpenRecentSessionParam>),
     DltStatistics(Box<DltStatisticsParam>),
+    SomeipStatistics(Box<SomeipStatisticsParam>),
     StartSession(Box<StartSessionParam>),
     /// Imports named presets from the provided file.
     ImportPresets(PathBuf),
@@ -108,6 +109,12 @@ pub struct OpenRecentSessionParam {
 
 #[derive(Debug, Clone)]
 pub struct DltStatisticsParam {
+    pub session_setup_id: Uuid,
+    pub source_paths: Vec<PathBuf>,
+}
+
+#[derive(Debug, Clone)]
+pub struct SomeipStatisticsParam {
     pub session_setup_id: Uuid,
     pub source_paths: Vec<PathBuf>,
 }

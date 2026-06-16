@@ -34,10 +34,10 @@ async fn observe_dlt_session() {
     });
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn observe_dlt_with_someip_session() {
-    let input = "../../../development/resources/someip.dlt";
-    let fibex_file = "../../../development/resources/someip.xml";
+    let input = "../../../development/resources/someip/someip.dlt";
+    let fibex_file = "../../../development/resources/someip/someip.xml";
 
     assert!(
         PathBuf::from(fibex_file).exists(),
@@ -69,9 +69,9 @@ async fn observe_dlt_with_someip_session() {
 // SomeIP request search in parsing session and searcher use block_in_place
 // on CPU heavy blocks.
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-async fn observe_someip_bcapng_session() {
-    let input = "../../../development/resources/someip.pcapng";
-    let fibex_file = "../../../development/resources/someip.xml";
+async fn observe_someip_pcapng_session() {
+    let input = "../../../development/resources/someip/udp/someip.pcapng";
+    let fibex_file = "../../../development/resources/someip/someip.xml";
 
     assert!(
         PathBuf::from(fibex_file).exists(),
@@ -79,6 +79,7 @@ async fn observe_someip_bcapng_session() {
     );
 
     let parser_settings = stypes::SomeIpParserSettings {
+        filter_config: None,
         fibex_file_paths: Some(vec![String::from(fibex_file)]),
     };
 
@@ -103,8 +104,8 @@ async fn observe_someip_bcapng_session() {
 // on CPU heavy blocks.
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn observe_someip_legacy_session() {
-    let input = "../../../development/resources/someip.pcap";
-    let fibex_file = "../../../development/resources/someip.xml";
+    let input = "../../../development/resources/someip/udp/someip.pcap";
+    let fibex_file = "../../../development/resources/someip/someip.xml";
 
     assert!(
         PathBuf::from(fibex_file).exists(),
@@ -112,6 +113,7 @@ async fn observe_someip_legacy_session() {
     );
 
     let parser_settings = stypes::SomeIpParserSettings {
+        filter_config: None,
         fibex_file_paths: Some(vec![String::from(fibex_file)]),
     };
 
