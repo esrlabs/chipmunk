@@ -405,6 +405,17 @@ impl SessionShared {
         changed
     }
 
+    /// Removes all filters from this session and tracks recent-session dirtiness once.
+    ///
+    /// Returns `true` when at least one filter was removed.
+    pub fn unapply_all_filters(&mut self, registry: &mut FilterRegistry) -> bool {
+        let changed = self.filters.unapply_all_filters(registry);
+        if changed {
+            self.bump_recent_revision();
+        }
+        changed
+    }
+
     /// Rebinds an applied filter row to a new registry id and tracks recent-session dirtiness.
     pub fn rebind_filter(&mut self, current_id: &Uuid, next_id: Uuid) -> bool {
         let changed = self.filters.rebind_filter(current_id, next_id);
@@ -447,6 +458,17 @@ impl SessionShared {
     /// Removes a search value from this session and tracks recent-session dirtiness.
     pub fn unapply_search_value(&mut self, registry: &mut FilterRegistry, value_id: &Uuid) -> bool {
         let changed = self.filters.unapply_search_value(registry, value_id);
+        if changed {
+            self.bump_recent_revision();
+        }
+        changed
+    }
+
+    /// Removes all search values from this session and tracks recent-session dirtiness once.
+    ///
+    /// Returns `true` when at least one search value was removed.
+    pub fn unapply_all_search_values(&mut self, registry: &mut FilterRegistry) -> bool {
+        let changed = self.filters.unapply_all_search_values(registry);
         if changed {
             self.bump_recent_revision();
         }
@@ -592,6 +614,56 @@ mod tests {
         assert_eq!(shared.recent_revision(), baseline + 2);
         assert!(!shared.set_search_value_color(&value_id, color));
         assert_eq!(shared.recent_revision(), baseline + 2);
+    }
+
+    #[test]
+    fn unapply_all_filters_bumps_recent_revision_once() {
+        let mut shared = new_shared();
+        let mut registry = FilterRegistry::default();
+        let first_filter = FilterDefinition::new(SearchFilter::plain("first"));
+        let first_id = registry.add_filter(first_filter);
+        let second_filter = FilterDefinition::new(SearchFilter::plain("second"));
+        let second_id = registry.add_filter(second_filter);
+        shared.apply_filter(&mut registry, first_id);
+        shared.apply_filter(&mut registry, second_id);
+        let baseline = shared.recent_revision();
+
+        assert!(shared.unapply_all_filters(&mut registry));
+
+        assert!(shared.filters.filter_entries.is_empty());
+        assert_eq!(registry.filter_usage_count(&first_id), 0);
+        assert_eq!(registry.filter_usage_count(&second_id), 0);
+        assert_eq!(registry.filters_map().len(), 2);
+        assert_eq!(shared.recent_revision(), baseline + 1);
+
+        assert!(!shared.unapply_all_filters(&mut registry));
+        assert_eq!(shared.recent_revision(), baseline + 1);
+    }
+
+    #[test]
+    fn unapply_all_search_values_bumps_recent_revision_once() {
+        let mut shared = new_shared();
+        let mut registry = FilterRegistry::default();
+        let first_filter = SearchFilter::plain("first=(\\d+)").regex(true);
+        let first_value = SearchValueDefinition::new(first_filter);
+        let first_id = registry.add_search_value(first_value);
+        let second_filter = SearchFilter::plain("second=(\\d+)").regex(true);
+        let second_value = SearchValueDefinition::new(second_filter);
+        let second_id = registry.add_search_value(second_value);
+        shared.apply_search_value(&mut registry, first_id);
+        shared.apply_search_value(&mut registry, second_id);
+        let baseline = shared.recent_revision();
+
+        assert!(shared.unapply_all_search_values(&mut registry));
+
+        assert!(shared.filters.search_value_entries.is_empty());
+        assert_eq!(registry.search_value_usage_count(&first_id), 0);
+        assert_eq!(registry.search_value_usage_count(&second_id), 0);
+        assert_eq!(registry.search_value_map().len(), 2);
+        assert_eq!(shared.recent_revision(), baseline + 1);
+
+        assert!(!shared.unapply_all_search_values(&mut registry));
+        assert_eq!(shared.recent_revision(), baseline + 1);
     }
 
     #[test]
