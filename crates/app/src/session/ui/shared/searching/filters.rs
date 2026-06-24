@@ -338,6 +338,19 @@ impl FiltersState {
         false
     }
 
+    /// Removes all filters from the session without deleting registry definitions.
+    ///
+    /// Returns `true` when at least one filter was removed.
+    pub fn unapply_all_filters(&mut self, registry: &mut FilterRegistry) -> bool {
+        let changed = !self.filter_entries.is_empty();
+        let session_id = self.session_id;
+        for item in self.filter_entries.drain(..) {
+            registry.unapply_filter_from_session(item.id, session_id);
+        }
+
+        changed
+    }
+
     /// Swaps the registry definition behind an applied filter while keeping the
     /// session-local row state intact.
     ///
@@ -420,6 +433,19 @@ impl FiltersState {
         }
 
         false
+    }
+
+    /// Removes all search values from the session without deleting registry definitions.
+    ///
+    /// Returns `true` when at least one search value was removed.
+    pub fn unapply_all_search_values(&mut self, registry: &mut FilterRegistry) -> bool {
+        let changed = !self.search_value_entries.is_empty();
+        let session_id = self.session_id;
+        for item in self.search_value_entries.drain(..) {
+            registry.unapply_search_value_from_session(item.id, session_id);
+        }
+
+        changed
     }
 
     /// Swaps the registry definition behind an applied search value while

@@ -43,9 +43,11 @@ enum FilterPanelAction {
     ToggleFilter(Uuid, bool),
     EditFilterFlags(Uuid, FilterFlags),
     RemoveFilter(Uuid),
+    RemoveAllFilters,
     MoveFilterToValue(Uuid),
     ToggleSearchValue(Uuid, bool),
     RemoveSearchValue(Uuid),
+    RemoveAllSearchValues,
     MoveValueToFilter(Uuid),
     /// Requests the parent session to capture the current filters and charts.
     CapturePreset,
@@ -341,6 +343,11 @@ impl FiltersUi {
                     ui.close();
                 }
 
+                if ui.button("Remove All Filters").clicked() {
+                    *side_action = Some(FilterPanelAction::RemoveAllFilters);
+                    ui.close();
+                }
+
                 let mut move_btn = ui
                     .add_enabled(
                         row.search_value_eligibility.is_eligible(),
@@ -432,6 +439,11 @@ impl FiltersUi {
 
                 if ui.button("Remove Chart").clicked() {
                     *side_action = Some(FilterPanelAction::RemoveSearchValue(row.id));
+                    ui.close();
+                }
+
+                if ui.button("Remove All Charts").clicked() {
+                    *side_action = Some(FilterPanelAction::RemoveAllSearchValues);
                     ui.close();
                 }
 
@@ -1076,6 +1088,20 @@ impl FiltersUi {
                     .into_iter()
                     .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
             }
+            FilterPanelAction::RemoveAllFilters => {
+                self.filter_edit_state = None;
+                if self
+                    .selected_item
+                    .is_some_and(|item| matches!(item, SelectedSidebarItem::Filter(_)))
+                {
+                    self.selected_item = None;
+                }
+                shared.unapply_all_filters(registry);
+                shared
+                    .sync_search(registry, SearchSyncTarget::Filter)
+                    .into_iter()
+                    .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
+            }
             FilterPanelAction::MoveFilterToValue(filter_id) => {
                 self.clear_filter_edit_for(filter_id);
                 let was_applied = shared.filters.is_filter_applied(&filter_id);
@@ -1109,6 +1135,20 @@ impl FiltersUi {
                 self.clear_search_value_edit_for(value_id);
                 self.clear_selection_for(SelectedSidebarItem::SearchValue(value_id));
                 shared.unapply_search_value(registry, &value_id);
+                shared
+                    .sync_search(registry, SearchSyncTarget::SearchValue)
+                    .into_iter()
+                    .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
+            }
+            FilterPanelAction::RemoveAllSearchValues => {
+                self.search_value_edit_state = None;
+                if self
+                    .selected_item
+                    .is_some_and(|item| matches!(item, SelectedSidebarItem::SearchValue(_)))
+                {
+                    self.selected_item = None;
+                }
+                shared.unapply_all_search_values(registry);
                 shared
                     .sync_search(registry, SearchSyncTarget::SearchValue)
                     .into_iter()
