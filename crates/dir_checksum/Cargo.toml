@@ -6,6 +6,7 @@ edition = "2024"
 description = "A Library which provides methods to calculate the checksum of the files in a given path recursively considering `gitignore` rules"
 
 [dependencies]
+# External crates
 blake3 = { workspace = true, features = ["rayon"] }
 ignore.workspace = true
 memmap2.workspace = true
@@ -14,6 +15,7 @@ thiserror.workspace = true
 log.workspace = true
 
 [dev-dependencies]
+# External crates
 tempdir.workspace = true
 anyhow.workspace = true
 pretty_assertions.workspace = true

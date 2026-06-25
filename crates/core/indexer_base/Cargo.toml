@@ -8,6 +8,7 @@ edition.workspace = true
 workspace = true 
 
 [dependencies]
+# External crates
 log.workspace = true
 serde = { workspace = true , features = ["derive"] }
 thiserror.workspace = true

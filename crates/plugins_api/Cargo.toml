@@ -4,10 +4,12 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+# External crates
 log.workspace = true
 wit-bindgen.workspace = true
 
 [dev-dependencies]
+# External crates
 trybuild.workspace = true
 
 [features]

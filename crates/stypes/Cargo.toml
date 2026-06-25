@@ -8,6 +8,7 @@ edition.workspace = true
 workspace = true
 
 [dependencies]
+# External crates
 serde = { workspace = true, features = ["derive"] }
 dlt-core = { workspace = true, features = ["fibex", "statistics", "serialization"] }
 uuid = { workspace = true, features = ["serde", "v4"] }

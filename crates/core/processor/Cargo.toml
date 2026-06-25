@@ -32,7 +32,10 @@ thiserror.workspace = true
 tokio-util.workspace = true
 
 [dev-dependencies]
+# Internal crates
 plugins_host.workspace = true
+
+# External crates
 criterion = { workspace = true, features = ["async_tokio"] }
 pretty_assertions.workspace = true
 rand.workspace = true
