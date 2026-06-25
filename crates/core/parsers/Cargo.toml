@@ -9,6 +9,7 @@ workspace = true
 [dependencies]
 # Internal crates
 someip_tools.workspace = true
+stypes.workspace = true
 
 # External crates
 byteorder.workspace = true
@@ -24,7 +25,7 @@ thiserror.workspace = true
 rand.workspace = true
 someip-messages.workspace = true
 someip-payload.workspace = true
-stypes.workspace = true
 
 [dev-dependencies]
+# External crates
 stringreader.workspace = true

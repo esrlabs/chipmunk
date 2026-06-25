@@ -9,6 +9,7 @@ workspace = true
 [dependencies]
 
 [dev-dependencies]
+# External crates
 criterion.workspace = true
 proptest.workspace = true
 rand.workspace = true

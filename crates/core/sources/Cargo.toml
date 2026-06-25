@@ -28,7 +28,9 @@ uuid = { workspace = true , features = ["serde", "v4"] }
 socket2.workspace = true
 
 [target.'cfg(windows)'.dependencies]
+# Internal crates
 shell_tools.workspace = true
 
 [dev-dependencies]
+# External crates
 env_logger.workspace = true

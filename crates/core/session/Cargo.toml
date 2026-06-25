@@ -40,6 +40,7 @@ uuid = { workspace = true , features = ["serde", "v4"] }
 walkdir.workspace = true
 
 [dev-dependencies]
+# External crates
 lazy_static.workspace = true
 tempfile.workspace = true
 insta.workspace = true

@@ -27,7 +27,10 @@ wasmtime.workspace = true
 wasmtime-wasi.workspace = true
 
 [dev-dependencies]
+# Internal crates
 processor.workspace = true
+
+# External crates
 criterion = { workspace = true, features = ["async_tokio"] }
 
 [[bench]]

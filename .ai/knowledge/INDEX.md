@@ -25,5 +25,7 @@ Use this file to choose the next context file to read. Do not load every context
 
 Load only when the task explicitly targets that area.
 
+- Rust workspace and dependencies: `.ai/knowledge/rust-workspace.md`
+  - Use when editing `Cargo.toml`, adding dependencies, or changing workspace configuration.
 - CLI parser/export: `.ai/knowledge/crates/cli/AGENTS.md`
 - Plugins: `.ai/knowledge/plugins/AGENTS.md`
