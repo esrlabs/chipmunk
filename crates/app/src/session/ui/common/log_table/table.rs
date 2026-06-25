@@ -500,7 +500,8 @@ pub fn apply_log_row_colors(
     main_log_pos: Option<u64>,
     is_selected: bool,
 ) {
-    // Selected wins over filters/bookmarks. Search/filter colors win over bookmark fallback.
+    // Selected wins. Among matched filters, later filters in effective search order win,
+    // matching legacy Chipmunk 3 precedence. Search/filter colors win over bookmark fallback.
     let row_colors = if is_selected {
         Some(&SELECTED_LOG_COLORS)
     } else if let Some(pos) = main_log_pos {
@@ -508,7 +509,7 @@ pub fn apply_log_row_colors(
             .search
             .current_matches_map()
             .and_then(|map| map.get(&LogMainIndex(pos)))
-            .and_then(|matches| matches.first())
+            .and_then(|matches| matches.last())
             .and_then(|filter_idx| {
                 let idx = filter_idx.0 as usize;
                 if let Some(filter_id) = shared.filters.enabled_filter_ids().nth(idx) {
