@@ -29,7 +29,7 @@ pub fn get_plugin_config() -> PluginBenchConfig {
         .expect("Path to plugin config must be provided as additional config");
     assert!(config_path.exists(), "Config files doesn't exist");
     let config_content =
-        std::fs::read_to_string(config_path).expect("Read plugin config file falied");
+        std::fs::read_to_string(config_path).expect("Read plugin config file failed");
 
     toml::from_str(&config_content).expect("Deserializing plugin config failed")
 }
