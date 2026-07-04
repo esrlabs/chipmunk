@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
   <Product Id="*" Name="Chipmunk" Language="1033" Version="{installer_version}" Manufacturer="ESR Labs" UpgradeCode="{upgrade_code}">
-    <Package InstallerVersion="500" Compressed="yes" InstallScope="perMachine" />
+    <Package InstallerVersion="500" Compressed="yes" InstallScope="perMachine" Platform="x64" />
     <MajorUpgrade AllowSameVersionUpgrades="yes" DowngradeErrorMessage="A newer version of Chipmunk is already installed." />
     <MediaTemplate EmbedCab="yes" />
     <Icon Id="ChipmunkIcon" SourceFile="{icon}" />
@@ -23,7 +23,7 @@
 
   <Fragment>
     <Directory Id="TARGETDIR" Name="SourceDir">
-      <Directory Id="ProgramFilesFolder">
+      <Directory Id="ProgramFiles64Folder">
         <Directory Id="INSTALLFOLDER" Name="Chipmunk" />
       </Directory>
       <Directory Id="ProgramMenuFolder">
@@ -34,13 +34,13 @@
 
   <Fragment>
     <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
-      <Component Id="ChipmunkExecutable" Guid="*">
+      <Component Id="ChipmunkExecutable" Guid="*" Win64="yes">
         <File Id="ChipmunkExe" Source="{exe}" KeyPath="yes" />
       </Component>
-      <Component Id="ChipmunkReadme" Guid="*">
+      <Component Id="ChipmunkReadme" Guid="*" Win64="yes">
         <File Id="ChipmunkReadmeFile" Source="{readme}" KeyPath="yes" />
       </Component>
-      <Component Id="ChipmunkStartMenuShortcut" Guid="*">
+      <Component Id="ChipmunkStartMenuShortcut" Guid="*" Win64="yes">
         <Shortcut Id="ApplicationStartMenuShortcut" Directory="ApplicationProgramsFolder" Name="Chipmunk" Description="Launch Chipmunk" Target="[#ChipmunkExe]" WorkingDirectory="INSTALLFOLDER" Icon="ChipmunkIcon" />
         <RemoveFolder Id="RemoveApplicationProgramsFolder" Directory="ApplicationProgramsFolder" On="uninstall" />
         <RegistryValue Root="HKCU" Key="Software\ESR Labs\Chipmunk" Name="installed" Type="integer" Value="1" KeyPath="yes" />

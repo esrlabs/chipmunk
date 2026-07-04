@@ -16,6 +16,7 @@ if sys.version_info < (3, 7):
 
 import argparse
 import base64
+import gzip
 import os
 import platform
 import plistlib
@@ -155,15 +156,37 @@ def reset_staging_dir(staging_dir):
 
 def write_flat_tgz_archive(source_dir, archive):
     """Tar the staged files at archive root, without a wrapper directory."""
-    with tarfile.open(archive, "w:gz") as tar:
-        for path in sorted(source_dir.iterdir(), key=lambda path: path.name):
-            tar.add(path, arcname=path.name)
+    with archive.open("wb") as file:
+        with gzip.GzipFile(
+            filename=tgz_inner_tar_name(archive),
+            mode="wb",
+            fileobj=file,
+        ) as gzip_file:
+            with tarfile.open(fileobj=gzip_file, mode="w") as tar:
+                for path in sorted(source_dir.iterdir(), key=lambda path: path.name):
+                    tar.add(path, arcname=path.name)
 
 
 def write_tgz_archive(source_path, archive, arcname):
     """Tar one path under an explicit archive name."""
-    with tarfile.open(archive, "w:gz") as tar:
-        tar.add(source_path, arcname=arcname)
+    with archive.open("wb") as file:
+        with gzip.GzipFile(
+            filename=tgz_inner_tar_name(archive),
+            mode="wb",
+            fileobj=file,
+        ) as gzip_file:
+            with tarfile.open(fileobj=gzip_file, mode="w") as tar:
+                tar.add(source_path, arcname=arcname)
+
+
+def tgz_inner_tar_name(archive):
+    """Return the tar payload name exposed by tools that unpack gzip first."""
+    name = archive.name
+    if name.endswith(".tgz"):
+        return "{}.tar".format(name[:-4])
+    if name.endswith(".tar.gz"):
+        return name[:-3]
+    return "{}.tar".format(name)
 
 
 def package_macos(version, code_sign):
