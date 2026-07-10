@@ -10,7 +10,7 @@ mod session;
 pub fn run_app() -> anyhow::Result<()> {
     let cli_cmds = cli::Cli::parse().get_commands();
 
-    common::logging::setup()?;
+    common::logging::setup();
 
     Host::run(cli_cmds).map_err(|err| anyhow::anyhow!("{err:?}"))
 }

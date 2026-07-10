@@ -55,8 +55,7 @@ unicode-segmentation.workspace = true
 pcap-parser.workspace = true
 someip-messages.workspace = true
 
-#TODO: Replace env logger with log4rs
-env_logger.workspace = true
+log4rs.workspace = true
 
 winit.workspace = true
 egui = { workspace = true, features = ["rayon"] }
