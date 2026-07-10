@@ -44,7 +44,7 @@ pub fn render(
 
             let accent_stroke = colors::main_accent_stroke(ui.visuals().dark_mode);
             Frame::window(ui.style())
-                .stroke(Stroke::new(1.0, accent_stroke))
+                .stroke(Stroke::new(1.0_f32, accent_stroke))
                 .show(ui, |ui| {
                     ui.set_width(card_width);
 

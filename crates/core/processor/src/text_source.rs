@@ -35,13 +35,13 @@ impl TextFileSource {
     pub fn contains_text(path: &Path) -> Result<bool, GrabError> {
         let chunk_size = 100 * 1024usize;
         let mut f = fs::File::open(path)
-            .map_err(|_| GrabError::IoOperation(format!("Could not open file {:?}", &path)))?;
+            .map_err(|_| GrabError::IoOperation(format!("Could not open file {:?}", path)))?;
         let mut count = 0usize;
         let mut buffer = vec![0; chunk_size];
 
         let n = f
             .read(&mut buffer)
-            .map_err(|_| GrabError::IoOperation(format!("Could not read from file {:?}", &path)))?;
+            .map_err(|_| GrabError::IoOperation(format!("Could not read from file {:?}", path)))?;
         if n < chunk_size {
             buffer.resize(n, 0);
         }
@@ -60,13 +60,13 @@ impl TextFileSource {
     pub fn count_lines(&self) -> Result<usize, GrabError> {
         let chunk_size = 100 * 1024usize;
         let mut f = fs::File::open(&self.path)
-            .map_err(|_| GrabError::IoOperation(format!("Could not open file {:?}", &self.path)))?;
+            .map_err(|_| GrabError::IoOperation(format!("Could not open file {:?}", self.path)))?;
         let mut count = 0usize;
         let mut buffer = vec![0; chunk_size];
 
         loop {
             let n = f.read(&mut buffer).map_err(|_| {
-                GrabError::IoOperation(format!("Could not read from file {:?}", &self.path))
+                GrabError::IoOperation(format!("Could not read from file {:?}", self.path))
             })?;
             if n < chunk_size {
                 buffer.resize(n, 0);
@@ -111,7 +111,7 @@ impl TextFileSource {
     ) -> Result<(ComputationResult<GrabMetadata>, Option<RangeInclusive<u64>>), GrabError> {
         use std::io::prelude::*;
         let file_metadata = fs::metadata(&self.path).map_err(|_| {
-            GrabError::IoOperation(format!("Could not get metadata for file {:?}", &self.path))
+            GrabError::IoOperation(format!("Could not get metadata for file {:?}", self.path))
         })?;
         if !file_metadata.is_file() {
             return Err(GrabError::Config(format!(
@@ -131,11 +131,11 @@ impl TextFileSource {
         };
         let from = log_msg_cnt;
         let mut f = fs::File::open(&self.path)
-            .map_err(|_| GrabError::IoOperation(format!("Could not open file {:?}", &self.path)))?;
+            .map_err(|_| GrabError::IoOperation(format!("Could not open file {:?}", self.path)))?;
         f.seek(SeekFrom::Start(byte_offset)).map_err(|_| {
             GrabError::IoOperation(format!(
                 "Could not seek file {:?} to {}",
-                &self.path, byte_offset
+                self.path, byte_offset
             ))
         })?;
         let mut reader = BufReader::new(BIN_READER_CAPACITY, BIN_MIN_BUFFER_SPACE, f);
@@ -240,15 +240,15 @@ impl TextFileSource {
         })?;
         let mut read_buf = vec![0; file_part.length];
         let mut read_from = fs::File::open(self.path())
-            .map_err(|_| GrabError::IoOperation(format!("Could not open file {:?}", &self.path)))?;
+            .map_err(|_| GrabError::IoOperation(format!("Could not open file {:?}", self.path)))?;
         read_from
             .seek(SeekFrom::Start(file_part.offset_in_file))
             .map_err(|_| {
-                GrabError::IoOperation(format!("Could not seek in file {:?}", &self.path))
+                GrabError::IoOperation(format!("Could not seek in file {:?}", self.path))
             })?;
 
         read_from.read_exact(&mut read_buf).map_err(|_| {
-            GrabError::IoOperation(format!("Could not read from file {:?}", &self.path))
+            GrabError::IoOperation(format!("Could not read from file {:?}", self.path))
         })?;
         Ok((read_buf, file_part))
     }

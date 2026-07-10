@@ -35,7 +35,7 @@ impl ByteSource for MockByteSource {
         #[inline(never)]
         fn inner(_phantom: &MockByteSource) -> &[u8] {
             black_box({
-                const BYTES: [u8; 3] = [b'a', b's', b'a'];
+                const BYTES: [u8; 3] = *b"asa";
                 const REF: &[u8] = &BYTES;
 
                 REF

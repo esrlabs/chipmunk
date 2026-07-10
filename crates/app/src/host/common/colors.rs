@@ -201,9 +201,9 @@ pub fn notification_error_color(dark_mode: bool) -> Color32 {
 /// Stroke used for the active log-table indicator.
 pub fn active_log_table_indicator(dark_mode: bool) -> Stroke {
     if dark_mode {
-        Stroke::new(2.0, MAIN_ACCENT_STROKE_DARK.gamma_multiply_u8(200))
+        Stroke::new(2.0_f32, MAIN_ACCENT_STROKE_DARK.gamma_multiply_u8(200))
     } else {
-        Stroke::new(3.0, MAIN_ACCENT_STROKE_LIGHT.gamma_multiply_u8(170))
+        Stroke::new(3.0_f32, MAIN_ACCENT_STROKE_LIGHT.gamma_multiply_u8(170))
     }
 }
 

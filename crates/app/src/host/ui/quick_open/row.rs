@@ -102,7 +102,7 @@ fn highlighted_layout(ui: &Ui, text: &SearchPickerText, primary: bool) -> Layout
         ..Default::default()
     };
     let highlight_format = TextFormat {
-        underline: Stroke::new(1.25, color),
+        underline: Stroke::new(1.25_f32, color),
         ..base_format.clone()
     };
 

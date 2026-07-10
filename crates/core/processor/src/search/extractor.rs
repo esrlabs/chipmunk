@@ -72,7 +72,7 @@ impl MatchesExtractor {
             .map_err(|e| {
                 SearchError::IoOperation(format!(
                     "Could not search in file {:?}; error: {}",
-                    &self.file_path, e
+                    self.file_path, e
                 ))
             })?;
 

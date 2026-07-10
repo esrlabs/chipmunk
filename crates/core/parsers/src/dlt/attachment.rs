@@ -124,45 +124,11 @@ impl FtMessageParser {
     /// * 3 DLT_RAW(bytes)
     /// * 4 DLT_STRING("FLDA")
     fn data_message(timestamp: Option<u32>, args: &[Argument]) -> Option<FtMessage<'_>> {
-        let id;
-        let packet;
-        let bytes;
-
-        if let Some(arg) = args.get(1) {
-            if let Some(value) = Self::get_number(arg) {
-                id = value;
-            } else {
-                return None;
-            }
-        } else {
-            return None;
-        }
-
-        if let Some(arg) = args.get(2) {
-            if let Some(value) = Self::get_number(arg) {
-                packet = value;
-            } else {
-                return None;
-            }
-        } else {
-            return None;
-        }
-
-        if let Some(arg) = args.get(3) {
-            if let Some(value) = Self::get_bytes(arg) {
-                bytes = value;
-            } else {
-                return None;
-            }
-        } else {
-            return None;
-        }
-
         Some(FtMessage::Data(FileData {
             timestamp,
-            id,
-            packet,
-            bytes,
+            id: Self::get_number(args.get(1)?)?,
+            packet: Self::get_number(args.get(2)?)?,
+            bytes: Self::get_bytes(args.get(3)?)?,
         }))
     }
 
@@ -174,19 +140,10 @@ impl FtMessageParser {
     /// * 1 DLT_UINT(file-id)
     /// * 2 DLT_STRING("FLFI")
     fn end_message(timestamp: Option<u32>, args: &[Argument]) -> Option<FtMessage<'_>> {
-        let id;
-
-        if let Some(arg) = args.get(1) {
-            if let Some(value) = Self::get_number(arg) {
-                id = value;
-            } else {
-                return None;
-            }
-        } else {
-            return None;
-        }
-
-        Some(FtMessage::End(FileEnd { timestamp, id }))
+        Some(FtMessage::End(FileEnd {
+            timestamp,
+            id: Self::get_number(args.get(1)?)?,
+        }))
     }
 
     /// Returns a string value from given argument, if any.
@@ -339,7 +296,7 @@ impl TempDir {
     pub fn assert_file(&self, name: &str, content: &str) {
         let path = self.dir.join(name);
         let string =
-            std::fs::read_to_string(&path).unwrap_or_else(|_| panic!("{:?} should exist", &path));
+            std::fs::read_to_string(&path).unwrap_or_else(|_| panic!("{:?} should exist", path));
         assert_eq!(string, content);
     }
 }

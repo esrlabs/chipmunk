@@ -77,7 +77,7 @@ impl NotificationBanner {
 
                 let base_level_color = entry.level.color(ui.visuals().dark_mode);
                 let level_color = apply_alpha(base_level_color);
-                let stroke = Stroke::new(1.0, level_color);
+                let stroke = Stroke::new(1.0_f32, level_color);
                 let margin = Margin::same(10);
                 let content_width = (banner_width - 20.0).at_least(0.0);
                 let text_color = apply_alpha(ui.visuals().text_color());

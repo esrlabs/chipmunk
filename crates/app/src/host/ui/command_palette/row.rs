@@ -82,7 +82,7 @@ fn render_title(ui: &mut Ui, title: &SearchPickerText, font_size: f32) {
         ..Default::default()
     };
     let highlight_format = TextFormat {
-        underline: Stroke::new(1.0, color),
+        underline: Stroke::new(1.0_f32, color),
         ..base_format.clone()
     };
 

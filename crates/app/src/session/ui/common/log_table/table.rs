@@ -264,7 +264,7 @@ pub fn render_upper_bound(ui: &mut Ui) {
             egui::Pos2::new(rect.max.x, rect.top() + 1.0),
         ],
         Stroke::new(
-            0.5,
+            0.5_f32,
             ui.style().visuals.widgets.noninteractive.fg_stroke.color,
         ),
         4.0,
