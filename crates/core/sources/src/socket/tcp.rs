@@ -179,7 +179,7 @@ mod tests {
         io::AsyncWriteExt,
         net::TcpListener,
         task::yield_now,
-        time::{sleep, timeout},
+        time::{Instant, sleep, timeout},
     };
 
     static MESSAGES: &[&str] = &["one", "two", "three"];
@@ -199,7 +199,7 @@ mod tests {
         }
     }
 
-    #[tokio::test]
+    #[tokio::test(start_paused = true)]
     async fn test_tcp_reload() -> Result<(), std::io::Error> {
         static SERVER: &str = "127.0.0.1:4000";
         let listener = TcpListener::bind(&SERVER).await.unwrap();
@@ -228,7 +228,7 @@ mod tests {
         Ok(())
     }
 
-    #[tokio::test]
+    #[tokio::test(start_paused = true)]
     async fn test_general_source_reload() {
         static SERVER: &str = "127.0.0.1:4001";
         let listener = TcpListener::bind(&SERVER).await.unwrap();
@@ -277,7 +277,7 @@ mod tests {
         }
     }
 
-    #[tokio::test]
+    #[tokio::test(start_paused = true)]
     async fn reconnect_no_msgs() {
         static SERVER: &str = "127.0.0.1:4003";
         let listener = TcpListener::bind(&SERVER).await.unwrap();
@@ -316,23 +316,43 @@ mod tests {
         assert!(rec_res.is_ok());
     }
 
-    #[tokio::test]
+    #[tokio::test(start_paused = true)]
     async fn reconnect_with_state_msgs() {
         static SERVER: &str = "127.0.0.1:4004";
-        let listener = TcpListener::bind(&SERVER).await.unwrap();
-        let send_handle = tokio::spawn(async move {
-            accept_and_send(&listener, 30).await;
-            // Then disconnected the server and sleep.
-            drop(listener);
-            sleep(Duration::from_millis(160)).await;
+        const OUTAGE_DURATION: Duration = Duration::from_millis(160);
 
-            // Start new server sending data again.
-            let listener = TcpListener::bind(&SERVER).await.unwrap();
-            accept_and_send(&listener, 30).await;
-        });
+        let listener = TcpListener::bind(&SERVER).await.unwrap();
 
         // Enable reconnect with state channels.
         let (state_tx, mut state_rx) = tokio::sync::watch::channel(ReconnectStateMsg::Connected);
+        let mut outage_state_rx = state_tx.subscribe();
+
+        let send_handle = tokio::spawn(async move {
+            accept_and_send(&listener, 30).await;
+
+            let outage_started = Instant::now();
+            drop(listener);
+
+            let four_attempts_elapsed = loop {
+                outage_state_rx.changed().await.unwrap();
+                if matches!(
+                    *outage_state_rx.borrow_and_update(),
+                    ReconnectStateMsg::Reconnecting { attempts } if attempts >= 4
+                ) {
+                    break outage_started.elapsed();
+                }
+            };
+
+            if let Some(remaining) = OUTAGE_DURATION.checked_sub(four_attempts_elapsed) {
+                tokio::time::advance(remaining).await;
+            }
+
+            // Start new server after the 160 millisecond outage.
+            let listener = TcpListener::bind(&SERVER).await.unwrap();
+            accept_and_send(&listener, 30).await;
+
+            four_attempts_elapsed
+        });
 
         let rec_info = ReconnectInfo::new(1000, Duration::from_millis(50), Some(state_tx));
 
@@ -381,14 +401,15 @@ mod tests {
             }
         });
 
-        let (_, rec_res, reconnect_res) =
+        let (send_res, rec_res, reconnect_res) =
             tokio::join!(send_handle, receive_handle, reconnect_handler);
 
+        assert!(send_res.unwrap() <= OUTAGE_DURATION);
         assert!(rec_res.is_ok());
         assert!(reconnect_res.is_ok());
     }
 
-    #[tokio::test]
+    #[tokio::test(start_paused = true)]
     async fn reconnect_fail() {
         static SERVER: &str = "127.0.0.1:4005";
         let listener = TcpListener::bind(&SERVER).await.unwrap();
@@ -446,7 +467,7 @@ mod tests {
 
     /// Ensure load and reconnect functions are cancel safe by keep sending notifications
     /// in rapid interval while calling them.
-    #[tokio::test]
+    #[tokio::test(start_paused = true)]
     async fn load_reconnect_cancel_safe() {
         static SERVER: &str = "127.0.0.1:4006";
         let listener = TcpListener::bind(&SERVER).await.unwrap();
@@ -513,7 +534,7 @@ mod tests {
 
     /// Ensure load and reconnect functions are cancel safe by keep calling it within a timeout
     /// function with rapid interval.
-    #[tokio::test]
+    #[tokio::test(start_paused = true)]
     async fn load_reconnect_cancel_safe_timeout() {
         static SERVER: &str = "127.0.0.1:4007";
         let listener = TcpListener::bind(&SERVER).await.unwrap();

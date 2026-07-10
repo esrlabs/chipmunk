@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 use std::time::Duration;
 
 use tokio::task::JoinHandle;
-use tokio::time::sleep;
+use tokio::time::{Instant, sleep};
 
 use sources::{ByteSource, Error, ReloadInfo, SourceFilter};
 
@@ -195,23 +195,23 @@ async fn general_test_mock_byte_source() {
     assert!(matches!(fourth_reload, Err(Error::NotSupported)));
 }
 
-#[tokio::test]
+#[tokio::test(start_paused = true)]
 async fn test_mock_byte_source_delay() {
     let delay = Duration::from_millis(5);
     let seeds = [Ok(Some(MockReloadSeed::new(5, 0).sleep_duration(delay)))];
     let mut source = MockByteSource::new(10, seeds);
 
-    let instance = std::time::Instant::now();
+    let started = Instant::now();
 
     let res = source.load(None).await;
 
-    let passed = instance.elapsed();
+    let elapsed = started.elapsed();
 
     // Method should succeed
     assert!(res.is_ok());
 
-    // Reload should have taken more than the delayed time.
-    assert!(passed > delay);
+    // Reload should not complete before the configured delay.
+    assert!(elapsed >= delay);
 }
 
 #[tokio::test]
@@ -246,7 +246,7 @@ async fn test_mock_byte_source_income() {
     ));
 }
 
-#[tokio::test]
+#[tokio::test(start_paused = true)]
 async fn test_load_cancel_safety() {
     const SLEEP_DURATION: Duration = Duration::from_millis(50);
 

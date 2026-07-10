@@ -197,7 +197,7 @@ mod tests {
     /// This test demonstrate that parsers which consume the bytes of one result at a
     /// time while miss parsing the whole bytes when the server isn't sending more data
     /// even that the buffer has bytes in it.
-    #[tokio::test]
+    #[tokio::test(start_paused = true)]
     async fn test_source_buffer_overflow() {
         const SENDER: &str = "127.0.0.1:4002";
         const RECEIVER: &str = "127.0.0.1:5002";

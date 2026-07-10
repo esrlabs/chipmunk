@@ -10,7 +10,7 @@ use super::*;
 const SOURCE_SLEEP_DURATION: Duration = Duration::from_millis(70);
 
 /// Cancel safety test for producer session without parse errors.
-#[tokio::test]
+#[tokio::test(start_paused = true)]
 async fn cancel_safe_no_errors() {
     let parser = MockParser::new([
         Ok(vec![MockParseSeed::new(
@@ -111,7 +111,7 @@ async fn cancel_safe_no_errors() {
 }
 
 /// Cancel safety test for producer session with parse incomplete errors.
-#[tokio::test]
+#[tokio::test(start_paused = true)]
 async fn cancel_safe_incomplete() {
     let parser = MockParser::new([
         Ok(vec![MockParseSeed::new(
@@ -219,7 +219,7 @@ async fn cancel_safe_incomplete() {
 }
 
 /// Cancel safety test for producer session with parse end of file error.
-#[tokio::test]
+#[tokio::test(start_paused = true)]
 async fn cancel_safe_eof() {
     let parser = MockParser::new([
         Ok(vec![MockParseSeed::new(
@@ -321,7 +321,7 @@ async fn cancel_safe_eof() {
 
 /// Cancel safety test for producer session with parse errors, without calling load
 /// on source because of them.
-#[tokio::test]
+#[tokio::test(start_paused = true)]
 async fn cancel_safe_parse_err_no_load() {
     let parser = MockParser::new([
         Ok(vec![MockParseSeed::new(
@@ -424,7 +424,7 @@ async fn cancel_safe_parse_err_no_load() {
 
 /// Cancel safety test for producer session with parse errors, causing to call load
 /// on source because of them.
-#[tokio::test]
+#[tokio::test(start_paused = true)]
 async fn cancel_safe_parse_err_with_load() {
     let parser = MockParser::new([
         Ok(vec![MockParseSeed::new(
@@ -534,7 +534,7 @@ async fn cancel_safe_parse_err_with_load() {
 }
 
 /// Cancel safety test use no errors using `timeout()` method instead of `select!{}` macro.
-#[tokio::test]
+#[tokio::test(start_paused = true)]
 async fn cancel_safe_timeout() {
     let parser = MockParser::new([
         Ok(vec![MockParseSeed::new(
