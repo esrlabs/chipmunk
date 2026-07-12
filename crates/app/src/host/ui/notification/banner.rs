@@ -3,8 +3,8 @@
 use std::time::{Duration, Instant};
 
 use egui::{
-    Align2, Area, Color32, Frame, Id, Label, Margin, NumExt, Order, Rect, RichText, Sense, Stroke,
-    TextWrapMode, Ui, Vec2, pos2,
+    Align2, Area, Color32, FontSelection, Frame, Id, Label, Margin, NumExt, Order, Rect, RichText,
+    Sense, Stroke, TextWrapMode, Ui, Vec2, pos2, text::LayoutJob,
 };
 
 use super::NotificationEntry;
@@ -95,10 +95,22 @@ impl NotificationBanner {
                             let dot_radius = respond.rect.width() / 2.0;
                             painter.circle_filled(respond.rect.center(), dot_radius, level_color);
 
-                            let message =
-                                Label::new(RichText::new(&entry.message).color(text_color))
-                                    .wrap_mode(TextWrapMode::Wrap);
-                            ui.add(message);
+                            const MESSAGE_MAX_ROWS: usize = 4;
+
+                            let message_text = RichText::new(&entry.message).color(text_color);
+                            // Limit wrapped rows without adding scrolling to the transient banner.
+                            let mut message_job = LayoutJob::default();
+                            message_text.append_to(
+                                &mut message_job,
+                                ui.style(),
+                                FontSelection::Default,
+                                ui.text_valign(),
+                            );
+                            message_job.wrap.max_rows = MESSAGE_MAX_ROWS;
+                            let message_label = Label::new(message_job)
+                                .wrap_mode(TextWrapMode::Wrap)
+                                .show_tooltip_when_elided(false);
+                            ui.add(message_label);
                         });
                     })
                     .response
