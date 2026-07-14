@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 mod file;
 
-pub use file::FileUiState;
+pub use file::{FileInclusion, FileUiState};
 
 use crate::host::common;
 

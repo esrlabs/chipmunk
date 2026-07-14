@@ -3,8 +3,8 @@
 use std::path::Path;
 
 use egui::{
-    Align, Align2, Context, CursorIcon, Label, Layout, Rect, Response, RichText, ScrollArea, Sense,
-    Stroke, TextStyle, Ui, Widget, pos2, vec2,
+    Align, Align2, Color32, Context, CursorIcon, Label, Layout, Rect, Response, RichText,
+    ScrollArea, Sense, Stroke, TextStyle, Ui, Widget, pos2, vec2,
 };
 use egui_extras::{Column, TableBuilder};
 use enum_iterator::all;
@@ -18,7 +18,7 @@ use crate::{
         },
         ui::multi_setup::{
             main_table::table_columns::TableColumn,
-            state::{FileUiState, MultiFileState},
+            state::{FileInclusion, FileUiState, MultiFileState},
         },
     },
 };
@@ -112,12 +112,14 @@ impl MainTable {
                 let row_index = row.index();
                 let file = &mut state.files[row_index];
 
-                row.set_selected(file.included);
+                row.set_selected(file.inclusion.is_included());
 
                 row.col(|ui| {
                     let (res, paint) =
                         ui.allocate_painter(vec2(10.0, ui.available_height()), Sense::hover());
-                    paint.rect_filled(res.rect, 0, file.color);
+                    if let Some(color) = file.inclusion.color() {
+                        paint.rect_filled(res.rect, 0, color);
+                    }
                 });
 
                 row.col(|ui| table_cell_text(ui, file.format.to_string()));
@@ -132,7 +134,13 @@ impl MainTable {
                 }
 
                 if response.clicked() {
-                    file.included = !file.included;
+                    file.inclusion = match file.inclusion {
+                        FileInclusion::Included(_) => FileInclusion::Excluded,
+                        FileInclusion::Excluded => {
+                            // Source colors are reassigned after table construction.
+                            FileInclusion::Included(Color32::TRANSPARENT)
+                        }
+                    };
                     inclusion_changed = true;
                 }
             });
@@ -234,8 +242,12 @@ fn handle_file_drag(
 fn assign_source_colors(files: &mut [FileUiState]) {
     // Concat source indexes exclude files that are not included in the command.
     let colors = SOURCE_HIGHLIGHT_COLORS.iter().copied().cycle();
-    for (file, color) in files.iter_mut().filter(|file| file.included).zip(colors) {
-        file.color = color;
+    for (file, color) in files
+        .iter_mut()
+        .filter(|file| file.inclusion.is_included())
+        .zip(colors)
+    {
+        file.inclusion = FileInclusion::Included(color);
     }
 }
 
@@ -338,8 +350,8 @@ mod tests {
     use stypes::FileFormat;
 
     use super::{
-        FileMove, MainTable, SOURCE_HIGHLIGHT_COLORS, SortDirection, TableColumn, TableSort,
-        assign_source_colors,
+        FileInclusion, FileMove, MainTable, SOURCE_HIGHLIGHT_COLORS, SortDirection, TableColumn,
+        TableSort, assign_source_colors,
     };
     use crate::host::ui::multi_setup::state::FileUiState;
 
@@ -353,8 +365,7 @@ mod tests {
             size_txt: None,
             modified_at: None,
             last_modify: None,
-            color: Color32::BLACK,
-            included: true,
+            inclusion: FileInclusion::Included(Color32::BLACK),
         }
     }
 
@@ -461,8 +472,7 @@ mod tests {
             test_file("b", "/b", FileFormat::Text),
             test_file("a", "/a", FileFormat::Text),
         ];
-        files[1].included = false;
-        files[1].color = Color32::WHITE;
+        files[1].inclusion = FileInclusion::Excluded;
         let mut table = MainTable::default();
         table.sort_files(&mut files, TableColumn::Name);
 
@@ -482,9 +492,15 @@ mod tests {
             ["c", "a", "b"]
         );
         assert_eq!(table.sort, None);
-        assert_eq!(files[0].color, SOURCE_HIGHLIGHT_COLORS[0]);
-        assert_eq!(files[1].color, SOURCE_HIGHLIGHT_COLORS[1]);
-        assert_eq!(files[2].color, Color32::WHITE);
+        assert_eq!(
+            files[0].inclusion,
+            FileInclusion::Included(SOURCE_HIGHLIGHT_COLORS[0])
+        );
+        assert_eq!(
+            files[1].inclusion,
+            FileInclusion::Included(SOURCE_HIGHLIGHT_COLORS[1])
+        );
+        assert_eq!(files[2].inclusion, FileInclusion::Excluded);
     }
 
     #[test]
@@ -523,20 +539,28 @@ mod tests {
             test_file("b", "/b", FileFormat::Text),
             test_file("a", "/a", FileFormat::Text),
         ];
-        files[1].included = false;
-        files[1].color = Color32::WHITE;
+        files[1].inclusion = FileInclusion::Excluded;
 
         MainTable::default().sort_files(&mut files, TableColumn::Name);
 
-        assert_eq!(files[0].color, SOURCE_HIGHLIGHT_COLORS[0]);
-        assert_eq!(files[1].color, Color32::WHITE);
-        assert_eq!(files[2].color, SOURCE_HIGHLIGHT_COLORS[1]);
+        assert_eq!(
+            files[0].inclusion,
+            FileInclusion::Included(SOURCE_HIGHLIGHT_COLORS[0])
+        );
+        assert_eq!(files[1].inclusion, FileInclusion::Excluded);
+        assert_eq!(
+            files[2].inclusion,
+            FileInclusion::Included(SOURCE_HIGHLIGHT_COLORS[1])
+        );
 
-        files[1].included = true;
+        files[1].inclusion = FileInclusion::Included(Color32::BLACK);
         assign_source_colors(&mut files);
 
         assert_eq!(
-            files.iter().map(|file| file.color).collect::<Vec<_>>(),
+            files
+                .iter()
+                .filter_map(|file| file.inclusion.color())
+                .collect::<Vec<_>>(),
             SOURCE_HIGHLIGHT_COLORS[..3]
         );
     }

@@ -20,8 +20,35 @@ pub struct FileUiState {
     /// Raw modification time used for chronological sorting.
     pub modified_at: Option<SystemTime>,
     pub last_modify: Option<String>,
-    pub color: Color32,
-    pub included: bool,
+    /// Inclusion state and positional source color.
+    pub inclusion: FileInclusion,
+}
+
+/// Whether a file participates in the multi-file operation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FileInclusion {
+    /// Included with its positional source color.
+    Included(Color32),
+    /// Excluded from the operation.
+    Excluded,
+}
+
+impl FileInclusion {
+    /// Returns whether the file participates in the operation.
+    pub const fn is_included(self) -> bool {
+        match self {
+            Self::Included(_) => true,
+            Self::Excluded => false,
+        }
+    }
+
+    /// Returns the positional source color of an included file.
+    pub const fn color(self) -> Option<Color32> {
+        match self {
+            Self::Included(color) => Some(color),
+            Self::Excluded => None,
+        }
+    }
 }
 
 impl FileUiState {
@@ -70,8 +97,7 @@ impl FileUiState {
             size_txt,
             modified_at,
             last_modify,
-            color,
-            included: true,
+            inclusion: FileInclusion::Included(color),
         }
     }
 }
