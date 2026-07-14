@@ -1,3 +1,5 @@
+//! Multi-file session setup UI.
+
 use egui::{Align, CentralPanel, Frame, Layout, Panel, Ui};
 use tokio::sync::mpsc;
 use uuid::Uuid;
@@ -12,6 +14,7 @@ use crate::{
     },
 };
 
+use main_table::MainTable;
 use side_panel::MultiSidePanel;
 
 mod main_table;
@@ -23,6 +26,7 @@ pub struct MultiFileSetup {
     pub state: MultiFileState,
     cmd_tx: mpsc::Sender<HostCommand>,
     side_panel: MultiSidePanel,
+    main_table: MainTable,
 }
 
 impl MultiFileSetup {
@@ -31,6 +35,7 @@ impl MultiFileSetup {
             state,
             cmd_tx,
             side_panel: MultiSidePanel::default(),
+            main_table: MainTable::default(),
         }
     }
 
@@ -68,7 +73,7 @@ impl MultiFileSetup {
             });
 
         CentralPanel::default().show_inside(ui, |ui| {
-            main_table::render_content(ui, &mut self.state);
+            self.main_table.render_content(ui, &mut self.state);
         });
     }
 

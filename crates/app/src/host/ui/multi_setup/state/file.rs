@@ -1,4 +1,6 @@
-use std::path::PathBuf;
+//! UI state for a file in the multi-file setup.
+
+use std::{path::PathBuf, time::SystemTime};
 
 use chrono::{DateTime, Local};
 use egui::Color32;
@@ -15,6 +17,8 @@ pub struct FileUiState {
     pub format: FileFormat,
     pub size_bytes: Option<u64>,
     pub size_txt: Option<String>,
+    /// Raw modification time used for chronological sorting.
+    pub modified_at: Option<SystemTime>,
     pub last_modify: Option<String>,
     pub color: Color32,
     pub included: bool,
@@ -40,17 +44,18 @@ impl FileUiState {
 
         let size_txt = size_bytes.map(file_utls::format_file_size);
 
-        let last_modify = meta
-            .and_then(|m| {
-                m.modified()
-                    .inspect_err(|err| {
-                        log::warn!(
-                            "Get modified date for file {} failed. {err}.",
-                            path.display()
-                        );
-                    })
-                    .ok()
-            })
+        let modified_at = meta.as_ref().and_then(|m| {
+            m.modified()
+                .inspect_err(|err| {
+                    log::warn!(
+                        "Get modified date for file {} failed. {err}.",
+                        path.display()
+                    );
+                })
+                .ok()
+        });
+
+        let last_modify = modified_at
             .map(DateTime::<Local>::from)
             .map(|dt| dt.format("%d/%m/%Y, %H:%M:%S").to_string());
 
@@ -63,6 +68,7 @@ impl FileUiState {
             format,
             size_bytes,
             size_txt,
+            modified_at,
             last_modify,
             color,
             included: true,
