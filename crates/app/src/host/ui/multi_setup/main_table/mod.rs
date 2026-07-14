@@ -1,10 +1,10 @@
-//! Multi-file setup table rendering and click-driven sorting.
+//! Multi-file setup table rendering, sorting, and drag reordering.
 
 use std::path::Path;
 
 use egui::{
-    Align, Align2, CursorIcon, Label, Layout, Rect, Response, RichText, ScrollArea, Sense, Stroke,
-    TextStyle, Ui, Widget, pos2, vec2,
+    Align, Align2, Context, CursorIcon, Label, Layout, Rect, Response, RichText, ScrollArea, Sense,
+    Stroke, TextStyle, Ui, Widget, pos2, vec2,
 };
 use egui_extras::{Column, TableBuilder};
 use enum_iterator::all;
@@ -43,6 +43,17 @@ enum SortDirection {
     Descending,
 }
 
+#[derive(Debug, Clone, Copy)]
+struct FileDrag {
+    source_index: usize,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct FileMove {
+    source_index: usize,
+    insert_index: usize,
+}
+
 impl MainTable {
     /// Renders the table and applies sorting requested through its headers.
     pub fn render_content(&mut self, ui: &mut Ui, state: &mut MultiFileState) {
@@ -60,7 +71,10 @@ impl MainTable {
 
     fn render_table(&mut self, ui: &mut Ui, state: &mut MultiFileState) {
         let available_height = ui.available_height();
+        let ctx = ui.ctx().clone();
+        let drop_stroke = ui.visuals().selection.stroke;
         let table = TableBuilder::new(ui)
+            .id_salt(state.id())
             .auto_shrink(true)
             .drag_to_scroll(false)
             .striped(false)
@@ -74,7 +88,7 @@ impl MainTable {
             .column(Column::initial(140.0)) // modify date
             .min_scrolled_height(0.0)
             .max_scroll_height(available_height)
-            .sense(Sense::click());
+            .sense(Sense::click_and_drag());
 
         let mut requested_sort = None;
         let table = table.header(20.0, |mut header| {
@@ -92,9 +106,11 @@ impl MainTable {
         }
 
         let mut inclusion_changed = false;
+        let mut pending_move = None;
         table.body(|body| {
             body.rows(20.0, state.files.len(), |mut row| {
-                let file = &mut state.files[row.index()];
+                let row_index = row.index();
+                let file = &mut state.files[row_index];
 
                 row.set_selected(file.included);
 
@@ -110,7 +126,12 @@ impl MainTable {
                 row.col(|ui| table_cell_text(ui, file.size_txt.to_owned().unwrap_or_default()));
                 row.col(|ui| table_cell_text(ui, file.last_modify.to_owned().unwrap_or_default()));
 
-                if row.response().clicked() {
+                let response = row.response();
+                if let Some(file_move) = handle_file_drag(&ctx, &response, row_index, drop_stroke) {
+                    pending_move = Some(file_move);
+                }
+
+                if response.clicked() {
                     file.included = !file.included;
                     inclusion_changed = true;
                 }
@@ -120,6 +141,30 @@ impl MainTable {
         if inclusion_changed {
             assign_source_colors(&mut state.files);
         }
+
+        // Delayed mutation keeps row indexes stable throughout table construction.
+        if let Some(file_move) = pending_move {
+            self.move_file(&mut state.files, file_move);
+        }
+    }
+
+    fn move_file(&mut self, files: &mut Vec<FileUiState>, file_move: FileMove) {
+        if file_move.source_index >= files.len() {
+            return;
+        }
+
+        let mut target_index = file_move.insert_index.min(files.len());
+        if file_move.source_index < target_index {
+            target_index -= 1;
+        }
+        if file_move.source_index == target_index {
+            return;
+        }
+
+        let file = files.remove(file_move.source_index);
+        files.insert(target_index, file);
+        self.sort = None;
+        assign_source_colors(files);
     }
 
     fn sort_files(&mut self, files: &mut [FileUiState], column: TableColumn) {
@@ -146,6 +191,44 @@ impl MainTable {
         });
         assign_source_colors(files);
     }
+}
+
+fn handle_file_drag(
+    ctx: &Context,
+    response: &Response,
+    row_index: usize,
+    drop_stroke: Stroke,
+) -> Option<FileMove> {
+    response.dnd_set_drag_payload(FileDrag {
+        source_index: row_index,
+    });
+
+    let hovered_payload = response.dnd_hover_payload::<FileDrag>()?;
+    let line_y = response.rect.bottom() - drop_stroke.width / 2.0;
+    let painter = ctx
+        .layer_painter(response.layer_id)
+        .with_clip_rect(response.interact_rect);
+
+    if hovered_payload.source_index == row_index {
+        let hover_stroke = Stroke::new(drop_stroke.width, drop_stroke.color.gamma_multiply(0.5));
+        painter.hline(response.rect.x_range(), line_y, hover_stroke);
+        return None;
+    }
+
+    let insert_index = if hovered_payload.source_index < row_index {
+        row_index + 1
+    } else {
+        row_index
+    };
+    painter.hline(response.rect.x_range(), line_y, drop_stroke);
+
+    let payload = response.dnd_release_payload::<FileDrag>()?;
+    let file_move = FileMove {
+        source_index: payload.source_index,
+        insert_index,
+    };
+
+    Some(file_move)
 }
 
 fn assign_source_colors(files: &mut [FileUiState]) {
@@ -255,7 +338,7 @@ mod tests {
     use stypes::FileFormat;
 
     use super::{
-        MainTable, SOURCE_HIGHLIGHT_COLORS, SortDirection, TableColumn, TableSort,
+        FileMove, MainTable, SOURCE_HIGHLIGHT_COLORS, SortDirection, TableColumn, TableSort,
         assign_source_colors,
     };
     use crate::host::ui::multi_setup::state::FileUiState;
@@ -328,6 +411,109 @@ mod tests {
             direction: SortDirection::Ascending,
         };
         assert_eq!(table.sort, Some(expected_sort));
+    }
+
+    #[test]
+    fn manual_reordering_moves_files_in_both_directions() {
+        let mut files = vec![
+            test_file("a", "/a", FileFormat::Text),
+            test_file("b", "/b", FileFormat::Text),
+            test_file("c", "/c", FileFormat::Text),
+            test_file("d", "/d", FileFormat::Text),
+        ];
+        let mut table = MainTable::default();
+
+        table.move_file(
+            &mut files,
+            FileMove {
+                source_index: 0,
+                insert_index: 3,
+            },
+        );
+        assert_eq!(
+            files
+                .iter()
+                .map(|file| file.name.as_str())
+                .collect::<Vec<_>>(),
+            ["b", "c", "a", "d"]
+        );
+
+        table.move_file(
+            &mut files,
+            FileMove {
+                source_index: 3,
+                insert_index: 1,
+            },
+        );
+        assert_eq!(
+            files
+                .iter()
+                .map(|file| file.name.as_str())
+                .collect::<Vec<_>>(),
+            ["b", "d", "c", "a"]
+        );
+    }
+
+    #[test]
+    fn manual_reordering_clears_sort_and_reassigns_colors() {
+        let mut files = vec![
+            test_file("c", "/c", FileFormat::Text),
+            test_file("b", "/b", FileFormat::Text),
+            test_file("a", "/a", FileFormat::Text),
+        ];
+        files[1].included = false;
+        files[1].color = Color32::WHITE;
+        let mut table = MainTable::default();
+        table.sort_files(&mut files, TableColumn::Name);
+
+        table.move_file(
+            &mut files,
+            FileMove {
+                source_index: 2,
+                insert_index: 0,
+            },
+        );
+
+        assert_eq!(
+            files
+                .iter()
+                .map(|file| file.name.as_str())
+                .collect::<Vec<_>>(),
+            ["c", "a", "b"]
+        );
+        assert_eq!(table.sort, None);
+        assert_eq!(files[0].color, SOURCE_HIGHLIGHT_COLORS[0]);
+        assert_eq!(files[1].color, SOURCE_HIGHLIGHT_COLORS[1]);
+        assert_eq!(files[2].color, Color32::WHITE);
+    }
+
+    #[test]
+    fn no_op_drop_preserves_active_sort() {
+        let mut files = vec![
+            test_file("c", "/c", FileFormat::Text),
+            test_file("b", "/b", FileFormat::Text),
+            test_file("a", "/a", FileFormat::Text),
+        ];
+        let mut table = MainTable::default();
+        table.sort_files(&mut files, TableColumn::Name);
+        let active_sort = table.sort;
+
+        table.move_file(
+            &mut files,
+            FileMove {
+                source_index: 1,
+                insert_index: 2,
+            },
+        );
+
+        assert_eq!(
+            files
+                .iter()
+                .map(|file| file.name.as_str())
+                .collect::<Vec<_>>(),
+            ["a", "b", "c"]
+        );
+        assert_eq!(table.sort, active_sort);
     }
 
     #[test]
