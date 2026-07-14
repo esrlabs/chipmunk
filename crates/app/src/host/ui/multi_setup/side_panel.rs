@@ -47,7 +47,11 @@ impl MultiSidePanel {
             ui.end_row();
 
             ui.label("Selected files:");
-            let selected_count = state.files.iter().filter(|f| f.included).count();
+            let selected_count = state
+                .files
+                .iter()
+                .filter(|file| file.inclusion.is_included())
+                .count();
             ui.label(selected_count.to_string());
         });
     }
@@ -62,10 +66,12 @@ impl MultiSidePanel {
 
         let mut total_size = 0;
         self.segments_cache
-            .extend(state.files.iter().filter(|f| f.included).map(|f| {
-                let size = f.size_bytes.unwrap_or_default();
+            .extend(state.files.iter().filter_map(|file| {
+                let color = file.inclusion.color()?;
+                let size = file.size_bytes.unwrap_or_default();
                 total_size += size;
-                FileSegment::new(size, f.color)
+                let segment = FileSegment::new(size, color);
+                Some(segment)
             }));
 
         if self.segments_cache.is_empty() {

@@ -86,7 +86,7 @@ impl MultiFileSetup {
             .state
             .files
             .iter()
-            .filter(|f| f.included)
+            .filter(|file| file.inclusion.is_included())
             .take(2) // No need to continue if we already have two.
             .count();
 
@@ -98,8 +98,8 @@ impl MultiFileSetup {
                 .state
                 .files
                 .iter()
-                .filter(|f| f.included)
-                .map(|f| (f.path.to_owned(), f.format))
+                .filter(|file| file.inclusion.is_included())
+                .map(|file| (file.path.to_owned(), file.format))
                 .collect();
 
             let cmd = HostCommand::ConcatFiles(files);
@@ -117,8 +117,8 @@ impl MultiFileSetup {
                 .state
                 .files
                 .iter()
-                .filter(|f| f.included)
-                .map(|f| f.path.to_owned())
+                .filter(|file| file.inclusion.is_included())
+                .map(|file| file.path.to_owned())
                 .collect();
             let cmd = HostCommand::OpenAsSessions(files);
             if actions.try_send_command(&self.cmd_tx, cmd) {
