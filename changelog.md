@@ -1,3 +1,20 @@
+# 4.1.0 (14.07.2026)
+
+## Features
+- Added a SOME/IP statistics view to session setup, with summaries and counts by service/method ID and message type.
+- Added context-menu actions to remove all filters or charts at once.
+
+## Changes
+- Improved application logging reliability.
+- Limited notification banners to four lines.
+- Changed overlapping filter highlights so the last matching filter determines the color.
+
+## Fixes
+- Fixed Windows installer architecture and installation path issues.
+- Fixed Windows release builds showing an extra console window.
+- Added the missing Chipmunk executable icon on Windows.
+- Fixed release archive naming for better compatibility with archive tools.
+
 # 4.0.1 (12.06.2026)
 
 # Changes:
