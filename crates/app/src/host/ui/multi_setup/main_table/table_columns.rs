@@ -44,7 +44,7 @@ impl TableColumn {
                 rank(left.format).cmp(&rank(right.format))
             }
             TableColumn::Name => left.name.cmp(&right.name),
-            TableColumn::Path => left.path.cmp(&right.path),
+            TableColumn::Path => left.path.parent().cmp(&right.path.parent()),
             TableColumn::Size => left.size_bytes.cmp(&right.size_bytes),
             TableColumn::ModifyDate => left.modified_at.cmp(&right.modified_at),
         }
