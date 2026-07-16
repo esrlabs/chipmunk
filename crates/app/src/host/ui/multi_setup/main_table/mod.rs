@@ -588,12 +588,14 @@ mod tests {
     }
 
     #[test]
-    fn paths_sort_by_complete_path() {
-        let mut first = test_file("z.log", "/a/z.log", FileFormat::Text);
-        first.parent_path = Some("/z".to_owned());
-        let mut second = test_file("a.log", "/b/a.log", FileFormat::Text);
-        second.parent_path = Some("/a".to_owned());
-        let mut files = vec![second, first];
+    fn paths_sort_by_parent_and_preserve_equal_order() {
+        let mut other_parent = test_file("other.log", "/b/other.log", FileFormat::Text);
+        other_parent.parent_path = Some("/a".to_owned());
+        let mut same_parent_first = test_file("z.log", "/a/z.log", FileFormat::Text);
+        same_parent_first.parent_path = Some("/z".to_owned());
+        let mut same_parent_second = test_file("a.log", "/a/a.log", FileFormat::Text);
+        same_parent_second.parent_path = Some("/y".to_owned());
+        let mut files = vec![other_parent, same_parent_first, same_parent_second];
 
         MainTable::default().sort_files(&mut files, TableColumn::Path);
 
@@ -602,7 +604,11 @@ mod tests {
                 .iter()
                 .map(|file| file.path.as_path())
                 .collect::<Vec<_>>(),
-            [Path::new("/a/z.log"), Path::new("/b/a.log")]
+            [
+                Path::new("/a/z.log"),
+                Path::new("/a/a.log"),
+                Path::new("/b/other.log"),
+            ]
         );
     }
 
