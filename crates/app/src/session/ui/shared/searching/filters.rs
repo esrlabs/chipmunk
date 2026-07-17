@@ -281,6 +281,28 @@ impl FiltersState {
         changed
     }
 
+    /// Moves a filter to an insertion slot in the current filter order.
+    pub fn move_filter(&mut self, id: &Uuid, insert_index: usize) -> bool {
+        let Some(source_index) = self.filter_entries.iter().position(|item| item.id == *id) else {
+            return false;
+        };
+
+        move_entry(&mut self.filter_entries, source_index, insert_index)
+    }
+
+    /// Moves a search value to an insertion slot in the current chart order.
+    pub fn move_search_value(&mut self, id: &Uuid, insert_index: usize) -> bool {
+        let Some(source_index) = self
+            .search_value_entries
+            .iter()
+            .position(|item| item.id == *id)
+        else {
+            return false;
+        };
+
+        move_entry(&mut self.search_value_entries, source_index, insert_index)
+    }
+
     /// Adds a filter to the session in the enabled state.
     pub fn apply_filter(&mut self, registry: &mut FilterRegistry, id: Uuid) -> bool {
         self.apply_filter_with_state(registry, id, true, None)
@@ -473,6 +495,31 @@ impl FiltersState {
     }
 }
 
+/// Moves an entry to a pre-removal insertion slot.
+///
+/// Returns `true` when the entry order changed.
+fn move_entry<T>(entries: &mut Vec<T>, source_index: usize, insert_index: usize) -> bool {
+    debug_assert!(
+        insert_index <= entries.len(),
+        "insertion index exceeds entry count"
+    );
+    // Clamp exceeding insert index in production runs.
+    let mut destination_index = insert_index.min(entries.len());
+
+    // Removing an earlier entry shifts the destination slot one position left.
+    if source_index < destination_index {
+        destination_index -= 1;
+    }
+    if source_index == destination_index {
+        return false;
+    }
+
+    let entry = entries.remove(source_index);
+    entries.insert(destination_index, entry);
+
+    true
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -656,6 +703,46 @@ mod tests {
         assert!(!state.set_search_value_color(&value_id, color));
         assert_eq!(state.search_value_entries[0].color, color);
         assert!(!state.set_search_value_color(&Uuid::new_v4(), Color32::WHITE));
+    }
+
+    #[test]
+    fn moving_entries_uses_insertion_slots() {
+        let mut state = new_state();
+        let mut registry = FilterRegistry::default();
+        let first_filter = add_plain_filter_definition(&mut registry, "first");
+        let second_filter = add_plain_filter_definition(&mut registry, "second");
+        let third_filter = add_plain_filter_definition(&mut registry, "third");
+        for id in [first_filter, second_filter, third_filter] {
+            state.apply_filter(&mut registry, id);
+        }
+
+        assert!(state.move_filter(&first_filter, 3));
+        assert_eq!(
+            state
+                .filter_entries
+                .iter()
+                .map(|entry| entry.id)
+                .collect::<Vec<_>>(),
+            [second_filter, third_filter, first_filter]
+        );
+        assert!(!state.move_filter(&third_filter, 1));
+
+        let first_value = add_search_value_definition(&mut registry, "first=(\\d+)");
+        let second_value = add_search_value_definition(&mut registry, "second=(\\d+)");
+        let third_value = add_search_value_definition(&mut registry, "third=(\\d+)");
+        for id in [first_value, second_value, third_value] {
+            state.apply_search_value(&mut registry, id);
+        }
+
+        assert!(state.move_search_value(&third_value, 0));
+        assert_eq!(
+            state
+                .search_value_entries
+                .iter()
+                .map(|entry| entry.id)
+                .collect::<Vec<_>>(),
+            [third_value, first_value, second_value]
+        );
     }
 
     #[test]

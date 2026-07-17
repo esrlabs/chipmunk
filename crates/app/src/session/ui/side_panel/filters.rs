@@ -1,6 +1,10 @@
+//! Filters sidebar rendering, editing, and drag-and-drop interactions.
+
+use std::sync::Arc;
+
 use egui::{
-    Align, Button, Frame, Grid, Key, Layout, Modifiers, RichText, ScrollArea, Sense, Sides,
-    TextEdit, Ui, UiBuilder, vec2,
+    Align, Button, Frame, Grid, Key, Layout, Modifiers, Response, RichText, ScrollArea, Sense,
+    Sides, Stroke, TextEdit, Ui, UiBuilder, vec2,
 };
 use processor::search::filter::SearchFilter;
 use tokio::sync::mpsc;
@@ -14,7 +18,7 @@ use crate::{
     common::validation::validate_search_value_filter,
     host::{
         common::colors::ColorPair,
-        common::ui_utls::show_side_panel_group,
+        common::ui_utls::{show_side_panel_group, side_panel_group_frame},
         ui::{
             UiActions,
             registry::filters::{FilterRegistry, RegistryEditOutcome},
@@ -44,11 +48,14 @@ enum FilterPanelAction {
     EditFilterFlags(Uuid, FilterFlags),
     RemoveFilter(Uuid),
     RemoveAllFilters,
-    MoveFilterToValue(Uuid),
+    ReorderItem(SelectedSidebarItem, usize),
+    /// Converts the filter and optionally places it at an exact insertion slot.
+    MoveFilterToValue(Uuid, Option<usize>),
     ToggleSearchValue(Uuid, bool),
     RemoveSearchValue(Uuid),
     RemoveAllSearchValues,
-    MoveValueToFilter(Uuid),
+    /// Converts the search value and optionally places it at an exact insertion slot.
+    MoveValueToFilter(Uuid, Option<usize>),
     /// Requests the parent session to capture the current filters and charts.
     CapturePreset,
 }
@@ -106,10 +113,23 @@ fn validate_search_value_text(current_filter: &SearchFilter, draft: &str) -> Opt
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum SelectedSidebarItem {
     Filter(Uuid),
     SearchValue(Uuid),
+}
+
+#[derive(Debug, Clone)]
+struct SidebarDrag {
+    item: SelectedSidebarItem,
+    source_index: usize,
+    insert_index: usize,
+}
+
+#[derive(Debug, Clone, Copy)]
+enum SidebarDropTarget {
+    Filter,
+    SearchValue,
 }
 
 #[derive(Debug)]
@@ -158,6 +178,8 @@ impl FiltersUi {
         registry: &mut FilterRegistry,
         ui: &mut Ui,
     ) {
+        self.clear_stale_edits(shared, registry);
+
         const SELECTED_GROUP_HEIGHT: f32 = 120.0;
         const SELECTED_GROUP_SEPARATOR_HEIGHT: f32 = 8.0;
 
@@ -169,12 +191,21 @@ impl FiltersUi {
         };
         let list_max_height = (ui.available_height() - reserved_editor_height).max(0.0);
 
+        // Text editing and drag-and-drop are mutually exclusive across both lists.
+        let dnd_enabled =
+            self.filter_edit_state.is_none() && self.search_value_edit_state.is_none();
         let mut side_action = None;
         ScrollArea::vertical()
             .max_height(list_max_height)
             .show(ui, |ui| {
-                self.render_filters_group(shared, registry, ui, &mut side_action);
-                self.render_search_values_group(shared, registry, ui, &mut side_action);
+                self.render_filters_group(shared, registry, dnd_enabled, ui, &mut side_action);
+                self.render_search_values_group(
+                    shared,
+                    registry,
+                    dnd_enabled,
+                    ui,
+                    &mut side_action,
+                );
             });
 
         self.handle_action(side_action, shared, actions, registry);
@@ -188,63 +219,74 @@ impl FiltersUi {
         &mut self,
         shared: &SessionShared,
         registry: &FilterRegistry,
+        dnd_enabled: bool,
         ui: &mut Ui,
         side_action: &mut Option<FilterPanelAction>,
     ) {
-        show_side_panel_group(ui, |ui| {
-            let filters_count = shared.filters.filter_entries.len();
-            Self::render_group_heading(ui, "Filters", filters_count);
-            ui.add_space(5.0);
-            self.render_filters_section(shared, registry, ui, side_action);
-        });
+        let filters_count = shared.filters.filter_entries.len();
+        let target = SidebarDropTarget::Filter;
+        let drop_action =
+            Self::render_drop_group(ui, registry, target, filters_count, dnd_enabled, |ui| {
+                Self::render_group_heading(ui, "Filters", filters_count);
+                ui.add_space(5.0);
+                self.render_filters_section(shared, registry, dnd_enabled, ui, side_action);
+            });
+        if let Some(drop_action) = drop_action {
+            *side_action = Some(drop_action);
+        }
     }
 
     fn render_search_values_group(
         &mut self,
         shared: &SessionShared,
         registry: &FilterRegistry,
+        dnd_enabled: bool,
         ui: &mut Ui,
         side_action: &mut Option<FilterPanelAction>,
     ) {
-        show_side_panel_group(ui, |ui| {
-            let charts_count = shared.filters.search_value_entries.len();
-            Self::render_group_heading(ui, "Charts", charts_count);
-            ui.add_space(5.0);
-            self.render_search_values_section(shared, registry, ui, side_action);
-        });
+        let charts_count = shared.filters.search_value_entries.len();
+        let target = SidebarDropTarget::SearchValue;
+        let drop_action =
+            Self::render_drop_group(ui, registry, target, charts_count, dnd_enabled, |ui| {
+                Self::render_group_heading(ui, "Charts", charts_count);
+                ui.add_space(5.0);
+                self.render_search_values_section(shared, registry, dnd_enabled, ui, side_action);
+            });
+        if let Some(drop_action) = drop_action {
+            *side_action = Some(drop_action);
+        }
     }
 
     fn render_filters_section(
         &mut self,
         shared: &SessionShared,
         registry: &FilterRegistry,
+        dnd_enabled: bool,
         ui: &mut Ui,
         side_action: &mut Option<FilterPanelAction>,
     ) {
         let mut have_items = false;
-        shared
-            .filters
-            .filter_entries
-            .iter()
-            .filter_map(|item| {
-                registry.get_filter(&item.id).map(|def| FilterRowView {
-                    id: item.id,
-                    enabled: item.enabled,
-                    color: item.colors.bg,
-                    text: def.filter.value.as_str(),
-                    flags: FilterFlags {
-                        regex: def.filter.is_regex(),
-                        ignore_case: def.filter.is_ignore_case(),
-                        word: def.filter.is_word(),
-                    },
-                    search_value_eligibility: &def.search_value_eligibility,
-                    regex_enable_eligibility: &def.regex_enable_eligibility,
-                })
-            })
-            .for_each(|row| {
-                have_items = true;
-                self.render_filter_item(ui, &row, side_action);
-            });
+        for (index, item) in shared.filters.filter_entries.iter().enumerate() {
+            let Some(def) = registry.get_filter(&item.id) else {
+                continue;
+            };
+            let row = FilterRowView {
+                id: item.id,
+                enabled: item.enabled,
+                color: item.colors.bg,
+                text: def.filter.value.as_str(),
+                flags: FilterFlags {
+                    regex: def.filter.is_regex(),
+                    ignore_case: def.filter.is_ignore_case(),
+                    word: def.filter.is_word(),
+                },
+                search_value_eligibility: &def.search_value_eligibility,
+                regex_enable_eligibility: &def.regex_enable_eligibility,
+            };
+
+            have_items = true;
+            self.render_filter_item(ui, &row, index, registry, dnd_enabled, side_action);
+        }
 
         if !have_items {
             ui.label(RichText::new("No filters applied").weak());
@@ -255,29 +297,26 @@ impl FiltersUi {
         &mut self,
         shared: &SessionShared,
         registry: &FilterRegistry,
+        dnd_enabled: bool,
         ui: &mut Ui,
         side_action: &mut Option<FilterPanelAction>,
     ) {
         let mut has_items = false;
-        shared
-            .filters
-            .search_value_entries
-            .iter()
-            .filter_map(|item| {
-                registry
-                    .get_search_value(&item.id)
-                    .map(|def| SearchValueRowView {
-                        id: item.id,
-                        enabled: item.enabled,
-                        color: item.color,
-                        text: def.filter.value.as_str(),
-                        filter: def.filter.clone(),
-                    })
-            })
-            .for_each(|row| {
-                has_items = true;
-                self.render_search_value_item(ui, &row, side_action);
-            });
+        for (index, item) in shared.filters.search_value_entries.iter().enumerate() {
+            let Some(def) = registry.get_search_value(&item.id) else {
+                continue;
+            };
+            let row = SearchValueRowView {
+                id: item.id,
+                enabled: item.enabled,
+                color: item.color,
+                text: def.filter.value.as_str(),
+                filter: def.filter.clone(),
+            };
+
+            has_items = true;
+            self.render_search_value_item(ui, &row, index, registry, dnd_enabled, side_action);
+        }
 
         if !has_items {
             ui.label(RichText::new("No Charts applied").weak());
@@ -288,13 +327,24 @@ impl FiltersUi {
         &mut self,
         ui: &mut Ui,
         row: &FilterRowView,
+        index: usize,
+        registry: &FilterRegistry,
+        dnd_enabled: bool,
         side_action: &mut Option<FilterPanelAction>,
     ) {
         let mut edit_state = self.take_filter_edit_state(row.id);
         let is_editing = edit_state.is_some();
+        let item = SelectedSidebarItem::Filter(row.id);
+        let drag = dnd_enabled.then_some(SidebarDrag {
+            item,
+            source_index: index,
+            insert_index: index,
+        });
         if let Some(action) = self.render_sidebar_item(
             ui,
-            SelectedSidebarItem::Filter(row.id),
+            item,
+            drag,
+            registry,
             |ui, side_action| {
                 let action = if let Some(edit_state) = edit_state.as_mut() {
                     ui.push_id((row.id, "filter_edit"), |ui| {
@@ -363,7 +413,7 @@ impl FiltersUi {
                 };
 
                 if move_btn.clicked() {
-                    *side_action = Some(FilterPanelAction::MoveFilterToValue(row.id));
+                    *side_action = Some(FilterPanelAction::MoveFilterToValue(row.id, None));
                     ui.close();
                 }
 
@@ -387,13 +437,24 @@ impl FiltersUi {
         &mut self,
         ui: &mut Ui,
         row: &SearchValueRowView,
+        index: usize,
+        registry: &FilterRegistry,
+        dnd_enabled: bool,
         side_action: &mut Option<FilterPanelAction>,
     ) {
         let mut edit_state = self.take_search_value_edit_state(row.id);
         let is_editing = edit_state.is_some();
+        let item = SelectedSidebarItem::SearchValue(row.id);
+        let drag = dnd_enabled.then_some(SidebarDrag {
+            item,
+            source_index: index,
+            insert_index: index,
+        });
         if let Some(action) = self.render_sidebar_item(
             ui,
-            SelectedSidebarItem::SearchValue(row.id),
+            item,
+            drag,
+            registry,
             |ui, side_action| {
                 let action = if let Some(edit_state) = edit_state.as_mut() {
                     ui.push_id((row.id, "search_value_edit"), |ui| {
@@ -448,7 +509,7 @@ impl FiltersUi {
                 }
 
                 if ui.button("Move to Filter").clicked() {
-                    *side_action = Some(FilterPanelAction::MoveValueToFilter(row.id));
+                    *side_action = Some(FilterPanelAction::MoveValueToFilter(row.id, None));
                     ui.close();
                 }
 
@@ -473,6 +534,8 @@ impl FiltersUi {
         &mut self,
         ui: &mut Ui,
         item: SelectedSidebarItem,
+        drag: Option<SidebarDrag>,
+        registry: &FilterRegistry,
         render_ui: F,
         context_ui: C,
     ) -> Option<FilterPanelAction>
@@ -485,7 +548,15 @@ impl FiltersUi {
 
         const ITEM_ROW_HEIGHT: f32 = 30.0;
         let desired_size = vec2(ui.available_width(), ITEM_ROW_HEIGHT);
-        let (_, item_response) = ui.allocate_exact_size(desired_size, Sense::click());
+        let (item_rect, _) = ui.allocate_exact_size(desired_size, Sense::hover());
+        // Editing either list keeps every row click-only and disables drag-and-drop.
+        let sense = if drag.is_some() {
+            Sense::click_and_drag()
+        } else {
+            Sense::click()
+        };
+        let item_id = ui.id().with(("filter_sidebar_item", item));
+        let item_response = ui.interact(item_rect, item_id, sense);
         item_response.context_menu(|ui| context_ui(ui, &mut side_action));
 
         // Keep one explicit row-sized selection target while child widgets render
@@ -509,14 +580,170 @@ impl FiltersUi {
             },
         );
 
-        if item_response
-            .on_hover_cursor(egui::CursorIcon::PointingHand)
-            .clicked()
-        {
+        let item_response = item_response.on_hover_cursor(egui::CursorIcon::PointingHand);
+        if item_response.clicked() {
             self.toggle_selected_item(item);
         }
 
+        if let Some(drag) = drag {
+            let row_index = drag.insert_index;
+            item_response.dnd_set_drag_payload(drag);
+            let target = match item {
+                SelectedSidebarItem::Filter(_) => SidebarDropTarget::Filter,
+                SelectedSidebarItem::SearchValue(_) => SidebarDropTarget::SearchValue,
+            };
+            if let Some(drop_action) =
+                Self::handle_item_drop(ui, &item_response, item, row_index, target, registry)
+            {
+                side_action = Some(drop_action);
+            }
+        }
+
         side_action
+    }
+
+    fn handle_item_drop(
+        ui: &Ui,
+        response: &Response,
+        item: SelectedSidebarItem,
+        row_index: usize,
+        target: SidebarDropTarget,
+        registry: &FilterRegistry,
+    ) -> Option<FilterPanelAction> {
+        let source = response.dnd_hover_payload::<SidebarDrag>()?;
+        if !Self::can_drop(source.item, target, registry) {
+            return None;
+        }
+
+        let pointer = ui.input(|input| input.pointer.interact_pos())?;
+        let drop_stroke = ui.visuals().selection.stroke;
+
+        const TOP_LINE_OFFSET: f32 = 2.0;
+        const BOTTOM_LINE_OFFSET: f32 = 6.0;
+
+        // Each row exposes the insertion slots above and below it. The source row uses
+        // its trailing equivalent slot so dropping directly on it remains a no-op.
+        let (insert_index, line_y) = if source.item == item {
+            let line_y = response.rect.bottom() - drop_stroke.width / 2.0 + BOTTOM_LINE_OFFSET;
+            (row_index, line_y)
+        } else if pointer.y < response.rect.center().y {
+            let line_y = response.rect.top() + drop_stroke.width / 2.0 - TOP_LINE_OFFSET;
+            (row_index, line_y)
+        } else {
+            let line_y = response.rect.bottom() - drop_stroke.width / 2.0 + BOTTOM_LINE_OFFSET;
+            (row_index + 1, line_y)
+        };
+
+        let same_list = match (source.item, target) {
+            (SelectedSidebarItem::Filter(_), SidebarDropTarget::Filter)
+            | (SelectedSidebarItem::SearchValue(_), SidebarDropTarget::SearchValue) => true,
+            (SelectedSidebarItem::Filter(_), SidebarDropTarget::SearchValue)
+            | (SelectedSidebarItem::SearchValue(_), SidebarDropTarget::Filter) => false,
+        };
+        // Match the post-removal insertion adjustment used by FiltersState.
+        let destination_index = if same_list && source.source_index < insert_index {
+            insert_index - 1
+        } else {
+            insert_index
+        };
+        let stroke = if same_list && source.source_index == destination_index {
+            Stroke::new(drop_stroke.width, drop_stroke.color.gamma_multiply(0.5))
+        } else {
+            drop_stroke
+        };
+
+        // The offsets place lines in row spacing, so allow painting beyond the response bounds.
+        let line_clip_rect = response
+            .interact_rect
+            .expand2(vec2(0.0, BOTTOM_LINE_OFFSET))
+            .intersect(ui.clip_rect());
+        response
+            .ctx
+            .layer_painter(response.layer_id)
+            .with_clip_rect(line_clip_rect)
+            .hline(response.rect.x_range(), line_y, stroke);
+
+        // Keep Arc::make_mut allocation-free during the normal release flow.
+        drop(source);
+        let mut source = response.dnd_release_payload::<SidebarDrag>()?;
+        let source = Arc::make_mut(&mut source);
+        source.insert_index = insert_index;
+        let action = Self::drop_action(source, target);
+        Some(action)
+    }
+
+    fn render_drop_group(
+        ui: &mut Ui,
+        registry: &FilterRegistry,
+        target: SidebarDropTarget,
+        append_index: usize,
+        dnd_enabled: bool,
+        add_contents: impl FnOnce(&mut Ui),
+    ) -> Option<FilterPanelAction> {
+        // Build the frame manually so payload eligibility can determine its border before paint.
+        let mut frame = side_panel_group_frame(ui).begin(ui);
+        frame.content_ui.take_available_width();
+        add_contents(&mut frame.content_ui);
+        let response = frame.allocate_space(ui);
+
+        let hovered_source = if dnd_enabled {
+            response.dnd_hover_payload::<SidebarDrag>()
+        } else {
+            None
+        };
+        let can_drop = hovered_source
+            .as_ref()
+            .is_some_and(|source| Self::can_drop(source.item, target, registry));
+        if can_drop {
+            frame.frame.stroke = ui.visuals().selection.stroke;
+        }
+        frame.paint(ui);
+
+        if !can_drop {
+            return None;
+        }
+
+        // Rows claim precise releases first; remaining group drops append, including empty groups.
+        // Keep Arc::make_mut allocation-free during the normal release flow.
+        drop(hovered_source);
+        let mut source = response.dnd_release_payload::<SidebarDrag>()?;
+        let source = Arc::make_mut(&mut source);
+        source.insert_index = append_index;
+        let action = Self::drop_action(source, target);
+        Some(action)
+    }
+
+    fn can_drop(
+        source: SelectedSidebarItem,
+        target: SidebarDropTarget,
+        registry: &FilterRegistry,
+    ) -> bool {
+        match (source, target) {
+            (SelectedSidebarItem::Filter(filter_id), SidebarDropTarget::SearchValue) => registry
+                .get_filter(&filter_id)
+                .is_some_and(|def| def.search_value_eligibility.is_eligible()),
+            (SelectedSidebarItem::Filter(filter_id), SidebarDropTarget::Filter) => {
+                registry.get_filter(&filter_id).is_some()
+            }
+            (SelectedSidebarItem::SearchValue(value_id), _) => {
+                registry.get_search_value(&value_id).is_some()
+            }
+        }
+    }
+
+    fn drop_action(source: &SidebarDrag, target: SidebarDropTarget) -> FilterPanelAction {
+        match (source.item, target) {
+            (item @ SelectedSidebarItem::Filter(_), SidebarDropTarget::Filter)
+            | (item @ SelectedSidebarItem::SearchValue(_), SidebarDropTarget::SearchValue) => {
+                FilterPanelAction::ReorderItem(item, source.insert_index)
+            }
+            (SelectedSidebarItem::Filter(filter_id), SidebarDropTarget::SearchValue) => {
+                FilterPanelAction::MoveFilterToValue(filter_id, Some(source.insert_index))
+            }
+            (SelectedSidebarItem::SearchValue(value_id), SidebarDropTarget::Filter) => {
+                FilterPanelAction::MoveValueToFilter(value_id, Some(source.insert_index))
+            }
+        }
     }
 
     fn render_filter_display_row(ui: &mut Ui, row: &FilterRowView) -> Option<FilterPanelAction> {
@@ -640,7 +867,7 @@ impl FiltersUi {
                     ))
                     .on_hover_text("Move to Filter");
                 if move_btn.clicked() {
-                    action = Some(FilterPanelAction::MoveValueToFilter(row.id));
+                    action = Some(FilterPanelAction::MoveValueToFilter(row.id, None));
                 }
 
                 let remove_btn = ui
@@ -1102,7 +1329,26 @@ impl FiltersUi {
                     .into_iter()
                     .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
             }
-            FilterPanelAction::MoveFilterToValue(filter_id) => {
+            FilterPanelAction::ReorderItem(item, insert_index) => {
+                let (changed, target) = match item {
+                    SelectedSidebarItem::Filter(filter_id) => (
+                        shared.move_filter(&filter_id, insert_index),
+                        SearchSyncTarget::Filter,
+                    ),
+                    SelectedSidebarItem::SearchValue(value_id) => (
+                        shared.move_search_value(&value_id, insert_index),
+                        SearchSyncTarget::SearchValue,
+                    ),
+                };
+                // Backend result metadata uses positional indexes, so reorders currently resync.
+                if changed {
+                    shared
+                        .sync_search(registry, target)
+                        .into_iter()
+                        .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
+                }
+            }
+            FilterPanelAction::MoveFilterToValue(filter_id, insert_index) => {
                 self.clear_filter_edit_for(filter_id);
                 let was_applied = shared.filters.is_filter_applied(&filter_id);
                 let was_enabled = shared.filters.is_filter_enabled(&filter_id);
@@ -1113,6 +1359,9 @@ impl FiltersUi {
                 {
                     shared.unapply_filter(registry, &filter_id);
                     shared.apply_search_value_with_state(registry, value_id, was_enabled, None);
+                    if let Some(insert_index) = insert_index {
+                        shared.move_search_value(&value_id, insert_index);
+                    }
                     self.replace_selection(
                         SelectedSidebarItem::Filter(filter_id),
                         SelectedSidebarItem::SearchValue(value_id),
@@ -1154,7 +1403,7 @@ impl FiltersUi {
                     .into_iter()
                     .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
             }
-            FilterPanelAction::MoveValueToFilter(value_id) => {
+            FilterPanelAction::MoveValueToFilter(value_id, insert_index) => {
                 self.clear_search_value_edit_for(value_id);
                 let was_applied = shared.filters.is_search_value_applied(&value_id);
                 let was_enabled = shared.filters.is_search_value_enabled(&value_id);
@@ -1165,6 +1414,9 @@ impl FiltersUi {
                 {
                     shared.unapply_search_value(registry, &value_id);
                     shared.apply_filter_with_state(registry, filter_id, was_enabled, None);
+                    if let Some(insert_index) = insert_index {
+                        shared.move_filter(&filter_id, insert_index);
+                    }
                     self.replace_selection(
                         SelectedSidebarItem::SearchValue(value_id),
                         SelectedSidebarItem::Filter(filter_id),
@@ -1178,6 +1430,21 @@ impl FiltersUi {
             FilterPanelAction::CapturePreset => {
                 shared.signals.push(SessionSignal::CapturePreset);
             }
+        }
+    }
+
+    // Other session UI components can remove items while this sidebar owns their edit state.
+    fn clear_stale_edits(&mut self, shared: &SessionShared, registry: &FilterRegistry) {
+        if self.filter_edit_state.as_ref().is_some_and(|state| {
+            !shared.filters.is_filter_applied(&state.id) || registry.get_filter(&state.id).is_none()
+        }) {
+            self.filter_edit_state = None;
+        }
+        if self.search_value_edit_state.as_ref().is_some_and(|state| {
+            !shared.filters.is_search_value_applied(&state.id)
+                || registry.get_search_value(&state.id).is_none()
+        }) {
+            self.search_value_edit_state = None;
         }
     }
 
@@ -1251,19 +1518,44 @@ impl FiltersUi {
 
 #[cfg(test)]
 mod tests {
-    use crate::session::command::SessionCommand;
     use processor::search::filter::SearchFilter;
     use tokio::sync::mpsc;
     use uuid::Uuid;
 
+    use crate::{
+        host::ui::registry::filters::{FilterDefinition, FilterRegistry},
+        session::command::SessionCommand,
+    };
+
     use super::{
-        FilterFlags, FiltersUi, SelectedSidebarItem, TextEditState, validate_filter_text,
-        validate_search_value_text,
+        FilterFlags, FiltersUi, SelectedSidebarItem, SidebarDropTarget, TextEditState,
+        validate_filter_text, validate_search_value_text,
     };
 
     fn new_ui() -> FiltersUi {
         let (cmd_tx, _cmd_rx) = mpsc::channel::<SessionCommand>(4);
         FiltersUi::new(cmd_tx)
+    }
+
+    #[test]
+    fn chart_drop_accepts_only_eligible_filters() {
+        let mut registry = FilterRegistry::default();
+        let ineligible_id = registry.add_filter(FilterDefinition::new(SearchFilter::plain("cpu")));
+        let eligible_id = registry.add_filter(FilterDefinition::new(
+            SearchFilter::plain("cpu=(\\d+)").regex(true),
+        ));
+        let target = SidebarDropTarget::SearchValue;
+
+        assert!(!FiltersUi::can_drop(
+            SelectedSidebarItem::Filter(ineligible_id),
+            target,
+            &registry,
+        ));
+        assert!(FiltersUi::can_drop(
+            SelectedSidebarItem::Filter(eligible_id),
+            target,
+            &registry,
+        ));
     }
 
     #[test]
