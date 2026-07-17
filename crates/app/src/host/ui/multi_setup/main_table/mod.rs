@@ -3,8 +3,8 @@
 use std::path::Path;
 
 use egui::{
-    Align, Align2, Color32, Context, CursorIcon, Label, Layout, Rect, Response, RichText,
-    ScrollArea, Sense, Stroke, TextStyle, Ui, Widget, pos2, vec2,
+    Align, Align2, Color32, Context, CursorIcon, Label, LayerId, Layout, Order, Rect, Response,
+    RichText, ScrollArea, Sense, Stroke, TextStyle, Ui, Widget, pos2, vec2,
 };
 use egui_extras::{Column, TableBuilder};
 use enum_iterator::all;
@@ -53,6 +53,9 @@ struct FileMove {
     source_index: usize,
     insert_index: usize,
 }
+
+// Moves edge indicators into row spacing so equivalent insertion slots visually align.
+const DROP_LINE_OFFSET: f32 = 2.0;
 
 impl MainTable {
     /// Renders the table and applies sorting requested through its headers.
@@ -161,10 +164,8 @@ impl MainTable {
             return;
         }
 
-        let mut target_index = file_move.insert_index.min(files.len());
-        if file_move.source_index < target_index {
-            target_index -= 1;
-        }
+        let insert_index = file_move.insert_index.min(files.len());
+        let target_index = move_destination(file_move.source_index, insert_index);
         if file_move.source_index == target_index {
             return;
         }
@@ -212,31 +213,65 @@ fn handle_file_drag(
     });
 
     let hovered_payload = response.dnd_hover_payload::<FileDrag>()?;
-    let line_y = response.rect.bottom() - drop_stroke.width / 2.0;
-    let painter = ctx
-        .layer_painter(response.layer_id)
-        .with_clip_rect(response.interact_rect);
-
-    if hovered_payload.source_index == row_index {
-        let hover_stroke = Stroke::new(drop_stroke.width, drop_stroke.color.gamma_multiply(0.5));
-        painter.hline(response.rect.x_range(), line_y, hover_stroke);
-        return None;
-    }
-
-    let insert_index = if hovered_payload.source_index < row_index {
-        row_index + 1
+    let pointer_y = ctx.input(|input| input.pointer.interact_pos())?.y;
+    let (insert_index, line_y) = file_drop_target(
+        hovered_payload.source_index,
+        row_index,
+        pointer_y,
+        response.rect,
+        drop_stroke.width,
+    );
+    // Compare post-removal positions so equivalent no-op slots use a muted highlight.
+    let destination_index = move_destination(hovered_payload.source_index, insert_index);
+    let stroke = if hovered_payload.source_index == destination_index {
+        Stroke::new(drop_stroke.width, drop_stroke.color.gamma_multiply(0.5))
     } else {
-        row_index
+        drop_stroke
     };
-    painter.hline(response.rect.x_range(), line_y, drop_stroke);
+
+    // Paint above table rows so adjacent rows cannot cover the offset drop line.
+    let highlight_layer = LayerId::new(Order::Foreground, response.id.with("file_drop_highlight"));
+    // The line sits in row spacing, so allow painting beyond the row bounds.
+    let line_clip_rect = response.interact_rect.expand2(vec2(0.0, DROP_LINE_OFFSET));
+    ctx.layer_painter(highlight_layer)
+        .with_clip_rect(line_clip_rect)
+        .hline(response.rect.x_range(), line_y, stroke);
 
     let payload = response.dnd_release_payload::<FileDrag>()?;
-    let file_move = FileMove {
+    Some(FileMove {
         source_index: payload.source_index,
         insert_index,
-    };
+    })
+}
 
-    Some(file_move)
+fn file_drop_target(
+    source_index: usize,
+    row_index: usize,
+    pointer_y: f32,
+    row_rect: Rect,
+    stroke_width: f32,
+) -> (usize, f32) {
+    let half_stroke = stroke_width / 2.0;
+    let top_line_y = row_rect.top() + half_stroke - DROP_LINE_OFFSET;
+    let bottom_line_y = row_rect.bottom() - half_stroke + DROP_LINE_OFFSET;
+    if source_index == row_index {
+        // Use the trailing equivalent slot so dropping directly on the source remains a no-op.
+        return (row_index, bottom_line_y);
+    }
+
+    if pointer_y < row_rect.center().y {
+        (row_index, top_line_y)
+    } else {
+        (row_index + 1, bottom_line_y)
+    }
+}
+
+fn move_destination(source_index: usize, insert_index: usize) -> usize {
+    if source_index < insert_index {
+        insert_index - 1
+    } else {
+        insert_index
+    }
 }
 
 fn assign_source_colors(files: &mut [FileUiState]) {
@@ -346,12 +381,12 @@ mod tests {
         time::{Duration, UNIX_EPOCH},
     };
 
-    use egui::Color32;
+    use egui::{Color32, Rect, pos2};
     use stypes::FileFormat;
 
     use super::{
         FileInclusion, FileMove, MainTable, SOURCE_HIGHLIGHT_COLORS, SortDirection, TableColumn,
-        TableSort, assign_source_colors,
+        TableSort, assign_source_colors, file_drop_target,
     };
     use crate::host::ui::multi_setup::state::FileUiState;
 
@@ -422,6 +457,18 @@ mod tests {
             direction: SortDirection::Ascending,
         };
         assert_eq!(table.sort, Some(expected_sort));
+    }
+
+    #[test]
+    fn drop_target_follows_pointer_half() {
+        let row_rect = Rect::from_min_max(pos2(0.0, 10.0), pos2(100.0, 30.0));
+        let (before_index, _) = file_drop_target(3, 1, 15.0, row_rect, 2.0);
+        let (after_index, _) = file_drop_target(3, 1, 25.0, row_rect, 2.0);
+        let (source_index, _) = file_drop_target(1, 1, 15.0, row_rect, 2.0);
+
+        assert_eq!(before_index, 1);
+        assert_eq!(after_index, 2);
+        assert_eq!(source_index, 1);
     }
 
     #[test]
