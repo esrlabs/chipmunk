@@ -1,3 +1,5 @@
+//! Canonical state shared by session UI components.
+
 use std::rc::Rc;
 
 use egui::Color32;
@@ -348,6 +350,24 @@ impl SessionShared {
         changed
     }
 
+    /// Moves an applied filter and tracks recent-session dirtiness.
+    pub fn move_filter(&mut self, filter_id: &Uuid, insert_index: usize) -> bool {
+        let changed = self.filters.move_filter(filter_id, insert_index);
+        if changed {
+            self.bump_recent_revision();
+        }
+        changed
+    }
+
+    /// Moves an applied search value and tracks recent-session dirtiness.
+    pub fn move_search_value(&mut self, value_id: &Uuid, insert_index: usize) -> bool {
+        let changed = self.filters.move_search_value(value_id, insert_index);
+        if changed {
+            self.bump_recent_revision();
+        }
+        changed
+    }
+
     /// Pins the active temporary search as a filter and tracks recent-session dirtiness.
     pub fn pin_temp_search(&mut self, registry: &mut FilterRegistry) -> bool {
         let changed = self.filters.pin_temp_search(registry);
@@ -614,6 +634,22 @@ mod tests {
         assert_eq!(shared.recent_revision(), baseline + 2);
         assert!(!shared.set_search_value_color(&value_id, color));
         assert_eq!(shared.recent_revision(), baseline + 2);
+    }
+
+    #[test]
+    fn reordering_bumps_recent_revision_only_on_change() {
+        let mut shared = new_shared();
+        let mut registry = FilterRegistry::default();
+        let first_id = add_filter_def(&mut shared, &mut registry, SearchFilter::plain("first"));
+        let second_id = add_filter_def(&mut shared, &mut registry, SearchFilter::plain("second"));
+        let baseline = shared.recent_revision();
+
+        assert!(shared.move_filter(&first_id, 2));
+        assert_eq!(shared.filters.filter_entries[0].id, second_id);
+        assert_eq!(shared.recent_revision(), baseline + 1);
+
+        assert!(!shared.move_filter(&first_id, 2));
+        assert_eq!(shared.recent_revision(), baseline + 1);
     }
 
     #[test]
