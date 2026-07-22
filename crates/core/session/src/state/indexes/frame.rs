@@ -1,5 +1,6 @@
-use super::nature::Nature;
 use std::ops::RangeInclusive;
+
+use super::nature::Nature;
 
 /// Represents a (vertical) frame search results view containing the indices
 /// of the lines and their nature (kind).
@@ -15,18 +16,6 @@ impl Frame {
 
     pub fn insert(&mut self, index: (u64, Nature)) {
         self.indexes.push(index);
-    }
-
-    pub fn set(&mut self, indexes: Vec<(u64, Nature)>) {
-        self.indexes = indexes;
-    }
-
-    pub fn len(&self) -> usize {
-        self.indexes.len()
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
     }
 
     pub fn ranges(&self) -> Vec<RangeInclusive<u64>> {

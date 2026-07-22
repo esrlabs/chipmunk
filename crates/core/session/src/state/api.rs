@@ -1,9 +1,7 @@
 use super::values::graph::CandlePoint;
 use crate::{
     state::{
-        indexes::{IndexedNavigation, controller::Mode as IndexesMode},
-        observed::Observed,
-        session_file::SessionFileOrigin,
+        indexes::IndexedNavigation, observed::Observed, session_file::SessionFileOrigin,
         values::ValuesError,
     },
     tracker::OperationTrackerAPI,
@@ -101,12 +99,6 @@ pub enum Api {
             oneshot::Sender<Result<Vec<GrabbedElement>, stypes::NativeError>>,
         ),
     ),
-    SetIndexingMode(
-        (
-            IndexesMode,
-            oneshot::Sender<Result<(), stypes::NativeError>>,
-        ),
-    ),
     GetIndexedMapLen(oneshot::Sender<usize>),
     /// Finds the neighboring indexed row around an anchor row.
     GetIndexedNeighbor {
@@ -118,22 +110,9 @@ pub enum Api {
         /// Receives the matching indexed row, or `None` when the indexed map is empty.
         tx_response: oneshot::Sender<Option<u64>>,
     },
-    #[allow(clippy::type_complexity)]
-    GetDistancesAroundIndex(
-        (
-            u64,
-            oneshot::Sender<Result<(Option<u64>, Option<u64>), stypes::NativeError>>,
-        ),
-    ),
-    AddBookmark((u64, oneshot::Sender<Result<(), stypes::NativeError>>)),
-    SetBookmarks((Vec<u64>, oneshot::Sender<Result<(), stypes::NativeError>>)),
-    RemoveBookmark((u64, oneshot::Sender<Result<(), stypes::NativeError>>)),
-    ExpandBreadcrumbs {
-        seporator: u64,
-        offset: u64,
-        above: bool,
-        tx_response: oneshot::Sender<Result<(), stypes::NativeError>>,
-    },
+    AddBookmark((u64, oneshot::Sender<()>)),
+    SetBookmarks((Vec<u64>, oneshot::Sender<()>)),
+    RemoveBookmark((u64, oneshot::Sender<()>)),
     GrabSearch(
         (
             LineRange,
@@ -245,14 +224,11 @@ impl Display for Api {
                 Self::GrabSearch(_) => "GrabSearch",
                 Self::SearchNestedMatch(_) => "SearchNestedMatch",
                 Self::GrabIndexed(_) => "GrabIndexed",
-                Self::SetIndexingMode(_) => "SetIndexingMode",
                 Self::GetIndexedMapLen(_) => "GetIndexedMapLen",
                 Self::GetIndexedNeighbor { .. } => "GetIndexedNeighbor",
-                Self::GetDistancesAroundIndex(_) => "GetDistancesAroundIndex",
                 Self::AddBookmark(_) => "AddBookmark",
                 Self::SetBookmarks(_) => "SetBookmarks",
                 Self::RemoveBookmark(_) => "RemoveBookmark",
-                Self::ExpandBreadcrumbs { .. } => "ExpandBreadcrumbs",
                 Self::GrabRanges(_) => "GrabRanges",
                 Self::GetNearestPosition(_) => "GetNearestPosition",
                 Self::GetScaledMap(_) => "GetScaledMap",
@@ -326,12 +302,6 @@ impl SessionStateAPI {
             .await?
     }
 
-    pub async fn set_indexing_mode(&self, mode: IndexesMode) -> Result<(), stypes::NativeError> {
-        let (tx, rx) = oneshot::channel();
-        self.exec_operation(Api::SetIndexingMode((mode, tx)), rx)
-            .await?
-    }
-
     pub async fn get_indexed_len(&self) -> Result<usize, stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::GetIndexedMapLen(tx), rx).await
@@ -354,49 +324,20 @@ impl SessionStateAPI {
         .await
     }
 
-    pub async fn get_around_indexes(
-        &self,
-        position: u64,
-    ) -> Result<(Option<u64>, Option<u64>), stypes::NativeError> {
-        let (tx, rx) = oneshot::channel();
-        self.exec_operation(Api::GetDistancesAroundIndex((position, tx)), rx)
-            .await?
-    }
-
     pub async fn add_bookmark(&self, row: u64) -> Result<(), stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
-        self.exec_operation(Api::AddBookmark((row, tx)), rx).await?
+        self.exec_operation(Api::AddBookmark((row, tx)), rx).await
     }
 
     pub async fn set_bookmarks(&self, rows: Vec<u64>) -> Result<(), stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
-        self.exec_operation(Api::SetBookmarks((rows, tx)), rx)
-            .await?
+        self.exec_operation(Api::SetBookmarks((rows, tx)), rx).await
     }
 
     pub async fn remove_bookmark(&self, row: u64) -> Result<(), stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::RemoveBookmark((row, tx)), rx)
-            .await?
-    }
-
-    pub async fn expand_breadcrumbs(
-        &self,
-        seporator: u64,
-        offset: u64,
-        above: bool,
-    ) -> Result<(), stypes::NativeError> {
-        let (tx, rx) = oneshot::channel();
-        self.exec_operation(
-            Api::ExpandBreadcrumbs {
-                seporator,
-                offset,
-                above,
-                tx_response: tx,
-            },
-            rx,
-        )
-        .await?
+            .await
     }
 
     pub async fn grab_search(

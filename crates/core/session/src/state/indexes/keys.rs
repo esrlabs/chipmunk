@@ -47,16 +47,9 @@ impl Keys {
         self.sorted = false;
     }
 
-    pub fn remove(&mut self, position: &u64) {
-        self.sort();
-        if let Ok(index) = self.keys.binary_search(position) {
-            self.keys.remove(index);
-        }
-    }
-
     pub fn remove_ranges(&mut self, ranges: &[RangeInclusive<u64>]) -> Result<(), String> {
         self.sort();
-        for range in ranges.iter() {
+        for range in ranges {
             if let (Ok(start), Ok(end)) = (
                 self.keys.binary_search(range.start()),
                 self.keys.binary_search(range.end()),
@@ -67,23 +60,6 @@ impl Keys {
             }
         }
         Ok(())
-    }
-
-    pub fn remove_from(&mut self, position_from: &u64) -> Result<Vec<u64>, stypes::NativeError> {
-        self.sort();
-        let from_index =
-            self.keys
-                .binary_search(position_from)
-                .map_err(|_| stypes::NativeError {
-                    severity: stypes::Severity::ERROR,
-                    kind: stypes::NativeErrorKind::Grabber,
-                    message: Some(format!("Cannot find index for position: {position_from}")),
-                })?;
-        if from_index + 1 < self.keys.len() {
-            Ok(self.keys.drain((from_index + 1)..self.keys.len()).collect())
-        } else {
-            Ok(vec![])
-        }
     }
 
     pub fn clear(&mut self) -> &mut Self {
@@ -103,6 +79,8 @@ impl Keys {
         self.sorted = false;
     }
 
+    // Retained for exact session-position to indexed-row lookup.
+    #[allow(dead_code)]
     pub fn get_index(&mut self, position: &u64) -> Result<usize, stypes::NativeError> {
         self.sort();
         self.keys
@@ -120,31 +98,6 @@ impl Keys {
             kind: stypes::NativeErrorKind::Grabber,
             message: Some(format!("Cannot find position for index: {index}")),
         })
-    }
-
-    /// Gets positions before and after the provided position if exist.
-    pub fn get_positions_around(
-        &mut self,
-        position: &u64,
-    ) -> Result<(Option<u64>, Option<u64>), stypes::NativeError> {
-        let mut before: Option<u64> = None;
-        let mut after: Option<u64> = None;
-        self.sort();
-        let key = self
-            .keys
-            .binary_search(position)
-            .map_err(|_| stypes::NativeError {
-                severity: stypes::Severity::ERROR,
-                kind: stypes::NativeErrorKind::Grabber,
-                message: Some(format!("Cannot index for position: {position}")),
-            })?;
-        if key > 0 {
-            before = Some(self.keys[key - 1]);
-        }
-        if (key + 1) < self.keys.len() {
-            after = Some(self.keys[key + 1]);
-        }
-        Ok((before, after))
     }
 
     pub fn neighbor(&mut self, anchor: Option<u64>, direction: IndexedNavigation) -> Option<u64> {
@@ -180,25 +133,12 @@ impl Keys {
             }
         }
     }
-
-    pub fn first(&mut self) -> Option<&u64> {
-        self.sort();
-        self.keys.first()
-    }
-
-    pub fn last(&mut self) -> Option<&u64> {
-        self.sort();
-        self.keys.last()
-    }
-
-    pub fn get(&mut self) -> Vec<u64> {
-        self.sort();
-        self.keys.clone()
-    }
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
+    use std::ops::RangeInclusive;
+
     use super::{IndexedNavigation, Keys};
 
     fn keys_with_rows(rows: impl IntoIterator<Item = u64>) -> Keys {
@@ -210,98 +150,28 @@ mod test {
     }
 
     #[test]
-    fn test_keys_001() {
-        let mut keys = super::Keys::new();
-        assert_eq!(keys.first(), None);
-        keys.add(13);
-        keys.add(100);
-        keys.add(12);
-        keys.add(11);
-        keys.add(200);
-        keys.add(1);
-        keys.sort();
-        keys.remove(&100);
-        assert_eq!(keys.get(), vec![1, 11, 12, 13, 200]);
+    fn exact_lookup_sorts_and_finds_session_position() {
+        let mut keys = keys_with_rows([13, 1, 8]);
+
+        assert_eq!(keys.get_index(&1).unwrap(), 0);
+        assert_eq!(keys.get_index(&8).unwrap(), 1);
+        assert_eq!(keys.get_index(&13).unwrap(), 2);
+        assert!(keys.get_index(&5).is_err());
     }
 
     #[test]
-    fn test_keys_002() {
-        let mut keys = super::Keys::new();
-        assert_eq!(keys.first(), None);
-        keys.add(13);
-        keys.add(100);
-        keys.add(12);
-        keys.add(11);
-        keys.add(200);
-        keys.add(1);
+    fn contiguous_positions_are_compacted_into_ranges() {
+        let mut keys = keys_with_rows([100, 4, 3, 11, 10, 5]);
         keys.sort();
-        keys.remove(&100);
-        keys.remove(&11);
-        keys.remove(&1);
+
         assert_eq!(
+            keys.as_ranges(),
             vec![
-                keys.get_index(&12).unwrap(),
-                keys.get_index(&13).unwrap(),
-                keys.get_index(&200).unwrap()
-            ],
-            vec![0, 1, 2,]
+                RangeInclusive::new(3, 5),
+                RangeInclusive::new(10, 11),
+                RangeInclusive::new(100, 100),
+            ]
         );
-    }
-
-    #[test]
-    fn test_keys_003() {
-        use std::ops::RangeInclusive;
-        let mut keys = super::Keys::new();
-        assert_eq!(keys.first(), None);
-        keys.add(100);
-        keys.add(101);
-        keys.add(102);
-        keys.add(103);
-        keys.add(104);
-        keys.add(105);
-        keys.add(11);
-        keys.add(12);
-        keys.add(13);
-        keys.add(14);
-        keys.add(15);
-        keys.add(7);
-        keys.sort();
-        assert_eq!(
-            keys.remove_ranges(&[RangeInclusive::new(11, 15), RangeInclusive::new(100, 105)]),
-            Ok(())
-        );
-        assert_eq!(keys.keys.len(), 1);
-        assert_eq!(keys.first(), Some(&7));
-        keys.remove(&7);
-        assert_eq!(keys.first(), None);
-    }
-
-    #[test]
-    fn test_keys_004() {
-        use std::ops::RangeInclusive;
-        let mut keys = super::Keys::new();
-        assert_eq!(keys.first(), None);
-        keys.add(100);
-        keys.add(101);
-        keys.add(102);
-        keys.add(103);
-        keys.add(104);
-        keys.add(105);
-        keys.add(13);
-        keys.add(12);
-        keys.add(11);
-        keys.add(10);
-        keys.add(5);
-        keys.add(4);
-        keys.add(3);
-        keys.add(2);
-        keys.add(1);
-        keys.sort();
-        let ranges = keys.as_ranges();
-        assert_eq!(ranges.len(), 3);
-        assert_eq!(ranges[0], RangeInclusive::new(1, 5));
-        assert_eq!(ranges[1], RangeInclusive::new(10, 13));
-        assert_eq!(ranges[2], RangeInclusive::new(100, 105));
     }
 
     #[test]

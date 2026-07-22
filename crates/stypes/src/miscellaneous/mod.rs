@@ -62,20 +62,13 @@ pub struct GrabbedElement {
     /// The nature of the log entry, represented as a bitmask. Possible values include:
     /// - `SEARCH`: Nature = Nature(1)
     /// - `BOOKMARK`: Nature = Nature(1 << 1)
-    /// - `EXPANDED`: Nature = Nature(1 << 5)
-    /// - `BREADCRUMB`: Nature = Nature(1 << 6)
-    /// - `BREADCRUMB_SEPARATOR`: Nature = Nature(1 << 7)
+    /// - `SEARCH | BOOKMARK`: Nature = Nature(3)
     pub nature: u8,
 }
 
 /// A list of log entries.
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct GrabbedElementList(pub Vec<GrabbedElement>);
-
-/// Data about indices (log entry numbers). Used to provide information about
-/// the nearest search results relative to a specific log entry number.
-#[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct AroundIndexes(pub (Option<u64>, Option<u64>));
 
 /// Describes a match for a search condition.
 #[derive(Clone, Serialize, Deserialize, Debug)]
