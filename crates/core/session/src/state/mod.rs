@@ -38,11 +38,7 @@ pub(crate) mod values;
 pub use api::{Api, SessionStateAPI};
 pub use attachments::{Attachments, AttachmentsError};
 pub use indexes::{
-    IndexedNavigation,
-    controller::{Controller as Indexes, Mode as IndexesMode},
-    frame::Frame,
-    map::Map,
-    nature::Nature,
+    IndexedNavigation, controller::Controller as Indexes, frame::Frame, map::Map, nature::Nature,
 };
 use observed::Observed;
 use searchers::{SearchRequest, SearchResponse};
@@ -332,7 +328,7 @@ impl SessionState {
         let rows = self.session_file.len();
         let bytes = self.session_file.read_bytes();
         self.search_map.set_stream_len(rows);
-        self.indexes.set_stream_len(rows)?;
+        self.indexes.set_stream_len(rows);
         tx_callback_events.send(stypes::CallbackEvent::StreamUpdated(rows))?;
         self.searcher_tx
             .send(SearchRequest::SearchRegular {
@@ -680,13 +676,6 @@ async fn handle_api_msg(
                     stypes::NativeError::channel("Failed to respond to Api::GrabIndexed")
                 })?;
         }
-        Api::SetIndexingMode((mode, tx_response)) => {
-            tx_response
-                .send(state.indexes.set_mode(mode))
-                .map_err(|_| {
-                    stypes::NativeError::channel("Failed to respond to Api::SetIndexingMode")
-                })?;
-        }
         Api::GetIndexedMapLen(tx_response) => {
             tx_response.send(state.indexes.len()).map_err(|_| {
                 stypes::NativeError::channel("Failed to respond to Api::GetIndexedMapLen")
@@ -703,45 +692,23 @@ async fn handle_api_msg(
                     stypes::NativeError::channel("Failed to respond to Api::GetIndexedNeighbor")
                 })?;
         }
-        Api::GetDistancesAroundIndex((position, tx_response)) => {
-            tx_response
-                .send(state.indexes.get_around_indexes(&position))
-                .map_err(|_| {
-                    stypes::NativeError::channel("Failed to respond to Api::GetIndexedMapLen")
-                })?;
-        }
         Api::AddBookmark((row, tx_response)) => {
-            tx_response
-                .send(state.indexes.add_bookmark(row))
-                .map_err(|_| {
-                    stypes::NativeError::channel("Failed to respond to Api::AddBookmark")
-                })?;
+            state.indexes.add_bookmark(row);
+            tx_response.send(()).map_err(|_| {
+                stypes::NativeError::channel("Failed to respond to Api::AddBookmark")
+            })?;
         }
         Api::SetBookmarks((rows, tx_response)) => {
-            tx_response
-                .send(state.indexes.set_bookmarks(rows))
-                .map_err(|_| {
-                    stypes::NativeError::channel("Failed to respond to Api::SetBookmarks")
-                })?;
+            state.indexes.set_bookmarks(rows);
+            tx_response.send(()).map_err(|_| {
+                stypes::NativeError::channel("Failed to respond to Api::SetBookmarks")
+            })?;
         }
         Api::RemoveBookmark((row, tx_response)) => {
-            tx_response
-                .send(state.indexes.remove_bookmark(row))
-                .map_err(|_| {
-                    stypes::NativeError::channel("Failed to respond to Api::RemoveBookmark")
-                })?;
-        }
-        Api::ExpandBreadcrumbs {
-            seporator,
-            offset,
-            above,
-            tx_response,
-        } => {
-            tx_response
-                .send(state.indexes.breadcrumbs_expand(seporator, offset, above))
-                .map_err(|_| {
-                    stypes::NativeError::channel("Failed to respond to Api::ExpandBreadcrumbs")
-                })?;
+            state.indexes.remove_bookmark(row);
+            tx_response.send(()).map_err(|_| {
+                stypes::NativeError::channel("Failed to respond to Api::RemoveBookmark")
+            })?;
         }
         Api::GrabSearch((range, tx_response)) => {
             tx_response
@@ -832,7 +799,7 @@ async fn handle_api_msg(
 
             if result {
                 state.search_map.set(None, None);
-                state.indexes.drop_search()?;
+                state.indexes.drop_search();
             }
             tx_callback_events.send(stypes::CallbackEvent::no_search_results())?;
             tx_callback_events.send(stypes::CallbackEvent::SearchMapUpdated(None))?;
@@ -844,7 +811,7 @@ async fn handle_api_msg(
             let update: Option<stypes::FilterMatchList> =
                 matches.as_ref().map(|matches| matches.into());
             if let Some(matches) = matches.as_ref() {
-                state.indexes.set_search_results(matches)?;
+                state.indexes.set_search_results(matches);
             }
             state.search_map.set(matches, stats);
             tx_callback_events.send(stypes::CallbackEvent::SearchMapUpdated(update))?;
@@ -971,7 +938,7 @@ async fn handle_searchers(
         SearchResponse::SearchRegularResult(res) => {
             match res {
                 Ok((_processed, mut matches, stats)) => {
-                    state.indexes.append_search_results(&matches)?;
+                    state.indexes.append_search_results(&matches);
                     state.search_map.append_stats(stats);
 
                     let updates: stypes::FilterMatchList = (&matches).into();

@@ -2,11 +2,7 @@
 //! to listening to incoming operations and updating the state, to destroying it at the end.
 
 use crate::{
-    operations,
-    operations::Operation,
-    state,
-    state::{IndexesMode, SessionStateAPI},
-    tracker,
+    operations, operations::Operation, state, state::SessionStateAPI, tracker,
     tracker::OperationTrackerAPI,
 };
 use futures::Future;
@@ -178,32 +174,10 @@ impl Session {
             .map_err(stypes::ComputationError::NativeError)
     }
 
-    pub async fn set_indexing_mode(&self, mode: u8) -> Result<(), stypes::ComputationError> {
-        self.state
-            .set_indexing_mode(match mode {
-                0u8 => IndexesMode::Regular,
-                1u8 => IndexesMode::Breadcrumbs,
-                _ => return Err(stypes::ComputationError::InvalidData),
-            })
-            .await
-            .map_err(stypes::ComputationError::NativeError)
-    }
-
     pub async fn get_indexed_len(&self) -> Result<usize, stypes::ComputationError> {
         self.state
             .get_indexed_len()
             .await
-            .map_err(stypes::ComputationError::NativeError)
-    }
-
-    pub async fn get_around_indexes(
-        &self,
-        position: u64,
-    ) -> Result<stypes::AroundIndexes, stypes::ComputationError> {
-        self.state
-            .get_around_indexes(position)
-            .await
-            .map(|v| v.into())
             .map_err(stypes::ComputationError::NativeError)
     }
 
@@ -224,18 +198,6 @@ impl Session {
     pub async fn remove_bookmark(&self, row: u64) -> Result<(), stypes::ComputationError> {
         self.state
             .remove_bookmark(row)
-            .await
-            .map_err(stypes::ComputationError::NativeError)
-    }
-
-    pub async fn expand_breadcrumbs(
-        &self,
-        seporator: u64,
-        offset: u64,
-        above: bool,
-    ) -> Result<(), stypes::ComputationError> {
-        self.state
-            .expand_breadcrumbs(seporator, offset, above)
             .await
             .map_err(stypes::ComputationError::NativeError)
     }

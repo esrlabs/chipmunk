@@ -33,19 +33,6 @@ impl From<Vec<SourceDefinition>> for Sources {
     }
 }
 
-impl From<(Option<u64>, Option<u64>)> for AroundIndexes {
-    /// Converts a tuple `(Option<u64>, Option<u64>)` into an `AroundIndexes`.
-    ///
-    /// # Parameters
-    /// - `value`: A tuple containing two optional `u64` values.
-    ///
-    /// # Returns
-    /// - An `AroundIndexes` instance containing the input tuple.
-    fn from(value: (Option<u64>, Option<u64>)) -> Self {
-        Self(value)
-    }
-}
-
 impl From<RangeInclusive<u64>> for Range {
     /// Converts a `RangeInclusive<u64>` into a `Range`.
     ///
