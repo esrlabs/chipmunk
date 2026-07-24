@@ -12,7 +12,7 @@ use crate::{
             file_dialog_commands,
             state::{HostState, modal::HostModal},
             storage::HostStorage,
-            tabs::HostTabs,
+            tabs::{HostTab, HostTabs},
         },
     },
 };
@@ -130,6 +130,27 @@ impl MainMenuBar {
 
                 if ui.button("Open File(s) with Plugin...").clicked() {
                     file_dialog_commands::open_files_with_plugin_dialog(actions);
+                }
+            });
+
+            ui.menu_button("Edit", |ui| {
+                ui.set_min_size(MENU_MIN_SIZE);
+
+                let nested_search_available = matches!(
+                    tabs.active(),
+                    HostTab::Session(session) if session.nested_search_available()
+                );
+                if ui
+                    .add_enabled(
+                        nested_search_available,
+                        Button::new("Find in Search Results"),
+                    )
+                    .clicked()
+                {
+                    if let HostTab::Session(session) = tabs.active_mut() {
+                        session.toggle_nested_search(&mut state.preferences);
+                    }
+                    ui.close();
                 }
             });
 

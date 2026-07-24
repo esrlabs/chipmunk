@@ -250,6 +250,7 @@ impl Session {
     }
 
     fn handle_search_dropped(&mut self) {
+        self.close_nested_search();
         self.bottom_panel.search.table.clear();
         self.bottom_panel.chart.reset();
     }
@@ -315,6 +316,10 @@ impl Session {
                         } else {
                             self.shared.remove_bookmark(row);
                         }
+                    }
+
+                    if !self.nested_search_available() {
+                        self.close_nested_search();
                     }
                 }
                 SessionMessage::ChartHistogram(map) => {
@@ -549,6 +554,30 @@ impl Session {
                 None
             }
         }
+    }
+
+    /// Returns whether Find in Search Results can be shown for the active indexed table.
+    pub fn nested_search_available(&self) -> bool {
+        self.bottom_panel.search.table_available(&self.shared)
+    }
+
+    /// Toggles Find in Search Results and reveals its bottom-panel table when available.
+    pub fn toggle_nested_search(&mut self, preferences: &mut HostPreferences) {
+        if !self.nested_search_available() {
+            self.close_nested_search();
+            return;
+        }
+
+        if self.shared.search.nested().is_visible() {
+            self.close_nested_search();
+        } else {
+            self.bottom_panel.search.open_nested(&mut self.shared);
+            self.activate_bottom_tab(BottomTabType::Search, preferences);
+        }
+    }
+
+    fn close_nested_search(&mut self) {
+        self.bottom_panel.search.close_nested(&mut self.shared);
     }
 
     pub fn handle_shortcuts(

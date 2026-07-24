@@ -4,7 +4,7 @@ use std::{
     sync::mpsc::Receiver as StdReceiver,
 };
 
-use egui::{Sense, Ui};
+use egui::{Rect, Sense, Ui};
 use egui_table::{CellInfo, PrefetchInfo, TableDelegate};
 use tokio::sync::mpsc::Sender;
 
@@ -71,13 +71,14 @@ impl SearchTable {
         self.scroll_nearest_pos = nearest_pos;
     }
 
+    /// Renders the indexed results table and returns its outer rectangle for foreground overlays.
     pub fn render_content(
         &mut self,
         shared: &mut SessionShared,
         actions: &mut UiActions,
         registry: &FilterRegistry,
         ui: &mut Ui,
-    ) {
+    ) -> Rect {
         // Disable fade effects on tables to avoid highlighting clashing.
         ui.style_mut().spacing.scroll.fade.strength = 0.0;
 
@@ -117,6 +118,7 @@ impl SearchTable {
 
         let mut delegate = LogsDelegate::new(self, shared, actions, registry);
         let response = table.show(ui, &mut delegate);
+
         response.context_menu(|ui| {
             delegate.table.render_context_menu(
                 delegate.shared,
@@ -132,6 +134,8 @@ impl SearchTable {
 
         activate_table_on_click(ui, &response.rect, &mut shared.view, LogTableKind::Search);
         render_active_table_indicator(ui, &response.rect, &shared.view, LogTableKind::Search);
+
+        response.rect
     }
 
     pub fn clear(&mut self) {
