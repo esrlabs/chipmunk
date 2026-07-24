@@ -4,12 +4,12 @@ pub mod keys;
 pub mod map;
 pub mod nature;
 
-/// Direction for selecting a neighboring row from the indexed row map.
+/// Direction for navigation through an ordered row sequence.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum IndexedNavigation {
-    /// Select the nearest indexed row lower than the anchor, wrapping to the last row.
+    /// Navigate toward lower indexes, wrapping to the end when supported.
     Previous,
-    /// Select the nearest indexed row higher than the anchor, wrapping to the first row.
+    /// Navigate toward higher indexes, wrapping to the beginning when supported.
     Next,
 }
 

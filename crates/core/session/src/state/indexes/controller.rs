@@ -72,6 +72,11 @@ impl Controller {
         self.map.indexed_neighbor(anchor, direction)
     }
 
+    /// Returns the exact indexed-table row for a session position.
+    pub fn indexed_row_index(&mut self, session_position: u64) -> Result<u64, stypes::NativeError> {
+        self.map.indexed_row_index(session_position)
+    }
+
     pub(crate) fn naturalize(&self, elements: &mut [stypes::GrabbedElement]) {
         self.map.naturalize(elements);
     }

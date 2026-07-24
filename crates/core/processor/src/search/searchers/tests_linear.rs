@@ -64,3 +64,11 @@ fn test_linear() -> Result<(), std::io::Error> {
     }
     Ok(())
 }
+
+#[test]
+fn whole_word_matching_rejects_partial_words() {
+    let searcher = LineSearcher::new(&SearchFilter::plain("warn").word(true)).unwrap();
+
+    assert!(searcher.is_match("status warn received"));
+    assert!(!searcher.is_match("status warning received"));
+}

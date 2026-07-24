@@ -79,8 +79,7 @@ impl Keys {
         self.sorted = false;
     }
 
-    // Retained for exact session-position to indexed-row lookup.
-    #[allow(dead_code)]
+    /// Returns the exact ordered index for a session position.
     pub fn get_index(&mut self, position: &u64) -> Result<usize, stypes::NativeError> {
         self.sort();
         self.keys

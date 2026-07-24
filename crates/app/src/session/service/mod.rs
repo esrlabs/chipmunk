@@ -345,11 +345,11 @@ impl SessionService {
                     .await
                     .map_err(SessionError::NativeError)?;
             }
-            SessionCommand::GetNearestPosition(position) => {
+            SessionCommand::GetNearestSearchResult(position) => {
                 let nearest = self
                     .session
                     .state
-                    .get_nearest_position(position)
+                    .get_nearest_search_result(position)
                     .await
                     .map_err(SessionError::NativeError)
                     .map(|n| n.0);
@@ -360,7 +360,7 @@ impl SessionService {
                 );
 
                 self.senders
-                    .send_session_msg(SessionMessage::NearestPosition(nearest))
+                    .send_session_msg(SessionMessage::NearestSearchResult(nearest))
                     .await;
             }
             SessionCommand::GetIndexedNeighbor { anchor, direction } => {

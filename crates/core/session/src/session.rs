@@ -2,7 +2,11 @@
 //! to listening to incoming operations and updating the state, to destroying it at the end.
 
 use crate::{
-    operations, operations::Operation, state, state::SessionStateAPI, tracker,
+    operations,
+    operations::Operation,
+    state,
+    state::{IndexedNavigation, NestedMatch, SessionStateAPI},
+    tracker,
     tracker::OperationTrackerAPI,
 };
 use futures::Future;
@@ -202,37 +206,17 @@ impl Session {
             .map_err(stypes::ComputationError::NativeError)
     }
 
-    /// Calls "nested" search functionality.
-    /// A "nested" search refers to filtering matches within the primary search results.
+    /// Finds a nested match in the primary search results with one wrap at the boundary.
     ///
-    /// # Parameters
-    ///
-    /// * `filter` - The search filter used to specify the criteria for the nested search.
-    /// * `from` - The starting position (within the primary search results) for the nested search.
-    /// * `rev` - Specifies the direction of the search:
-    ///     * `true` - Perform the search in reverse.
-    ///     * `false` - Perform the search in forward order.
-    ///
-    /// # Returns
-    ///
-    /// If a match is found:
-    /// * `Some((search_result_line_index, session_file_line_index))` - A tuple containing:
-    ///     - The line index within the search results.
-    ///     - The corresponding line index in the session file.
-    ///
-    /// If no match is found:
-    /// * `None`
-    ///
-    /// On error:
-    /// * `Err(stypes::ComputationError)` - Describes the error encountered during the process.
+    /// `anchor` is an exclusive search-result index. A stale anchor is treated as absent.
     pub async fn search_nested_match(
         &self,
         filter: SearchFilter,
-        from: u64,
-        rev: bool,
-    ) -> Result<Option<(u64, u64)>, stypes::ComputationError> {
+        anchor: Option<u64>,
+        direction: IndexedNavigation,
+    ) -> Result<Option<NestedMatch>, stypes::ComputationError> {
         self.state
-            .search_nested_match(filter, from, rev)
+            .search_nested_match(filter, anchor, direction)
             .await
             .map_err(stypes::ComputationError::NativeError)
     }
@@ -520,15 +504,15 @@ impl Session {
             .map_err(|e| stypes::ComputationError::Communication(e.to_string()))
     }
 
-    pub fn get_nearest_to(
+    pub fn get_nearest_search_result(
         &self,
         operation_id: Uuid,
-        position_in_stream: u64,
+        session_position: u64,
     ) -> Result<(), stypes::ComputationError> {
         self.tx_operations
             .send(Operation::new(
                 operation_id,
-                operations::OperationKind::GetNearestPosition(position_in_stream),
+                operations::OperationKind::GetNearestSearchResult(session_position),
             ))
             .map_err(|e| stypes::ComputationError::Communication(e.to_string()))
     }
