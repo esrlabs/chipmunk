@@ -33,6 +33,8 @@ mod observed;
 mod searchers;
 mod session_file;
 mod source_ids;
+#[cfg(test)]
+mod tests_nested;
 pub(crate) mod values;
 
 pub use api::{Api, SessionStateAPI};
@@ -47,6 +49,17 @@ use stypes::{FilterMatch, GrabbedElement};
 pub use observed::is_raw_export_available_for;
 pub use session_file::{SessionFile, SessionFileOrigin, SessionFileState};
 pub use values::{Values, ValuesError};
+
+/// Coordinates of a nested match across the session and its indexed projections.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NestedMatch {
+    /// Original row position in the complete session stream.
+    pub session_position: u64,
+    /// Position within the primary search-result sequence.
+    pub search_result_index: u64,
+    /// Displayed row position in the search-and-bookmark indexed table.
+    pub indexed_row_index: u64,
+}
 
 /// Status of session state.
 #[derive(Debug)]
@@ -169,87 +182,127 @@ impl SessionState {
         Ok(elements)
     }
 
-    /// Handles "nested" search functionality.
-    /// A "nested" search refers to filtering matches within the primary search results.
+    /// Finds the first nested match after the optional primary-result anchor.
     ///
-    /// # Parameters
-    ///
-    /// * `filter` - The search filter used to specify the criteria for the nested search.
-    /// * `from` - The starting position (within the primary search results) for the nested search.
-    /// * `rev` - Specifies the direction of the search:
-    ///     * `true` - Perform the search in reverse.
-    ///     * `false` - Perform the search in forward order.
-    ///
-    /// # Process
-    ///
-    /// 1. Starting from the `from` position, determine the ranges of lines in the original session file
-    ///    that correspond to the primary search results.
-    /// 2. Create a line-based search utility (`LineSearcher`) using the provided `filter`.
-    /// 3. Iterate through each range, reading and checking lines for matches.
-    /// 4. Stop the search as soon as a match is found and return the result.
-    ///
-    /// # Returns
-    ///
-    /// If a match is found:
-    /// * `Some((search_result_line_index, session_file_line_index))` - A tuple containing:
-    ///     - The line index within the search results.
-    ///     - The corresponding line index in the session file.
-    ///
-    /// If no match is found:
-    /// * `None`
-    ///
-    /// On error:
-    /// * `Err(stypes::NativeError)` - Describes the error encountered during the process.
+    /// The anchor is excluded, navigation wraps once, and stale anchors are treated as absent.
     fn handle_search_nested_match(
         &mut self,
         filter: SearchFilter,
-        from: u64,
-        rev: bool,
-    ) -> Result<Option<(u64, u64)>, stypes::NativeError> {
-        let indexes = if !rev {
-            self.search_map.indexes_from(from)
-        } else {
-            self.search_map.indexes_to_rev(from)
+        anchor: Option<u64>,
+        direction: IndexedNavigation,
+    ) -> Result<Option<NestedMatch>, stypes::NativeError> {
+        let search_result_count = self.search_map.len();
+        if search_result_count == 0 {
+            return Ok(None);
         }
-        .map_err(|e| stypes::NativeError {
-            severity: stypes::Severity::ERROR,
-            kind: stypes::NativeErrorKind::Grabber,
-            message: Some(format!("{e}")),
-        })?;
+
+        let anchor = anchor
+            .and_then(|anchor| usize::try_from(anchor).ok())
+            .filter(|anchor| *anchor < search_result_count);
+        let candidate_count = anchor.map_or(search_result_count, |_| search_result_count - 1);
+        if candidate_count == 0 {
+            return Ok(None);
+        }
+
+        let candidate_index = |offset: usize| match (anchor, direction) {
+            (None, IndexedNavigation::Next) => offset,
+            (None, IndexedNavigation::Previous) => search_result_count - 1 - offset,
+            (Some(anchor), IndexedNavigation::Next) => {
+                let remaining = search_result_count - anchor - 1;
+                if offset < remaining {
+                    anchor + 1 + offset
+                } else {
+                    offset - remaining
+                }
+            }
+            (Some(anchor), IndexedNavigation::Previous) => {
+                if offset < anchor {
+                    anchor - 1 - offset
+                } else {
+                    search_result_count - 1 - (offset - anchor)
+                }
+            }
+        };
+
+        // Bound each file grab while retaining the efficiency of contiguous reads.
+        const CHUNK_SIZE: usize = 1024;
         let searcher = LineSearcher::new(&filter).map_err(|e| stypes::NativeError {
             severity: stypes::Severity::ERROR,
             kind: stypes::NativeErrorKind::OperationSearch,
             message: Some(e.to_string()),
         })?;
-        let mut indexes: std::vec::IntoIter<RangeInclusive<u64>> =
-            self.transform_indexes(indexes).into_iter();
-        while let Some(range) = if !rev {
-            indexes.next()
-        } else {
-            indexes.next_back()
-        } {
-            let grabbed = self.session_file.grab(&LineRange::from(range.clone()))?;
-            let found = if !rev {
-                grabbed.iter().find(|ln| searcher.is_match(&ln.content))
-            } else {
-                grabbed
-                    .iter()
-                    .rev()
-                    .find(|ln| searcher.is_match(&ln.content))
-            };
-            if let Some(ln) = found {
-                let Some(srch_pos) = self.search_map.get_match_index(ln.pos as u64) else {
-                    return Err(stypes::NativeError {
+        let mut candidates = Vec::new();
+        let mut offset = 0;
+        while offset < candidate_count {
+            candidates.clear();
+            let search_result_index = candidate_index(offset);
+            let session_position = self.search_map.matches[search_result_index].index;
+            candidates.push((search_result_index, session_position));
+
+            while candidates.len() < CHUNK_SIZE && offset + candidates.len() < candidate_count {
+                let next_index = candidate_index(offset + candidates.len());
+                let next_session_position = self.search_map.matches[next_index].index;
+                let current_session_position = candidates.last().expect("candidate exists").1;
+                let is_contiguous = match direction {
+                    IndexedNavigation::Next => current_session_position
+                        .checked_add(1)
+                        .is_some_and(|expected| expected == next_session_position),
+                    IndexedNavigation::Previous => current_session_position
+                        .checked_sub(1)
+                        .is_some_and(|expected| expected == next_session_position),
+                };
+                if !is_contiguous {
+                    break;
+                }
+                candidates.push((next_index, next_session_position));
+            }
+
+            let last_session_position = candidates.last().expect("candidate exists").1;
+            let range = session_position.min(last_session_position)
+                ..=session_position.max(last_session_position);
+            let line_range = LineRange::from(range);
+            let grabbed = self.session_file.grab(&line_range)?;
+            if grabbed.len() != candidates.len() {
+                let error = stypes::NativeError {
+                    severity: stypes::Severity::ERROR,
+                    kind: stypes::NativeErrorKind::OperationSearch,
+                    message: Some(String::from(
+                        "Nested search grab does not match the primary result range",
+                    )),
+                };
+                return Err(error);
+            }
+
+            for (chunk_index, (search_result_index, session_position)) in
+                candidates.iter().copied().enumerate()
+            {
+                let grabbed_index = match direction {
+                    IndexedNavigation::Next => chunk_index,
+                    IndexedNavigation::Previous => grabbed.len() - 1 - chunk_index,
+                };
+                let line = &grabbed[grabbed_index];
+                if line.pos as u64 != session_position {
+                    let error = stypes::NativeError {
                         severity: stypes::Severity::ERROR,
                         kind: stypes::NativeErrorKind::OperationSearch,
-                        message: Some(format!(
-                            "Fail to find search index of stream position {}",
-                            ln.pos
+                        message: Some(String::from(
+                            "Nested search grab is not aligned with primary results",
                         )),
-                    });
-                };
-                return Ok(Some((ln.pos as u64, srch_pos)));
-            };
+                    };
+                    return Err(error);
+                }
+                if searcher.is_match(&line.content) {
+                    let indexed_row_index = self.indexes.indexed_row_index(session_position)?;
+                    let nested_match = NestedMatch {
+                        session_position,
+                        search_result_index: search_result_index as u64,
+                        indexed_row_index,
+                    };
+                    return Ok(Some(nested_match));
+                }
+            }
+
+            offset += candidates.len();
         }
         Ok(None)
     }
@@ -717,12 +770,16 @@ async fn handle_api_msg(
                     stypes::NativeError::channel("Failed to respond to Api::GrabSearch")
                 })?;
         }
-        Api::SearchNestedMatch((filter, from, rev, tx_response)) => {
-            tx_response
-                .send(state.handle_search_nested_match(filter, from, rev))
-                .map_err(|_| {
-                    stypes::NativeError::channel("Failed to respond to Api::SearchNestedMatch")
-                })?;
+        Api::SearchNestedMatch {
+            filter,
+            anchor,
+            direction,
+            tx_response,
+        } => {
+            let result = state.handle_search_nested_match(filter, anchor, direction);
+            tx_response.send(result).map_err(|_| {
+                stypes::NativeError::channel("Failed to respond to Api::SearchNestedMatch")
+            })?;
         }
         Api::GrabRanges((ranges, tx_response)) => {
             tx_response
@@ -731,13 +788,13 @@ async fn handle_api_msg(
                     stypes::NativeError::channel("Failed to respond to Api::GrabSearch")
                 })?;
         }
-        Api::GetNearestPosition((position, tx_response)) => {
+        Api::GetNearestSearchResult((position, tx_response)) => {
             tx_response
                 .send(stypes::ResultNearestPosition(
-                    state.search_map.nearest_to(position),
+                    state.search_map.nearest_search_result(position),
                 ))
                 .map_err(|_| {
-                    stypes::NativeError::channel("Failed to respond to Api::GetNearestPosition")
+                    stypes::NativeError::channel("Failed to respond to Api::GetNearestSearchResult")
                 })?;
         }
         Api::GetScaledMap((len, range, tx_response)) => {

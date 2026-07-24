@@ -1,8 +1,8 @@
 use super::values::graph::CandlePoint;
 use crate::{
     state::{
-        indexes::IndexedNavigation, observed::Observed, session_file::SessionFileOrigin,
-        values::ValuesError,
+        NestedMatch, indexes::IndexedNavigation, observed::Observed,
+        session_file::SessionFileOrigin, values::ValuesError,
     },
     tracker::OperationTrackerAPI,
 };
@@ -119,15 +119,16 @@ pub enum Api {
             oneshot::Sender<Result<Vec<GrabbedElement>, stypes::NativeError>>,
         ),
     ),
-    #[allow(clippy::type_complexity)]
-    SearchNestedMatch(
-        (
-            SearchFilter,
-            u64,
-            bool,
-            oneshot::Sender<Result<Option<(u64, u64)>, stypes::NativeError>>,
-        ),
-    ),
+    SearchNestedMatch {
+        /// Matching criteria applied to primary search-result rows.
+        filter: SearchFilter,
+        /// Exclusive search-result index from which navigation continues.
+        anchor: Option<u64>,
+        /// Direction in which primary results are scanned.
+        direction: IndexedNavigation,
+        /// Receives the nested-match coordinates or operation error.
+        tx_response: oneshot::Sender<Result<Option<NestedMatch>, stypes::NativeError>>,
+    },
     #[allow(clippy::type_complexity)]
     GrabRanges(
         (
@@ -151,7 +152,7 @@ pub enum Api {
         ),
     ),
     DropSearch(oneshot::Sender<bool>),
-    GetNearestPosition((u64, oneshot::Sender<stypes::ResultNearestPosition>)),
+    GetNearestSearchResult((u64, oneshot::Sender<stypes::ResultNearestPosition>)),
     GetScaledMap((u16, Option<(u64, u64)>, oneshot::Sender<ScaledDistribution>)),
     SetMatches(
         (
@@ -222,7 +223,7 @@ impl Display for Api {
                 Self::SetSearchHolder(_) => "SetSearchHolder",
                 Self::DropSearch(_) => "DropSearch",
                 Self::GrabSearch(_) => "GrabSearch",
-                Self::SearchNestedMatch(_) => "SearchNestedMatch",
+                Self::SearchNestedMatch { .. } => "SearchNestedMatch",
                 Self::GrabIndexed(_) => "GrabIndexed",
                 Self::GetIndexedMapLen(_) => "GetIndexedMapLen",
                 Self::GetIndexedNeighbor { .. } => "GetIndexedNeighbor",
@@ -230,7 +231,7 @@ impl Display for Api {
                 Self::SetBookmarks(_) => "SetBookmarks",
                 Self::RemoveBookmark(_) => "RemoveBookmark",
                 Self::GrabRanges(_) => "GrabRanges",
-                Self::GetNearestPosition(_) => "GetNearestPosition",
+                Self::GetNearestSearchResult(_) => "GetNearestSearchResult",
                 Self::GetScaledMap(_) => "GetScaledMap",
                 Self::SetMatches(_) => "SetMatches",
                 Self::GetSearchValuesHolder(_) => "GetSearchValuesHolder",
@@ -349,15 +350,24 @@ impl SessionStateAPI {
             .await?
     }
 
+    /// Finds a nested match after an exclusive primary search-result anchor.
     pub async fn search_nested_match(
         &self,
         filter: SearchFilter,
-        from: u64,
-        rev: bool,
-    ) -> Result<Option<(u64, u64)>, stypes::NativeError> {
+        anchor: Option<u64>,
+        direction: IndexedNavigation,
+    ) -> Result<Option<NestedMatch>, stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
-        self.exec_operation(Api::SearchNestedMatch((filter, from, rev, tx)), rx)
-            .await?
+        self.exec_operation(
+            Api::SearchNestedMatch {
+                filter,
+                anchor,
+                direction,
+                tx_response: tx,
+            },
+            rx,
+        )
+        .await?
     }
 
     pub async fn grab_ranges(
@@ -379,12 +389,13 @@ impl SessionStateAPI {
         self.exec_operation(Api::GetSearchResultLen(tx), rx).await
     }
 
-    pub async fn get_nearest_position(
+    /// Finds the nearest row in the primary search-result sequence.
+    pub async fn get_nearest_search_result(
         &self,
-        position: u64,
+        session_position: u64,
     ) -> Result<stypes::ResultNearestPosition, stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
-        self.exec_operation(Api::GetNearestPosition((position, tx)), rx)
+        self.exec_operation(Api::GetNearestSearchResult((session_position, tx)), rx)
             .await
     }
 

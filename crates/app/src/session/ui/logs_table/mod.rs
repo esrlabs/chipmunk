@@ -267,7 +267,7 @@ fn sync_focused_row(
     }
 
     if search_table_visible && let Some(search_row) = search_row {
-        actions.try_send_command(cmd_tx, SessionCommand::GetNearestPosition(search_row));
+        actions.try_send_command(cmd_tx, SessionCommand::GetNearestSearchResult(search_row));
     }
 }
 

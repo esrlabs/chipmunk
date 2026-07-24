@@ -36,7 +36,7 @@ pub enum SessionMessage {
     SearchResultsCleared,
 
     /// The nearest log index to jump to in search table.
-    NearestPosition(Result<Option<NearestPosition>, SessionError>),
+    NearestSearchResult(Result<Option<NearestPosition>, SessionError>),
 
     /// Adjacent indexed main-log row resolved by the backend.
     IndexedNeighbor(u64),

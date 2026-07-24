@@ -157,6 +157,17 @@ impl Map {
         self.keys.neighbor(anchor, direction)
     }
 
+    /// Returns the exact indexed-table row for a session position.
+    pub fn indexed_row_index(&mut self, session_position: u64) -> Result<u64, stypes::NativeError> {
+        self.keys.get_index(&session_position).and_then(|index| {
+            u64::try_from(index).map_err(|_| stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::Grabber,
+                message: Some(format!("Indexed row does not fit in u64: {index}")),
+            })
+        })
+    }
+
     pub fn clean(&mut self, nature: Nature) {
         let mut to_be_removed = vec![];
         self.indexes.iter_mut().for_each(|(position, index)| {
@@ -170,6 +181,11 @@ impl Map {
 
     pub fn len(&self) -> usize {
         self.indexes.len()
+    }
+
+    /// Returns whether the indexed projection contains no rows.
+    pub fn is_empty(&self) -> bool {
+        self.indexes.is_empty()
     }
 
     pub fn set_stream_len(&mut self, len: u64) {

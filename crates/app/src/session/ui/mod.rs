@@ -300,7 +300,7 @@ impl Session {
                 SessionMessage::SearchResultsCleared => {
                     self.shared.search.clear_matches();
                 }
-                SessionMessage::NearestPosition(nearest_position) => {
+                SessionMessage::NearestSearchResult(nearest_position) => {
                     if let Some(pos) = self.ok_or_notify(nearest_position, actions) {
                         self.bottom_panel.search.table.set_nearest_pos(pos);
                     }

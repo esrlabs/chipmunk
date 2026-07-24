@@ -39,7 +39,7 @@ pub enum SessionCommand {
     /// If operation is still processing then an id will be provided to abort it.
     DropSearchValues { operation_id: Option<Uuid> },
     /// Request the nearest index in the search view for a given main-log index.
-    GetNearestPosition(u64),
+    GetNearestSearchResult(u64),
 
     /// Request the adjacent indexed row in the main logs table.
     GetIndexedNeighbor {
