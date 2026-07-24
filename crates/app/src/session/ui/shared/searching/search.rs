@@ -16,7 +16,7 @@ use crate::{
     host::ui::registry::filters::FilterRegistry, session::ui::definitions::UpdateOperationOutcome,
 };
 
-use super::FiltersState;
+use super::{FiltersState, NestedSearchState};
 
 #[derive(Debug, Clone, Copy)]
 pub struct FilterIndex(pub u8);
@@ -69,6 +69,8 @@ impl SearchCounts {
 
 #[derive(Debug)]
 pub struct SearchState {
+    /// Find in Search Results state tied to the current primary search lifecycle.
+    nested: NestedSearchState,
     /// Active backend operation for the current log search, if one is in flight or retained.
     search_op: Option<SearchOperation>,
     /// Backend-owned row counts for the active log search projection.
@@ -86,6 +88,7 @@ pub struct SearchState {
 impl SearchState {
     pub fn new(_session_id: Uuid) -> Self {
         Self {
+            nested: NestedSearchState::default(),
             search_op: None,
             counts: SearchCounts::default(),
             matches_map: None,
@@ -99,15 +102,27 @@ impl SearchState {
     /// when search rows are removed, only the non-search indexed rows such as bookmarks remain.
     pub fn drop_search(&mut self) {
         let Self {
+            nested,
             search_op,
             counts,
             matches_map,
             compiled_filters: _,
         } = self;
 
+        nested.close();
         counts.reset_search_counts();
         *search_op = None;
         *matches_map = None;
+    }
+
+    /// Returns the Find in Search Results state associated with this primary search.
+    pub fn nested(&self) -> &NestedSearchState {
+        &self.nested
+    }
+
+    /// Returns mutable Find in Search Results state for UI lifecycle updates.
+    pub fn nested_mut(&mut self) -> &mut NestedSearchState {
+        &mut self.nested
     }
 
     pub fn get_active_filters(
@@ -232,6 +247,7 @@ impl SearchState {
     /// local `drop_search()` reset.
     pub fn clear_matches(&mut self) {
         let Self {
+            nested: _,
             search_op: _,
             counts,
             matches_map,
@@ -253,7 +269,10 @@ mod tests {
     use processor::search::filter::SearchFilter;
     use uuid::Uuid;
 
-    use crate::session::{types::OperationPhase, ui::definitions::UpdateOperationOutcome};
+    use crate::session::{
+        types::OperationPhase,
+        ui::{definitions::UpdateOperationOutcome, shared::searching::NestedSearchState},
+    };
 
     use super::{SearchCounts, SearchState};
 
@@ -336,6 +355,22 @@ mod tests {
         assert_eq!(state.search_result_count(), 0);
         assert_eq!(state.indexed_result_count(), 5);
         assert!(state.current_matches_map().is_none());
+    }
+
+    #[test]
+    fn drop_search_clears_nested_state() {
+        let mut state = SearchState::new(Uuid::new_v4());
+        state.nested_mut().open();
+        assert!(
+            state
+                .nested_mut()
+                .apply_filter(SearchFilter::plain("status=ok"))
+                .is_eligible()
+        );
+
+        state.drop_search();
+
+        assert_eq!(state.nested(), &NestedSearchState::default());
     }
 
     #[test]

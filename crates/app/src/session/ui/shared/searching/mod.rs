@@ -6,9 +6,11 @@
 //! extraction pipeline used by charts.
 
 mod filters;
+pub mod nested;
 mod search;
 mod search_values;
 
 pub use filters::FiltersState;
+pub use nested::NestedSearchState;
 pub use search::{FilterIndex, LogMainIndex, SearchState};
 pub use search_values::SearchValuesState;

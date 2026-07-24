@@ -91,10 +91,17 @@ static SHORTCUTS: SessionShortcuts = SessionShortcuts {
         "Focus search",
     )
     .with_display(ShortcutDisplay::Skip),
-    activate_filters_tab: Shortcut::new(
+    toggle_nested_search: Shortcut::new(
         &[KeyboardShortcut::new(
             Modifiers::COMMAND.plus(Modifiers::SHIFT),
             Key::F,
+        )],
+        "Find in Search Results",
+    ),
+    activate_filters_tab: Shortcut::new(
+        &[KeyboardShortcut::new(
+            Modifiers::COMMAND.plus(Modifiers::SHIFT),
+            Key::S,
         )],
         "Open filters panel",
     ),
@@ -176,6 +183,7 @@ struct SessionShortcuts {
     active_bottom_direct: Shortcut,
     activate_search_tab: Shortcut,
     activate_search_tab_outside_text: Shortcut,
+    toggle_nested_search: Shortcut,
     activate_filters_tab: Shortcut,
     activate_observing_tab: Shortcut,
     activate_attachments_tab: Shortcut,
@@ -190,7 +198,7 @@ struct SessionShortcuts {
     previous_bookmark: Shortcut,
 }
 
-pub fn shortcut_defs() -> [&'static Shortcut; 21] {
+pub fn shortcut_defs() -> [&'static Shortcut; 22] {
     let SessionShortcuts {
         activate_main_output,
         activate_search_output,
@@ -202,6 +210,7 @@ pub fn shortcut_defs() -> [&'static Shortcut; 21] {
         active_bottom_direct,
         activate_search_tab,
         activate_search_tab_outside_text,
+        toggle_nested_search,
         activate_filters_tab,
         activate_observing_tab,
         activate_attachments_tab,
@@ -219,6 +228,7 @@ pub fn shortcut_defs() -> [&'static Shortcut; 21] {
     [
         activate_search_tab,
         activate_search_tab_outside_text,
+        toggle_nested_search,
         activate_main_output,
         activate_search_output,
         active_page_up,
@@ -248,6 +258,17 @@ pub fn handle(
     ctx: &Context,
     last_key: Option<&LastShortcutKey>,
 ) -> bool {
+    let nested_search_visible = preferences.panels_visibility.bottom
+        && session.shared.bottom_tab == BottomTabType::Search
+        && session.nested_search_available()
+        && session.shared.search.nested().is_visible();
+    if nested_search_visible
+        && ctx.input_mut(|input| input.consume_key(Modifiers::NONE, Key::Escape))
+    {
+        session.close_nested_search();
+        return true;
+    }
+
     let SessionShortcuts {
         activate_main_output,
         activate_search_output,
@@ -259,6 +280,7 @@ pub fn handle(
         active_bottom_direct,
         activate_search_tab,
         activate_search_tab_outside_text,
+        toggle_nested_search,
         activate_filters_tab,
         activate_observing_tab,
         activate_attachments_tab,
@@ -315,6 +337,11 @@ pub fn handle(
         || consume_outside_text(ctx, activate_search_tab_outside_text)
     {
         session.activate_search_tab(preferences);
+        return true;
+    }
+
+    if consume_shortcut(ctx, toggle_nested_search) {
+        session.toggle_nested_search(preferences);
         return true;
     }
 
