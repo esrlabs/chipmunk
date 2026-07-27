@@ -345,22 +345,20 @@ impl SessionService {
                     .await
                     .map_err(SessionError::NativeError)?;
             }
-            SessionCommand::GetNearestSearchResult(position) => {
-                let nearest = self
+            SessionCommand::GetNearestIndexedRow { session_position } => {
+                let result = self
                     .session
-                    .state
-                    .get_nearest_search_result(position)
+                    .get_nearest_indexed_row(session_position)
                     .await
-                    .map_err(SessionError::NativeError)
-                    .map(|n| n.0);
+                    .map_err(SessionError::from);
 
                 log::trace!(
-                    "Nearest session value for session: {}: {nearest:?}",
+                    "Nearest indexed row for session {}: {result:?}",
                     self.session_id()
                 );
 
                 self.senders
-                    .send_session_msg(SessionMessage::NearestSearchResult(nearest))
+                    .send_session_msg(SessionMessage::NearestIndexedRow { result })
                     .await;
             }
             SessionCommand::GetIndexedNeighbor { anchor, direction } => {

@@ -734,6 +734,15 @@ async fn handle_api_msg(
                 stypes::NativeError::channel("Failed to respond to Api::GetIndexedMapLen")
             })?;
         }
+        Api::GetNearestIndexedRow {
+            session_position,
+            tx_response,
+        } => {
+            let nearest_indexed_row = state.indexes.nearest_indexed_row(session_position);
+            tx_response.send(nearest_indexed_row).map_err(|_| {
+                stypes::NativeError::channel("Failed to respond to Api::GetNearestIndexedRow")
+            })?;
+        }
         Api::GetIndexedNeighbor {
             anchor,
             direction,
@@ -786,15 +795,6 @@ async fn handle_api_msg(
                 .send(state.handle_grab_ranges(ranges))
                 .map_err(|_| {
                     stypes::NativeError::channel("Failed to respond to Api::GrabSearch")
-                })?;
-        }
-        Api::GetNearestSearchResult((position, tx_response)) => {
-            tx_response
-                .send(stypes::ResultNearestPosition(
-                    state.search_map.nearest_search_result(position),
-                ))
-                .map_err(|_| {
-                    stypes::NativeError::channel("Failed to respond to Api::GetNearestSearchResult")
                 })?;
         }
         Api::GetScaledMap((len, range, tx_response)) => {

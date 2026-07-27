@@ -91,6 +91,33 @@ impl Keys {
             })
     }
 
+    /// Returns the ordered index nearest to a session position.
+    pub fn nearest_index(&mut self, position: u64) -> Option<usize> {
+        self.sort();
+        if self.keys.is_empty() {
+            return None;
+        }
+
+        match self.keys.binary_search(&position) {
+            Ok(index) => Some(index),
+            Err(0) => Some(0),
+            Err(index) if index == self.keys.len() => Some(index - 1),
+            Err(following_index) => {
+                let preceding_index = following_index - 1;
+                let preceding_distance = position.abs_diff(self.keys[preceding_index]);
+                let following_distance = position.abs_diff(self.keys[following_index]);
+
+                // Equal distances resolve toward the lower session position.
+                let nearest_index = if preceding_distance <= following_distance {
+                    preceding_index
+                } else {
+                    following_index
+                };
+                Some(nearest_index)
+            }
+        }
+    }
+
     pub fn get_position(&self, index: usize) -> Result<u64, stypes::NativeError> {
         self.keys.get(index).copied().ok_or(stypes::NativeError {
             severity: stypes::Severity::ERROR,
@@ -156,6 +183,66 @@ mod tests {
         assert_eq!(keys.get_index(&8).unwrap(), 1);
         assert_eq!(keys.get_index(&13).unwrap(), 2);
         assert!(keys.get_index(&5).is_err());
+    }
+
+    #[test]
+    fn nearest_index_empty_returns_none() {
+        assert_eq!(Keys::new().nearest_index(10), None);
+    }
+
+    #[test]
+    fn nearest_index_exact_hit_returns_ordered_index() {
+        let mut keys = keys_with_rows([10, 20, 30]);
+
+        assert_eq!(keys.nearest_index(20), Some(1));
+    }
+
+    #[test]
+    fn nearest_index_chooses_closer_preceding_row() {
+        let mut keys = keys_with_rows([10, 20]);
+
+        assert_eq!(keys.nearest_index(14), Some(0));
+    }
+
+    #[test]
+    fn nearest_index_chooses_closer_following_row() {
+        let mut keys = keys_with_rows([10, 20]);
+
+        assert_eq!(keys.nearest_index(16), Some(1));
+    }
+
+    #[test]
+    fn nearest_index_tie_chooses_preceding_row() {
+        let mut keys = keys_with_rows([10, 20]);
+
+        assert_eq!(keys.nearest_index(15), Some(0));
+    }
+
+    #[test]
+    fn nearest_index_clamps_to_ordered_boundaries() {
+        let mut keys = keys_with_rows([10, 20, 30]);
+
+        assert_eq!(keys.nearest_index(0), Some(0));
+        assert_eq!(keys.nearest_index(40), Some(2));
+    }
+
+    #[test]
+    fn nearest_index_sorts_unsorted_insertion() {
+        let mut keys = keys_with_rows([50, 10, 30]);
+
+        assert_eq!(keys.nearest_index(34), Some(1));
+    }
+
+    #[test]
+    fn nearest_index_uses_overflow_safe_distances() {
+        let mut keys = keys_with_rows([0, u64::MAX]);
+
+        assert_eq!(keys.nearest_index(1), Some(0));
+        assert_eq!(keys.nearest_index(u64::MAX / 2), Some(0));
+        assert_eq!(keys.nearest_index(u64::MAX - 1), Some(1));
+
+        let mut upper_keys = keys_with_rows([u64::MAX - 2, u64::MAX]);
+        assert_eq!(upper_keys.nearest_index(u64::MAX - 1), Some(0));
     }
 
     #[test]

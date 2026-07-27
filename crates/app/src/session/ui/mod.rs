@@ -301,9 +301,12 @@ impl Session {
                 SessionMessage::SearchResultsCleared => {
                     self.shared.search.clear_matches();
                 }
-                SessionMessage::NearestSearchResult(nearest_position) => {
-                    if let Some(pos) = self.ok_or_notify(nearest_position, actions) {
-                        self.bottom_panel.search.table.set_nearest_pos(pos);
+                SessionMessage::NearestIndexedRow { result } => {
+                    if let Some(Some(indexed_row_index)) = self.ok_or_notify(result, actions) {
+                        self.bottom_panel
+                            .search
+                            .table
+                            .scroll_to_indexed_row(indexed_row_index);
                     }
                 }
                 SessionMessage::IndexedNeighbor(row) => {

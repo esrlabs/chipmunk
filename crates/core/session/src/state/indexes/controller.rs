@@ -77,6 +77,14 @@ impl Controller {
         self.map.indexed_row_index(session_position)
     }
 
+    /// Returns the indexed-table row nearest to a session position.
+    pub fn nearest_indexed_row(
+        &mut self,
+        session_position: u64,
+    ) -> Result<Option<u64>, stypes::NativeError> {
+        self.map.nearest_indexed_row(session_position)
+    }
+
     pub(crate) fn naturalize(&self, elements: &mut [stypes::GrabbedElement]) {
         self.map.naturalize(elements);
     }

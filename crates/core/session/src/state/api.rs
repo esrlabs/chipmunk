@@ -100,6 +100,13 @@ pub enum Api {
         ),
     ),
     GetIndexedMapLen(oneshot::Sender<usize>),
+    /// Finds the indexed-table row nearest to a session position.
+    GetNearestIndexedRow {
+        /// Original row position in the complete session stream.
+        session_position: u64,
+        /// Receives the indexed-row index, or `None` when the indexed map is empty.
+        tx_response: oneshot::Sender<Result<Option<u64>, stypes::NativeError>>,
+    },
     /// Finds the neighboring indexed row around an anchor row.
     GetIndexedNeighbor {
         /// Main-log row used as the exclusive starting point for navigation.
@@ -152,7 +159,6 @@ pub enum Api {
         ),
     ),
     DropSearch(oneshot::Sender<bool>),
-    GetNearestSearchResult((u64, oneshot::Sender<stypes::ResultNearestPosition>)),
     GetScaledMap((u16, Option<(u64, u64)>, oneshot::Sender<ScaledDistribution>)),
     SetMatches(
         (
@@ -226,12 +232,12 @@ impl Display for Api {
                 Self::SearchNestedMatch { .. } => "SearchNestedMatch",
                 Self::GrabIndexed(_) => "GrabIndexed",
                 Self::GetIndexedMapLen(_) => "GetIndexedMapLen",
+                Self::GetNearestIndexedRow { .. } => "GetNearestIndexedRow",
                 Self::GetIndexedNeighbor { .. } => "GetIndexedNeighbor",
                 Self::AddBookmark(_) => "AddBookmark",
                 Self::SetBookmarks(_) => "SetBookmarks",
                 Self::RemoveBookmark(_) => "RemoveBookmark",
                 Self::GrabRanges(_) => "GrabRanges",
-                Self::GetNearestSearchResult(_) => "GetNearestSearchResult",
                 Self::GetScaledMap(_) => "GetScaledMap",
                 Self::SetMatches(_) => "SetMatches",
                 Self::GetSearchValuesHolder(_) => "GetSearchValuesHolder",
@@ -306,6 +312,22 @@ impl SessionStateAPI {
     pub async fn get_indexed_len(&self) -> Result<usize, stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::GetIndexedMapLen(tx), rx).await
+    }
+
+    /// Finds the indexed-table row nearest to a session position.
+    pub async fn get_nearest_indexed_row(
+        &self,
+        session_position: u64,
+    ) -> Result<Option<u64>, stypes::NativeError> {
+        let (tx, rx) = oneshot::channel();
+        self.exec_operation(
+            Api::GetNearestIndexedRow {
+                session_position,
+                tx_response: tx,
+            },
+            rx,
+        )
+        .await?
     }
 
     pub async fn get_indexed_neighbor(
@@ -387,16 +409,6 @@ impl SessionStateAPI {
     pub async fn get_search_result_len(&self) -> Result<usize, stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::GetSearchResultLen(tx), rx).await
-    }
-
-    /// Finds the nearest row in the primary search-result sequence.
-    pub async fn get_nearest_search_result(
-        &self,
-        session_position: u64,
-    ) -> Result<stypes::ResultNearestPosition, stypes::NativeError> {
-        let (tx, rx) = oneshot::channel();
-        self.exec_operation(Api::GetNearestSearchResult((session_position, tx)), rx)
-            .await
     }
 
     pub async fn get_scaled_map(

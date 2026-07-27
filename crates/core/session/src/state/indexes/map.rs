@@ -168,6 +168,23 @@ impl Map {
         })
     }
 
+    /// Returns the indexed-table row nearest to a session position.
+    pub fn nearest_indexed_row(
+        &mut self,
+        session_position: u64,
+    ) -> Result<Option<u64>, stypes::NativeError> {
+        self.keys
+            .nearest_index(session_position)
+            .map(|index| {
+                u64::try_from(index).map_err(|_| stypes::NativeError {
+                    severity: stypes::Severity::ERROR,
+                    kind: stypes::NativeErrorKind::Grabber,
+                    message: Some(format!("Indexed row does not fit in u64: {index}")),
+                })
+            })
+            .transpose()
+    }
+
     pub fn clean(&mut self, nature: Nature) {
         let mut to_be_removed = vec![];
         self.indexes.iter_mut().for_each(|(position, index)| {

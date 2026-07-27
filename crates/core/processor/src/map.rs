@@ -200,35 +200,6 @@ impl SearchMap {
         Ok(&self.matches[*range.start() as usize..=*range.end() as usize])
     }
 
-    /// Takes position of row in main stream/file and try to find
-    /// relevant nearest position in search results.
-    /// For example, search results are (indexes or rows):
-    /// [10, 200, 300, 350]
-    /// In that case nearest for 310 will be 300
-    /// Returns None if there are no search results
-    pub fn nearest_search_result(&self, session_position: u64) -> Option<stypes::NearestPosition> {
-        if self.matches.is_empty() {
-            None
-        } else {
-            let mut distance: i64 = i64::MAX;
-            let mut index: u64 = 0;
-            let mut position: u64 = 0;
-            for (position_in_search, filter_match) in self.matches.iter().enumerate() {
-                let diff = (session_position as i64 - filter_match.index as i64).abs();
-                if diff < distance {
-                    distance = diff;
-                    position = filter_match.index;
-                    index = position_in_search as u64;
-                }
-            }
-            if distance == i64::MAX {
-                None
-            } else {
-                Some(stypes::NearestPosition { index, position })
-            }
-        }
-    }
-
     pub fn set(&mut self, matches: Option<Vec<stypes::FilterMatch>>, stats: Option<FiltersStats>) {
         self.matches = matches.map_or(vec![], |m| m);
         self.stats = stats.map_or(FiltersStats::default(), |s| s);
