@@ -130,7 +130,6 @@ pub enum OperationKind {
         append: bool,
         source_id: String,
     },
-    GetNearestSearchResult(u64),
     Cancel {
         target: Uuid,
     },
@@ -155,7 +154,6 @@ impl std::fmt::Display for OperationKind {
                 OperationKind::Merge { .. } => "Merging",
                 OperationKind::Sleep(_, _) => "Sleeping",
                 OperationKind::Cancel { .. } => "Canceling",
-                OperationKind::GetNearestSearchResult(_) => "Getting nearest search result",
                 OperationKind::End => "End",
             }
         )
@@ -470,17 +468,6 @@ impl OperationAPI {
                         .await;
                     }
                 },
-                OperationKind::GetNearestSearchResult(position) => {
-                    match state.get_nearest_search_result(position).await {
-                        Ok(nearest) => {
-                            api.finish(Ok(Some(nearest)), operation_str).await;
-                        }
-                        Err(err) => {
-                            api.finish::<OperationResult<()>>(Err(err), operation_str)
-                                .await;
-                        }
-                    }
-                }
                 _ => {
                     // OperationKind::End is processing in the loop directly
                 }

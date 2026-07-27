@@ -1,14 +1,5 @@
 use crate::*;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct NearestPosition {
-    pub index: u64,    // Position in search results
-    pub position: u64, // Position in original stream/file
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ResultNearestPosition(pub Option<NearestPosition>);
-
 ///(row_number, min_value_in_range, max_value_in_range, value)
 /// value - can be last value in range or some kind of average
 #[derive(Debug, Clone, Serialize, Deserialize)]

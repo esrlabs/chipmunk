@@ -185,6 +185,17 @@ impl Session {
             .map_err(stypes::ComputationError::NativeError)
     }
 
+    /// Finds the indexed-table row nearest to a session position.
+    pub async fn get_nearest_indexed_row(
+        &self,
+        session_position: u64,
+    ) -> Result<Option<u64>, stypes::ComputationError> {
+        self.state
+            .get_nearest_indexed_row(session_position)
+            .await
+            .map_err(stypes::ComputationError::NativeError)
+    }
+
     pub async fn add_bookmark(&self, row: u64) -> Result<(), stypes::ComputationError> {
         self.state
             .add_bookmark(row)
@@ -500,19 +511,6 @@ impl Session {
             .send(Operation::new(
                 operation_id,
                 operations::OperationKind::Values { dataset_len, range },
-            ))
-            .map_err(|e| stypes::ComputationError::Communication(e.to_string()))
-    }
-
-    pub fn get_nearest_search_result(
-        &self,
-        operation_id: Uuid,
-        session_position: u64,
-    ) -> Result<(), stypes::ComputationError> {
-        self.tx_operations
-            .send(Operation::new(
-                operation_id,
-                operations::OperationKind::GetNearestSearchResult(session_position),
             ))
             .map_err(|e| stypes::ComputationError::Communication(e.to_string()))
     }

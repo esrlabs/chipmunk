@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use stypes::{AttachmentInfo, FilterMatch, GrabbedElement, NearestPosition};
+use stypes::{AttachmentInfo, FilterMatch, GrabbedElement};
 use uuid::Uuid;
 
 use crate::session::{
@@ -35,8 +35,11 @@ pub enum SessionMessage {
     /// Clear search matches after dropping or replacing the search map.
     SearchResultsCleared,
 
-    /// The nearest log index to jump to in search table.
-    NearestSearchResult(Result<Option<NearestPosition>, SessionError>),
+    /// Indexed-table row nearest to the requested session position.
+    NearestIndexedRow {
+        /// Resolved indexed-row index, or `None` when the indexed table is empty.
+        result: Result<Option<u64>, SessionError>,
+    },
 
     /// Adjacent indexed main-log row resolved by the backend.
     IndexedNeighbor(u64),

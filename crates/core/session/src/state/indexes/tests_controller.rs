@@ -131,6 +131,68 @@ fn search_results_can_be_replaced_and_appended_without_losing_bookmarks() {
 }
 
 #[test]
+fn nearest_indexed_row_resolves_search_only_rows() {
+    let mut controller = Controller::default();
+    controller.set_search_results(&filter_matches([10, 30, 50]));
+
+    assert_eq!(controller.nearest_indexed_row(34).unwrap(), Some(1));
+}
+
+#[test]
+fn nearest_indexed_row_resolves_bookmark_only_rows() {
+    let mut controller = Controller::default();
+    controller.set_bookmarks(vec![20, 40]);
+
+    assert_eq!(controller.nearest_indexed_row(34).unwrap(), Some(1));
+}
+
+#[test]
+fn nearest_indexed_row_uses_interleaved_union_coordinates() {
+    let mut controller = Controller::default();
+    controller.set_search_results(&filter_matches([10, 30, 50]));
+    controller.set_bookmarks(vec![20, 40]);
+
+    assert_eq!(controller.nearest_indexed_row(34).unwrap(), Some(2));
+    assert_eq!(controller.nearest_indexed_row(35).unwrap(), Some(2));
+    assert_eq!(controller.nearest_indexed_row(40).unwrap(), Some(3));
+}
+
+#[test]
+fn nearest_indexed_row_counts_overlap_once() {
+    let mut controller = Controller::default();
+    controller.set_search_results(&filter_matches([10, 30, 50]));
+    controller.set_bookmarks(vec![20, 30, 40]);
+
+    assert_eq!(controller.len(), 5);
+    assert_eq!(controller.nearest_indexed_row(30).unwrap(), Some(2));
+    assert_eq!(controller.nearest_indexed_row(35).unwrap(), Some(2));
+}
+
+#[test]
+fn nearest_indexed_row_remains_correct_after_dropping_search() {
+    let mut controller = Controller::default();
+    controller.set_search_results(&filter_matches([10, 30, 50]));
+    controller.set_bookmarks(vec![20, 30, 40]);
+
+    controller.drop_search();
+
+    assert_eq!(controller.nearest_indexed_row(34).unwrap(), Some(1));
+    assert_eq!(controller.nearest_indexed_row(40).unwrap(), Some(2));
+}
+
+#[test]
+fn nearest_indexed_row_preserves_search_after_removing_overlap_bookmark() {
+    let mut controller = Controller::default();
+    controller.set_search_results(&filter_matches([10, 30, 50]));
+    controller.set_bookmarks(vec![20, 30, 40]);
+
+    controller.remove_bookmark(30);
+
+    assert_eq!(controller.nearest_indexed_row(30).unwrap(), Some(2));
+    assert_eq!(controller.nearest_indexed_row(35).unwrap(), Some(2));
+}
+
+#[test]
 fn callback_lengths_follow_search_and_bookmark_membership_changes() {
     let (tx, mut rx) = unbounded_channel();
     let mut controller = Controller::new(Some(tx));

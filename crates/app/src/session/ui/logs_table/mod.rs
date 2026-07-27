@@ -266,8 +266,11 @@ fn sync_focused_row(
         actions.try_send_command(cmd_tx, SessionCommand::GetSelectedLog(details_row));
     }
 
-    if search_table_visible && let Some(search_row) = search_row {
-        actions.try_send_command(cmd_tx, SessionCommand::GetNearestSearchResult(search_row));
+    if search_table_visible && let Some(session_position) = search_row {
+        actions.try_send_command(
+            cmd_tx,
+            SessionCommand::GetNearestIndexedRow { session_position },
+        );
     }
 }
 

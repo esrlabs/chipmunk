@@ -8,7 +8,7 @@ use egui::{Rect, Sense, Ui};
 use egui_table::{CellInfo, PrefetchInfo, TableDelegate};
 use tokio::sync::mpsc::Sender;
 
-use stypes::{GrabbedElement, NearestPosition};
+use stypes::GrabbedElement;
 
 use crate::{
     host::ui::{UiActions, registry::filters::FilterRegistry},
@@ -51,8 +51,8 @@ pub struct SearchTable {
     /// Logs receiver from previous frame if receive function timed out
     /// on that frame.
     pending_logs_rx: Option<StdReceiver<Result<Vec<GrabbedElement>, SessionError>>>,
-    /// The indexed lower-table row to make the table scroll toward.
-    scroll_nearest_pos: Option<NearestPosition>,
+    /// The exact indexed lower-table row to make the table scroll toward.
+    scroll_indexed_row: Option<u64>,
 }
 
 impl SearchTable {
@@ -63,12 +63,13 @@ impl SearchTable {
             pending_scroll: None,
             indexed_logs: LogsMapped::new(Rc::clone(&schema)),
             pending_logs_rx: None,
-            scroll_nearest_pos: None,
+            scroll_indexed_row: None,
         }
     }
 
-    pub fn set_nearest_pos(&mut self, nearest_pos: Option<NearestPosition>) {
-        self.scroll_nearest_pos = nearest_pos;
+    /// Queues an exact indexed-table row for delayed scrolling.
+    pub fn scroll_to_indexed_row(&mut self, indexed_row_index: u64) {
+        self.scroll_indexed_row = Some(indexed_row_index);
     }
 
     /// Renders the indexed results table and returns its outer rectangle for foreground overlays.
@@ -104,12 +105,15 @@ impl SearchTable {
             .num_sticky_cols(1)
             .stick_to_bottom(should_stick_to_bottom(shared));
 
-        if let Some(row_nr) = take_ready_nearest_row(
-            &mut self.scroll_nearest_pos,
+        if let Some(indexed_row_index) = take_ready_indexed_row(
+            &mut self.scroll_indexed_row,
             shared.search.indexed_result_count(),
         ) {
             const OFFSET: u64 = 2;
-            table = table.scroll_to_rows(row_nr.saturating_sub(OFFSET)..=row_nr + OFFSET, None);
+            table = table.scroll_to_rows(
+                indexed_row_index.saturating_sub(OFFSET)..=indexed_row_index.saturating_add(OFFSET),
+                None,
+            );
         }
 
         if let Some(rows) = self.pending_scroll.take() {
@@ -145,13 +149,13 @@ impl SearchTable {
             pending_scroll,
             indexed_logs,
             pending_logs_rx,
-            scroll_nearest_pos,
+            scroll_indexed_row,
         } = self;
 
         *last_visible_rows = None;
         *pending_scroll = None;
         indexed_logs.clear();
-        *scroll_nearest_pos = None;
+        *scroll_indexed_row = None;
         *pending_logs_rx = None;
     }
 
@@ -608,48 +612,47 @@ impl TableDelegate for LogsDelegate<'_> {
     }
 }
 
-/// Consumes a pending nearest-row scroll only after that indexed row exists.
-///
-/// Nearest-position responses can arrive before the indexed search table has loaded
-/// enough rows to make the target valid. In that case this leaves the pending value
-/// in place so a later frame can still apply the scroll once the row is ready.
-fn take_ready_nearest_row(
-    scroll_nearest_pos: &mut Option<NearestPosition>,
-    indexed_count: u64,
-) -> Option<u64> {
-    let row = scroll_nearest_pos.as_ref()?.index;
-    if row >= indexed_count {
+/// Consumes a pending exact-row scroll only after that indexed row exists.
+fn take_ready_indexed_row(pending_row: &mut Option<u64>, indexed_count: u64) -> Option<u64> {
+    let indexed_row_index = *pending_row.as_ref()?;
+    if indexed_row_index >= indexed_count {
         return None;
     }
 
-    scroll_nearest_pos.take().map(|pos| pos.index)
+    pending_row.take()
 }
 
 #[cfg(test)]
 mod tests {
-    use stypes::NearestPosition;
+    use tokio::sync::mpsc::channel;
 
-    use super::take_ready_nearest_row;
+    use super::{SearchTable, take_ready_indexed_row};
+    use crate::session::ui::definitions::schema::{LogSchemaSpec, from_spec};
 
     #[test]
-    fn keep_pending_scroll_until_ready() {
-        let mut pending = Some(NearestPosition {
-            index: 4,
-            position: 40,
-        });
+    fn nearest_indexed_row_scroll_stays_pending_until_ready() {
+        let mut pending = Some(4);
 
-        assert_eq!(take_ready_nearest_row(&mut pending, 4), None);
-        assert_eq!(pending.as_ref().map(|pos| pos.index), Some(4));
+        assert_eq!(take_ready_indexed_row(&mut pending, 4), None);
+        assert_eq!(pending, Some(4));
     }
 
     #[test]
-    fn consume_pending_scroll_when_ready() {
-        let mut pending = Some(NearestPosition {
-            index: 4,
-            position: 40,
-        });
+    fn nearest_indexed_row_scroll_is_consumed_once_when_ready() {
+        let mut pending = Some(4);
 
-        assert_eq!(take_ready_nearest_row(&mut pending, 5), Some(4));
-        assert!(pending.is_none());
+        assert_eq!(take_ready_indexed_row(&mut pending, 5), Some(4));
+        assert_eq!(take_ready_indexed_row(&mut pending, 5), None);
+    }
+
+    #[test]
+    fn clearing_table_discards_nearest_indexed_row_scroll() {
+        let (cmd_tx, _cmd_rx) = channel(1);
+        let mut table = SearchTable::new(cmd_tx, from_spec(LogSchemaSpec::Text));
+        table.scroll_to_indexed_row(4);
+
+        table.clear();
+
+        assert_eq!(table.scroll_indexed_row, None);
     }
 }
