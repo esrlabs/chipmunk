@@ -2,6 +2,9 @@
 
 ## Features
 - Added a SOME/IP statistics view to session setup, with summaries and counts by service/method ID and message type.
+- Added file sorting to multi-file session setup.
+- Added drag-and-drop file reordering to multi-file session setup.
+- Added drag-and-drop reordering for filters and charts, including moving items between them.
 - Added context-menu actions to remove all filters or charts at once.
 
 ## Changes
