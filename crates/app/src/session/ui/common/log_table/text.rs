@@ -12,10 +12,7 @@ use regex::Regex;
 use crate::session::ui::{
     common::ansi_text::{AnsiSpan, AnsiText},
     definitions::{LogTableCell, LogTableItem},
-    shared::{
-        SessionShared,
-        searching::{FilterIndex, LogMainIndex},
-    },
+    shared::{SessionShared, searching::FilterIndex},
 };
 
 const LOG_TEXT_STYLE: TextStyle = TextStyle::Monospace;
@@ -96,11 +93,7 @@ fn render_ansi_cell(
 
 /// Returns the backend-reported filter indices for one main-log position, if that row matched.
 fn matched_filter_indices(shared: &SessionShared, main_log_pos: u64) -> Option<&[FilterIndex]> {
-    shared
-        .search
-        .current_matches_map()
-        .and_then(|map| map.get(&LogMainIndex(main_log_pos)))
-        .map(Vec::as_slice)
+    shared.search.filter_indices(main_log_pos)
 }
 
 /// Finds all cell-local matches for the row's matched filters and merges overlap into one pass.

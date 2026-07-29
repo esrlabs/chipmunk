@@ -30,10 +30,7 @@ use crate::{
         ui::{
             definitions::schema::LogSchema,
             logs_table::LogAttachmentInfo,
-            shared::{
-                ObserveState, SelectionChange, SelectionIntent, SessionShared, UiViewState,
-                searching::LogMainIndex,
-            },
+            shared::{ObserveState, SelectionChange, SelectionIntent, SessionShared, UiViewState},
         },
     },
 };
@@ -507,8 +504,7 @@ pub fn apply_log_row_colors(
     } else if let Some(pos) = main_log_pos {
         shared
             .search
-            .current_matches_map()
-            .and_then(|map| map.get(&LogMainIndex(pos)))
+            .filter_indices(pos)
             .and_then(|matches| matches.last())
             .and_then(|filter_idx| {
                 let idx = filter_idx.0 as usize;

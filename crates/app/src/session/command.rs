@@ -44,6 +44,18 @@ pub enum SessionCommand {
         session_position: u64,
     },
 
+    /// Find one match within the active primary search results.
+    FindNestedMatch {
+        /// Correlates this request with its service response.
+        request_id: Uuid,
+        /// Complete validated filter used to scan the primary search results.
+        filter: SearchFilter,
+        /// Exclusive position within the primary search-result sequence.
+        search_result_anchor: Option<u64>,
+        /// Direction to scan from the exclusive anchor.
+        direction: IndexedNavigation,
+    },
+
     /// Request the adjacent indexed row in the main logs table.
     GetIndexedNeighbor {
         /// Main-log row used as the exclusive starting point for navigation.

@@ -12,5 +12,5 @@ mod search_values;
 
 pub use filters::FiltersState;
 pub use nested::NestedSearchState;
-pub use search::{FilterIndex, LogMainIndex, SearchState};
+pub use search::{FilterIndex, SearchState};
 pub use search_values::SearchValuesState;

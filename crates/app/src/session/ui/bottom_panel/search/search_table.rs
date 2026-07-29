@@ -342,6 +342,7 @@ impl<'a> LogsDelegate<'a> {
         let change = common::log_table::table::apply_selection_click(self.shared, pos, modifiers);
 
         if let Some(jump_to_row) = change.jump_to_row {
+            self.shared.search.update_nested_anchor(jump_to_row);
             self.shared
                 .logs
                 .request_main_row_focus(jump_to_row, SearchTableSync::Skip);

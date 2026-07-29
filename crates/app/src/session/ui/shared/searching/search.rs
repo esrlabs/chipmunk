@@ -30,6 +30,15 @@ struct SearchOperation {
     pub phase: OperationPhase,
 }
 
+/// Primary-search metadata retained for one session position.
+#[derive(Debug)]
+struct SearchMatchMetadata {
+    /// Effective primary filter indices reported for row rendering.
+    filter_indices: Vec<FilterIndex>,
+    /// Exact position within the primary search-result sequence.
+    search_result_index: u64,
+}
+
 impl SearchOperation {
     pub fn new(id: Uuid) -> Self {
         Self {
@@ -76,7 +85,9 @@ pub struct SearchState {
     /// Backend-owned row counts for the active log search projection.
     counts: SearchCounts,
     /// Row-level backend match metadata keyed by original main-log position.
-    matches_map: Option<FxHashMap<LogMainIndex, Vec<FilterIndex>>>,
+    matches_map: Option<FxHashMap<LogMainIndex, SearchMatchMetadata>>,
+    /// Index assigned to the next primary match callback item.
+    next_search_result_index: u64,
     /// Compiled regex matchers for the current effective log-search filters.
     ///
     /// # Note:
@@ -92,6 +103,7 @@ impl SearchState {
             search_op: None,
             counts: SearchCounts::default(),
             matches_map: None,
+            next_search_result_index: 0,
             compiled_filters: Vec::new(),
         }
     }
@@ -106,6 +118,7 @@ impl SearchState {
             search_op,
             counts,
             matches_map,
+            next_search_result_index,
             compiled_filters: _,
         } = self;
 
@@ -113,6 +126,7 @@ impl SearchState {
         counts.reset_search_counts();
         *search_op = None;
         *matches_map = None;
+        *next_search_result_index = 0;
     }
 
     /// Returns the Find in Search Results state associated with this primary search.
@@ -233,12 +247,15 @@ impl SearchState {
 
         let matches_map = self.matches_map.get_or_insert_default();
 
-        filter_matches.into_iter().for_each(|mat| {
-            matches_map.insert(
-                LogMainIndex(mat.index),
-                mat.filters.into_iter().map(FilterIndex).collect(),
-            );
-        });
+        for mat in filter_matches {
+            let search_result_index = self.next_search_result_index;
+            self.next_search_result_index += 1;
+            let metadata = SearchMatchMetadata {
+                filter_indices: mat.filters.into_iter().map(FilterIndex).collect(),
+                search_result_index,
+            };
+            matches_map.insert(LogMainIndex(mat.index), metadata);
+        }
     }
 
     /// Clears row-level matches and the reported result count while preserving operation state.
@@ -251,33 +268,62 @@ impl SearchState {
             search_op: _,
             counts,
             matches_map,
+            next_search_result_index,
             compiled_filters: _,
         } = self;
 
         counts.reset_search_counts();
         *matches_map = None;
+        *next_search_result_index = 0;
     }
 
-    /// Returns the per-row filter matches used for row coloring and search-table highlights.
-    pub fn current_matches_map(&self) -> Option<&FxHashMap<LogMainIndex, Vec<FilterIndex>>> {
-        self.matches_map.as_ref()
+    /// Returns the primary filter indices reported for one session position.
+    pub fn filter_indices(&self, session_position: u64) -> Option<&[FilterIndex]> {
+        self.matches_map
+            .as_ref()?
+            .get(&LogMainIndex(session_position))
+            .map(|metadata| metadata.filter_indices.as_slice())
+    }
+
+    /// Returns the exact primary search-result index for one session position.
+    pub fn search_result_index(&self, session_position: u64) -> Option<u64> {
+        self.matches_map
+            .as_ref()?
+            .get(&LogMainIndex(session_position))
+            .map(|metadata| metadata.search_result_index)
+    }
+
+    /// Aligns nested navigation when an indexed-table jump targets a primary result.
+    pub fn update_nested_anchor(&mut self, session_position: u64) {
+        let Some(search_result_index) = self.search_result_index(session_position) else {
+            return;
+        };
+
+        self.nested.update_anchor(search_result_index);
     }
 }
 
 #[cfg(test)]
 mod tests {
     use processor::search::filter::SearchFilter;
+    use session_core::state::IndexedNavigation;
+    use stypes::FilterMatch;
+    use tokio::{runtime::Runtime, sync::mpsc};
     use uuid::Uuid;
 
-    use crate::session::{
-        types::OperationPhase,
-        ui::{definitions::UpdateOperationOutcome, shared::searching::NestedSearchState},
+    use crate::{
+        host::ui::UiActions,
+        session::{
+            command::SessionCommand,
+            types::OperationPhase,
+            ui::{definitions::UpdateOperationOutcome, shared::searching::NestedSearchState},
+        },
     };
 
     use super::{SearchCounts, SearchState};
 
-    fn sample_match() -> stypes::FilterMatch {
-        stypes::FilterMatch {
+    fn sample_match() -> FilterMatch {
+        FilterMatch {
             index: 42,
             filters: vec![1, 3],
         }
@@ -334,7 +380,7 @@ mod tests {
         );
         assert_eq!(state.search_result_count(), 0);
         assert_eq!(state.indexed_result_count(), 5);
-        assert!(state.current_matches_map().is_none());
+        assert!(state.filter_indices(42).is_none());
         let outcome = state.update_operation(operation_id, OperationPhase::Processing);
         assert!(matches!(outcome, UpdateOperationOutcome::Consumed));
     }
@@ -354,7 +400,102 @@ mod tests {
         assert!(state.search_operation_phase().is_none());
         assert_eq!(state.search_result_count(), 0);
         assert_eq!(state.indexed_result_count(), 5);
-        assert!(state.current_matches_map().is_none());
+        assert!(state.filter_indices(42).is_none());
+    }
+
+    #[test]
+    fn primary_indices_follow_callback_order_across_batches() {
+        let mut state = SearchState::new(Uuid::new_v4());
+        state.set_search_operation(Uuid::new_v4());
+
+        state.append_matches(vec![
+            FilterMatch {
+                index: 10,
+                filters: vec![0],
+            },
+            FilterMatch {
+                index: 30,
+                filters: vec![1],
+            },
+        ]);
+        state.append_matches(vec![FilterMatch {
+            index: 70,
+            filters: vec![2],
+        }]);
+
+        assert_eq!(state.search_result_index(10), Some(0));
+        assert_eq!(state.search_result_index(30), Some(1));
+        // Bookmarks at 20 and 40 would make this indexed row 4, not primary index 2.
+        assert_eq!(state.search_result_index(70), Some(2));
+        assert_eq!(
+            state.filter_indices(30).map(|indices| indices[0].0),
+            Some(1)
+        );
+    }
+
+    #[test]
+    fn metadata_resets_restart_primary_sequence() {
+        let mut state = SearchState::new(Uuid::new_v4());
+        state.set_search_operation(Uuid::new_v4());
+        state.append_matches(vec![sample_match()]);
+        state.clear_matches();
+        state.append_matches(vec![FilterMatch {
+            index: 50,
+            filters: vec![0],
+        }]);
+        assert_eq!(state.search_result_index(50), Some(0));
+
+        state.drop_search();
+        state.set_search_operation(Uuid::new_v4());
+        state.append_matches(vec![FilterMatch {
+            index: 60,
+            filters: vec![0],
+        }]);
+        assert_eq!(state.search_result_index(60), Some(0));
+    }
+
+    #[test]
+    fn indexed_primary_jump_updates_exact_nested_anchor() {
+        let mut state = SearchState::new(Uuid::new_v4());
+        state.set_search_operation(Uuid::new_v4());
+        state.append_matches(vec![
+            FilterMatch {
+                index: 10,
+                filters: vec![0],
+            },
+            FilterMatch {
+                index: 30,
+                filters: vec![0],
+            },
+        ]);
+        assert!(
+            state
+                .nested_mut()
+                .apply_filter(SearchFilter::plain("warn"))
+                .is_eligible()
+        );
+
+        state.update_nested_anchor(30);
+        state.update_nested_anchor(20); // Bookmark-only metadata must not replace the anchor.
+
+        let (_runtime, mut actions) = {
+            let runtime = Runtime::new().expect("runtime should initialize");
+            let actions = UiActions::new(runtime.handle().clone());
+            (runtime, actions)
+        };
+        let (cmd_tx, mut cmd_rx) = mpsc::channel(1);
+        assert!(
+            state
+                .nested_mut()
+                .request_match(IndexedNavigation::Next, &cmd_tx, &mut actions,)
+        );
+        match cmd_rx.try_recv().expect("nested command should be sent") {
+            SessionCommand::FindNestedMatch {
+                search_result_anchor,
+                ..
+            } => assert_eq!(search_result_anchor, Some(1)),
+            other => panic!("expected nested command, got {other:?}"),
+        }
     }
 
     #[test]

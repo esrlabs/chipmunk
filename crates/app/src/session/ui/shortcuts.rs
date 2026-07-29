@@ -386,24 +386,40 @@ pub fn handle(
     }
 
     if consume_outside_text(ctx, previous_indexed_row) {
-        actions.try_send_command(
-            &session.cmd_tx,
-            SessionCommand::GetIndexedNeighbor {
-                anchor: session.shared.logs.single_selected_row(),
-                direction: IndexedNavigation::Previous,
-            },
-        );
+        if session.shared.search.nested().has_active_filter() {
+            session.shared.search.nested_mut().request_match(
+                IndexedNavigation::Previous,
+                &session.cmd_tx,
+                actions,
+            );
+        } else {
+            actions.try_send_command(
+                &session.cmd_tx,
+                SessionCommand::GetIndexedNeighbor {
+                    anchor: session.shared.logs.single_selected_row(),
+                    direction: IndexedNavigation::Previous,
+                },
+            );
+        }
         return true;
     }
 
     if consume_outside_text(ctx, next_indexed_row) {
-        actions.try_send_command(
-            &session.cmd_tx,
-            SessionCommand::GetIndexedNeighbor {
-                anchor: session.shared.logs.single_selected_row(),
-                direction: IndexedNavigation::Next,
-            },
-        );
+        if session.shared.search.nested().has_active_filter() {
+            session.shared.search.nested_mut().request_match(
+                IndexedNavigation::Next,
+                &session.cmd_tx,
+                actions,
+            );
+        } else {
+            actions.try_send_command(
+                &session.cmd_tx,
+                SessionCommand::GetIndexedNeighbor {
+                    anchor: session.shared.logs.single_selected_row(),
+                    direction: IndexedNavigation::Next,
+                },
+            );
+        }
         return true;
     }
 
