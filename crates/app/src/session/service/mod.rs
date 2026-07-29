@@ -852,7 +852,10 @@ impl SessionService {
             }
             CallbackEvent::AttachmentsUpdated { attachment, len } => {
                 self.senders
-                    .send_session_msg(SessionMessage::AttachmentsUpdated { attachment, len })
+                    .send_session_msg(SessionMessage::AttachmentsUpdated {
+                        attachment: Box::new(attachment),
+                        len,
+                    })
                     .await;
             }
             event => {
