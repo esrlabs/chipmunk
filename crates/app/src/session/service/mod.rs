@@ -361,6 +361,22 @@ impl SessionService {
                     .send_session_msg(SessionMessage::NearestIndexedRow { result })
                     .await;
             }
+            SessionCommand::FindNestedMatch {
+                request_id,
+                filter,
+                search_result_anchor,
+                direction,
+            } => {
+                let result = self
+                    .session
+                    .search_nested_match(filter, search_result_anchor, direction)
+                    .await
+                    .map_err(SessionError::from);
+
+                self.senders
+                    .send_session_msg(SessionMessage::NestedMatchResult { request_id, result })
+                    .await;
+            }
             SessionCommand::GetIndexedNeighbor { anchor, direction } => {
                 if let Some(row) = self
                     .session

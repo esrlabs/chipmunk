@@ -32,8 +32,8 @@ impl SearchUI {
     pub fn new(cmd_tx: Sender<SessionCommand>, schema: Rc<dyn LogSchema>) -> Self {
         Self {
             bar: SearchBar::new(cmd_tx.clone()),
-            table: SearchTable::new(cmd_tx, schema),
-            nested: NestedSearch::default(),
+            table: SearchTable::new(cmd_tx.clone(), schema),
+            nested: NestedSearch::new(cmd_tx),
         }
     }
 

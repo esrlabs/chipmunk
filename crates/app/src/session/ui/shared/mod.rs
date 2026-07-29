@@ -715,7 +715,7 @@ mod tests {
         assert!(matches!(commands[0], SessionCommand::DropSearch { .. }));
         assert_eq!(shared.search.search_result_count(), 0);
         assert_eq!(shared.search.indexed_result_count(), 5);
-        assert!(shared.search.current_matches_map().is_none());
+        assert!(shared.search.filter_indices(42).is_none());
         assert!(shared.search.search_operation_phase().is_none());
         assert_eq!(shared.signals, vec![SessionSignal::SearchDropped]);
     }

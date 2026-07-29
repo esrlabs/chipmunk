@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use session_core::state::NestedMatch;
 use stypes::{AttachmentInfo, FilterMatch, GrabbedElement};
 use uuid::Uuid;
 
@@ -39,6 +40,14 @@ pub enum SessionMessage {
     NearestIndexedRow {
         /// Resolved indexed-row index, or `None` when the indexed table is empty.
         result: Result<Option<u64>, SessionError>,
+    },
+
+    /// Result of one correlated Find in Search Results request.
+    NestedMatchResult {
+        /// Identifies the request that produced this response.
+        request_id: Uuid,
+        /// Matching coordinates, no-match outcome, or backend failure.
+        result: Result<Option<NestedMatch>, SessionError>,
     },
 
     /// Adjacent indexed main-log row resolved by the backend.

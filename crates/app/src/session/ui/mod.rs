@@ -6,6 +6,7 @@ use std::{
 
 use egui::{CentralPanel, Context, Frame, Margin, Panel, Ui};
 use log::warn;
+use session_core::state::NestedMatch;
 use tokio::sync::mpsc::{Sender, error::TrySendError};
 use uuid::Uuid;
 
@@ -309,6 +310,9 @@ impl Session {
                             .scroll_to_indexed_row(indexed_row_index);
                     }
                 }
+                SessionMessage::NestedMatchResult { request_id, result } => {
+                    self.handle_nested_result(request_id, result, actions);
+                }
                 SessionMessage::IndexedNeighbor(row) => {
                     self.shared.logs.focus_main_row(row, SearchTableSync::Sync);
                 }
@@ -435,6 +439,38 @@ impl Session {
             self.shared.signals.is_empty(),
             "Session messages must not emit render-frame signals."
         );
+    }
+
+    fn handle_nested_result(
+        &mut self,
+        request_id: Uuid,
+        result: Result<Option<NestedMatch>, SessionError>,
+        actions: &mut UiActions,
+    ) {
+        if !self.shared.search.nested_mut().accept_response(request_id) {
+            return;
+        }
+
+        let Some(nested_match) = self.ok_or_notify(result, actions) else {
+            return;
+        };
+        let Some(nested_match) = nested_match else {
+            self.shared.search.nested_mut().set_no_match();
+
+            return;
+        };
+
+        self.shared
+            .search
+            .nested_mut()
+            .set_match(nested_match.search_result_index);
+        self.shared
+            .logs
+            .focus_main_row(nested_match.session_position, SearchTableSync::Skip);
+        self.bottom_panel
+            .search
+            .table
+            .scroll_to_indexed_row(nested_match.indexed_row_index);
     }
 
     fn on_operation_updated(
@@ -685,5 +721,171 @@ impl Session {
 fn clear_text_edit_focus(ctx: &Context) {
     if ctx.text_edit_focused() {
         ctx.memory_mut(|memory| memory.stop_text_input());
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::PathBuf;
+
+    use processor::search::filter::SearchFilter;
+    use session_core::state::{IndexedNavigation, NestedMatch};
+    use stypes::{FileFormat, ObserveOrigin};
+    use tokio::{runtime::Runtime, sync::mpsc};
+    use uuid::Uuid;
+
+    use super::{SearchTableSync, Session};
+    use crate::{
+        host::{common::parsers::ParserNames, ui::UiActions},
+        session::{
+            RecentSessionRuntimeInit, SessionUiInit,
+            command::SessionCommand,
+            communication::{self, ServiceHandle, SharedSenders},
+            types::ObserveOperation,
+            ui::{SessionInfo, definitions::schema::LogSchemaSpec},
+        },
+    };
+
+    fn new_session() -> (Session, ServiceHandle, Runtime, UiActions) {
+        let runtime = Runtime::new().expect("runtime should initialize");
+        let (host_message_tx, _host_message_rx) = mpsc::channel(4);
+        let (notification_tx, _notification_rx) = mpsc::channel(4);
+        let shared_senders =
+            SharedSenders::new(host_message_tx, notification_tx, egui::Context::default());
+        let (communication, service) = communication::init(shared_senders);
+        let (host_cmd_tx, _host_cmd_rx) = mpsc::channel(4);
+
+        let session_id = Uuid::new_v4();
+        let origin = ObserveOrigin::File(
+            "source".to_owned(),
+            FileFormat::Text,
+            PathBuf::from("source.log"),
+        );
+        let observe_op = ObserveOperation::new(Uuid::new_v4(), origin);
+        let session_info = SessionInfo {
+            id: session_id,
+            title: "test".to_owned(),
+            parser: ParserNames::Text,
+            raw_export_supported: false,
+        };
+        let recent_runtime = RecentSessionRuntimeInit {
+            tracking: None,
+            additional_observe_ops: Vec::new(),
+        };
+        let init = SessionUiInit {
+            session_info,
+            schema_spec: LogSchemaSpec::Text,
+            recent_runtime,
+            communication,
+            observe_op,
+        };
+        let actions = UiActions::new(runtime.handle().clone());
+
+        (Session::new(init, host_cmd_tx), service, runtime, actions)
+    }
+
+    fn start_request(
+        session: &mut Session,
+        service: &mut ServiceHandle,
+        actions: &mut UiActions,
+    ) -> Uuid {
+        assert!(
+            session
+                .shared
+                .search
+                .nested_mut()
+                .apply_filter(SearchFilter::plain("warn"))
+                .is_eligible()
+        );
+        assert!(session.shared.search.nested_mut().request_match(
+            IndexedNavigation::Next,
+            &session.cmd_tx,
+            actions,
+        ));
+
+        match service
+            .cmd_rx
+            .try_recv()
+            .expect("nested command should be sent")
+        {
+            SessionCommand::FindNestedMatch { request_id, .. } => request_id,
+            other => panic!("expected nested command, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn nested_success_routes_selection_and_anchor_coordinates() {
+        let (mut session, mut service, _runtime, mut actions) = new_session();
+        let request_id = start_request(&mut session, &mut service, &mut actions);
+
+        // Primary results [10, 30, 70] with bookmarks [20, 40] put session row 70 at
+        // search-result index 2 and indexed-row index 4.
+        let found = NestedMatch {
+            session_position: 70,
+            search_result_index: 2,
+            indexed_row_index: 4,
+        };
+        session.handle_nested_result(request_id, Ok(Some(found)), &mut actions);
+
+        assert_eq!(session.shared.logs.single_selected_row(), Some(70));
+        let focus = session
+            .shared
+            .logs
+            .take_main_row_focus()
+            .expect("success should focus the main row");
+        assert_eq!(focus.row, 70);
+        assert_eq!(focus.search_table_sync, SearchTableSync::Skip);
+
+        assert!(session.shared.search.nested_mut().request_match(
+            IndexedNavigation::Next,
+            &session.cmd_tx,
+            &mut actions,
+        ));
+        match service
+            .cmd_rx
+            .try_recv()
+            .expect("follow-up nested command should be sent")
+        {
+            SessionCommand::FindNestedMatch {
+                search_result_anchor,
+                ..
+            } => assert_eq!(search_result_anchor, Some(2)),
+            other => panic!("expected nested command, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn stale_and_closed_responses_do_not_select_or_focus() {
+        let (mut session, mut service, _runtime, mut actions) = new_session();
+        let request_id = start_request(&mut session, &mut service, &mut actions);
+        let found = NestedMatch {
+            session_position: 70,
+            search_result_index: 2,
+            indexed_row_index: 4,
+        };
+
+        let stale_request_id = Uuid::new_v4();
+        let stale_found = found.clone();
+        session.handle_nested_result(stale_request_id, Ok(Some(stale_found)), &mut actions);
+        assert!(session.shared.search.nested().is_pending());
+        assert_eq!(session.shared.logs.single_selected_row(), None);
+        assert!(session.shared.logs.take_main_row_focus().is_none());
+
+        session.close_nested_search();
+        session.handle_nested_result(request_id, Ok(Some(found)), &mut actions);
+        assert_eq!(session.shared.logs.single_selected_row(), None);
+        assert!(session.shared.logs.take_main_row_focus().is_none());
+    }
+
+    #[test]
+    fn no_match_preserves_selection_without_focus() {
+        let (mut session, mut service, _runtime, mut actions) = new_session();
+        session.shared.logs.replace_selection_with(9);
+        let request_id = start_request(&mut session, &mut service, &mut actions);
+
+        session.handle_nested_result(request_id, Ok(None), &mut actions);
+
+        assert_eq!(session.shared.logs.single_selected_row(), Some(9));
+        assert!(session.shared.logs.take_main_row_focus().is_none());
     }
 }
