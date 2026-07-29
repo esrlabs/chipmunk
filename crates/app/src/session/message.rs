@@ -84,7 +84,7 @@ pub enum SessionMessage {
 
     /// Triggered when attachments are updated
     AttachmentsUpdated {
-        attachment: AttachmentInfo,
+        attachment: Box<AttachmentInfo>,
         len: u64,
     },
 
