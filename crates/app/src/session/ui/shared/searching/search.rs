@@ -306,6 +306,7 @@ impl SearchState {
 #[cfg(test)]
 mod tests {
     use processor::search::filter::SearchFilter;
+    use regex::Regex;
     use session_core::state::IndexedNavigation;
     use stypes::FilterMatch;
     use tokio::{runtime::Runtime, sync::mpsc};
@@ -314,9 +315,7 @@ mod tests {
     use crate::{
         host::ui::UiActions,
         session::{
-            command::SessionCommand,
-            types::OperationPhase,
-            ui::{definitions::UpdateOperationOutcome, shared::searching::NestedSearchState},
+            command::SessionCommand, types::OperationPhase, ui::definitions::UpdateOperationOutcome,
         },
     };
 
@@ -490,10 +489,9 @@ mod tests {
                 .request_match(IndexedNavigation::Next, &cmd_tx, &mut actions,)
         );
         match cmd_rx.try_recv().expect("nested command should be sent") {
-            SessionCommand::FindNestedMatch {
-                search_result_anchor,
-                ..
-            } => assert_eq!(search_result_anchor, Some(1)),
+            SessionCommand::FindNestedMatch(params) => {
+                assert_eq!(params.search_result_anchor, Some(1));
+            }
             other => panic!("expected nested command, got {other:?}"),
         }
     }
@@ -508,10 +506,16 @@ mod tests {
                 .apply_filter(SearchFilter::plain("status=ok"))
                 .is_eligible()
         );
+        state
+            .nested_mut()
+            .set_matcher(Box::new(Regex::new("status=ok").unwrap()));
 
         state.drop_search();
 
-        assert_eq!(state.nested(), &NestedSearchState::default());
+        assert!(!state.nested().is_visible());
+        assert!(!state.nested().has_active_filter());
+        assert!(state.nested().matcher().is_none());
+        assert!(!state.nested().is_pending());
     }
 
     #[test]

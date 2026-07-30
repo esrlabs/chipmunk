@@ -6,6 +6,7 @@ use std::{
 
 use egui::{CentralPanel, Context, Frame, Margin, Panel, Ui};
 use log::warn;
+use regex::Regex;
 use session_core::state::NestedMatch;
 use tokio::sync::mpsc::{Sender, error::TrySendError};
 use uuid::Uuid;
@@ -310,8 +311,12 @@ impl Session {
                             .scroll_to_indexed_row(indexed_row_index);
                     }
                 }
-                SessionMessage::NestedMatchResult { request_id, result } => {
-                    self.handle_nested_result(request_id, result, actions);
+                SessionMessage::NestedMatchResult {
+                    request_id,
+                    matcher,
+                    result,
+                } => {
+                    self.handle_nested_result(request_id, matcher, result, actions);
                 }
                 SessionMessage::IndexedNeighbor(row) => {
                     self.shared.logs.focus_main_row(row, SearchTableSync::Sync);
@@ -444,6 +449,7 @@ impl Session {
     fn handle_nested_result(
         &mut self,
         request_id: Uuid,
+        matcher: Option<Box<Regex>>,
         result: Result<Option<NestedMatch>, SessionError>,
         actions: &mut UiActions,
     ) {
@@ -454,6 +460,9 @@ impl Session {
         let Some(nested_match) = self.ok_or_notify(result, actions) else {
             return;
         };
+        if let Some(matcher) = matcher {
+            self.shared.search.nested_mut().set_matcher(matcher);
+        }
         let Some(nested_match) = nested_match else {
             self.shared.search.nested_mut().set_no_match();
 
@@ -729,8 +738,9 @@ mod tests {
     use std::path::PathBuf;
 
     use processor::search::filter::SearchFilter;
+    use regex::Regex;
     use session_core::state::{IndexedNavigation, NestedMatch};
-    use stypes::{FileFormat, ObserveOrigin};
+    use stypes::{ComputationError, FileFormat, ObserveOrigin};
     use tokio::{runtime::Runtime, sync::mpsc};
     use uuid::Uuid;
 
@@ -741,6 +751,7 @@ mod tests {
             RecentSessionRuntimeInit, SessionUiInit,
             command::SessionCommand,
             communication::{self, ServiceHandle, SharedSenders},
+            error::SessionError,
             types::ObserveOperation,
             ui::{SessionInfo, definitions::schema::LogSchemaSpec},
         },
@@ -808,7 +819,7 @@ mod tests {
             .try_recv()
             .expect("nested command should be sent")
         {
-            SessionCommand::FindNestedMatch { request_id, .. } => request_id,
+            SessionCommand::FindNestedMatch(params) => params.request_id,
             other => panic!("expected nested command, got {other:?}"),
         }
     }
@@ -825,8 +836,21 @@ mod tests {
             search_result_index: 2,
             indexed_row_index: 4,
         };
-        session.handle_nested_result(request_id, Ok(Some(found)), &mut actions);
+        session.handle_nested_result(
+            request_id,
+            Some(Box::new(Regex::new("warn").unwrap())),
+            Ok(Some(found)),
+            &mut actions,
+        );
 
+        assert!(
+            session
+                .shared
+                .search
+                .nested()
+                .matcher()
+                .is_some_and(|matcher| matcher.is_match("warn"))
+        );
         assert_eq!(session.shared.logs.single_selected_row(), Some(70));
         let focus = session
             .shared
@@ -846,10 +870,10 @@ mod tests {
             .try_recv()
             .expect("follow-up nested command should be sent")
         {
-            SessionCommand::FindNestedMatch {
-                search_result_anchor,
-                ..
-            } => assert_eq!(search_result_anchor, Some(2)),
+            SessionCommand::FindNestedMatch(params) => {
+                assert_eq!(params.search_result_anchor, Some(2));
+                assert!(!params.include_matcher);
+            }
             other => panic!("expected nested command, got {other:?}"),
         }
     }
@@ -866,13 +890,25 @@ mod tests {
 
         let stale_request_id = Uuid::new_v4();
         let stale_found = found.clone();
-        session.handle_nested_result(stale_request_id, Ok(Some(stale_found)), &mut actions);
+        session.handle_nested_result(
+            stale_request_id,
+            Some(Box::new(Regex::new("stale").unwrap())),
+            Ok(Some(stale_found)),
+            &mut actions,
+        );
         assert!(session.shared.search.nested().is_pending());
+        assert!(session.shared.search.nested().matcher().is_none());
         assert_eq!(session.shared.logs.single_selected_row(), None);
         assert!(session.shared.logs.take_main_row_focus().is_none());
 
         session.close_nested_search();
-        session.handle_nested_result(request_id, Ok(Some(found)), &mut actions);
+        session.handle_nested_result(
+            request_id,
+            Some(Box::new(Regex::new("closed").unwrap())),
+            Ok(Some(found)),
+            &mut actions,
+        );
+        assert!(session.shared.search.nested().matcher().is_none());
         assert_eq!(session.shared.logs.single_selected_row(), None);
         assert!(session.shared.logs.take_main_row_focus().is_none());
     }
@@ -883,9 +919,44 @@ mod tests {
         session.shared.logs.replace_selection_with(9);
         let request_id = start_request(&mut session, &mut service, &mut actions);
 
-        session.handle_nested_result(request_id, Ok(None), &mut actions);
+        session.handle_nested_result(
+            request_id,
+            Some(Box::new(Regex::new("warn").unwrap())),
+            Ok(None),
+            &mut actions,
+        );
 
+        assert!(session.shared.search.nested().matcher().is_some());
         assert_eq!(session.shared.logs.single_selected_row(), Some(9));
         assert!(session.shared.logs.take_main_row_focus().is_none());
+    }
+
+    #[test]
+    fn nested_error_does_not_replace_cached_matcher() {
+        let (mut session, mut service, _runtime, mut actions) = new_session();
+        let first_request = start_request(&mut session, &mut service, &mut actions);
+        session.handle_nested_result(
+            first_request,
+            Some(Box::new(Regex::new("warn").unwrap())),
+            Ok(None),
+            &mut actions,
+        );
+
+        let second_request = start_request(&mut session, &mut service, &mut actions);
+        session.handle_nested_result(
+            second_request,
+            Some(Box::new(Regex::new("wrong").unwrap())),
+            Err(SessionError::CompuationError(ComputationError::InvalidData)),
+            &mut actions,
+        );
+
+        let matcher = session
+            .shared
+            .search
+            .nested()
+            .matcher()
+            .expect("successful response should remain cached");
+        assert!(matcher.is_match("warn"));
+        assert!(!matcher.is_match("wrong"));
     }
 }
