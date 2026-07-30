@@ -3,19 +3,22 @@
 use std::time::Instant;
 
 use egui::{
-    Align2, Area, Context, Frame, Id, Key, Margin, Modifiers, Order, Rect, RichText, TextEdit, Ui,
-    Widget, vec2,
+    Align2, Area, Button, Context, Frame, Id, Key, Margin, Modifiers, Order, Rect, RichText,
+    Stroke, TextEdit, Ui, Widget, pos2, vec2,
 };
-use processor::search::filter::SearchFilter;
-use session_core::state::IndexedNavigation;
 use tokio::sync::mpsc::Sender;
 use uuid::Uuid;
 
+use processor::search::filter::SearchFilter;
+use session_core::state::IndexedNavigation;
+
 use crate::{
-    common::{phosphor::icons, ui::buttons, validation::ValidationEligibility},
-    host::{notification::AppNotification, ui::UiActions},
+    common::{phosphor::icons, validation::ValidationEligibility},
+    host::{common::colors::main_accent_stroke, notification::AppNotification, ui::UiActions},
     session::{command::SessionCommand, ui::shared::searching::NestedSearchState},
 };
+
+const ICON_SIZE: f32 = 14.0;
 
 /// Local editing and focus state for the floating nested-search widget.
 #[derive(Debug)]
@@ -90,9 +93,17 @@ impl NestedSearch {
             .pivot(Align2::RIGHT_TOP)
             .fixed_pos(position)
             .show(ui.ctx(), |ui| {
-                Frame::window(ui.style())
-                    .inner_margin(Margin::symmetric(8, 4))
+                let output = Frame::window(ui.style())
+                    .inner_margin(Margin::same(4))
                     .show(ui, |ui| self.render_row(session_id, state, actions, ui));
+
+                if let Some(remaining) = state.progress_remaining(Instant::now()) {
+                    if remaining.is_zero() {
+                        paint_pending_border(ui, output.response.rect);
+                    } else {
+                        ui.ctx().request_repaint_after(remaining);
+                    }
+                }
             });
     }
 
@@ -114,12 +125,14 @@ impl NestedSearch {
         let mut clicked_button = None;
         let mut escape_pressed = false;
         ui.horizontal(|ui| {
+            ui.spacing_mut().item_spacing.x = 1.0;
+
             let has_active_filter = state.has_active_filter();
             ui.add_enabled_ui(!pending, |ui| {
                 let response = TextEdit::singleline(&mut self.query)
                     .id(text_id)
                     .hint_text("Find in Search Results")
-                    .desired_width(220.0)
+                    .desired_width(150.0)
                     .show(ui)
                     .response;
                 if self.focus_requested && !pending {
@@ -137,42 +150,39 @@ impl NestedSearch {
                     escape_pressed = true;
                 }
 
+                const GROUP_SPACING: f32 = 2.0;
+                ui.add_space(GROUP_SPACING);
+
                 ui.toggle_value(
                     &mut self.match_case,
-                    RichText::new(icons::regular::TEXT_AA).size(14.0),
+                    RichText::new(icons::regular::TEXT_AA).size(ICON_SIZE),
                 )
                 .on_hover_text("Match Case");
                 ui.toggle_value(
                     &mut self.is_word,
-                    RichText::new(icons::regular::TEXT_T).size(14.0),
+                    RichText::new(icons::regular::TEXT_T).size(ICON_SIZE),
                 )
                 .on_hover_text("Match Whole Word");
                 ui.toggle_value(
                     &mut self.is_regex,
-                    RichText::new(icons::regular::ASTERISK).size(14.0),
+                    RichText::new(icons::regular::ASTERISK).size(ICON_SIZE),
                 )
                 .on_hover_text("Use Regular Expression");
 
+                ui.add_space(GROUP_SPACING);
+
+                let previous_button = icon_button(icons::regular::ARROW_UP);
                 if ui
-                    .add_enabled(
-                        has_active_filter,
-                        buttons::bottom_panel_icon(
-                            RichText::new(icons::regular::ARROW_UP).size(14.0),
-                        ),
-                    )
+                    .add_enabled(has_active_filter, previous_button)
                     .on_hover_text("Previous match")
                     .on_disabled_hover_text("Previous match")
                     .clicked()
                 {
                     clicked_button = Some(NestedSearchButton::Previous);
                 }
+                let next_button = icon_button(icons::regular::ARROW_DOWN);
                 if ui
-                    .add_enabled(
-                        has_active_filter,
-                        buttons::bottom_panel_icon(
-                            RichText::new(icons::regular::ARROW_DOWN).size(14.0),
-                        ),
-                    )
+                    .add_enabled(has_active_filter, next_button)
                     .on_hover_text("Next match")
                     .on_disabled_hover_text("Next match")
                     .clicked()
@@ -181,15 +191,7 @@ impl NestedSearch {
                 }
             });
 
-            if let Some(remaining) = state.progress_remaining(Instant::now()) {
-                if remaining.is_zero() {
-                    ui.spinner();
-                } else {
-                    ui.ctx().request_repaint_after(remaining);
-                }
-            }
-
-            if buttons::bottom_panel_icon(RichText::new(icons::regular::X).size(14.0))
+            if icon_button(icons::regular::X)
                 .ui(ui)
                 .on_hover_text("Close")
                 .clicked()
@@ -248,6 +250,47 @@ impl NestedSearch {
         state.close();
         self.reset();
     }
+}
+
+fn icon_button(icon: &'static str) -> Button<'static> {
+    Button::new(RichText::new(icon).size(ICON_SIZE)).frame_when_inactive(false)
+}
+
+/// Paints an animated pending indicator along the bottom of `rect` and requests another frame.
+fn paint_pending_border(ui: &Ui, rect: Rect) {
+    const SEGMENT_FRACTION: f32 = 0.30;
+    const SPEED: f64 = 0.45;
+
+    let corner_radius = ui.visuals().window_corner_radius;
+    let track_rect = Rect::from_min_max(
+        pos2(rect.left() + f32::from(corner_radius.sw) / 2.0, rect.top()),
+        pos2(
+            rect.right() - f32::from(corner_radius.se) / 2.0,
+            rect.bottom(),
+        ),
+    );
+    let progress = ((ui.input(|input| input.time) * SPEED) % 1.0) as f32;
+    let track_width = track_rect.width();
+    let segment_width = track_width * SEGMENT_FRACTION;
+    let start_x = track_rect.left() + track_width * progress;
+    let y = track_rect.bottom() - 1.0;
+
+    let stroke = Stroke {
+        width: 2.0,
+        color: main_accent_stroke(ui.visuals().dark_mode),
+    };
+    let painter = ui.painter().with_clip_rect(track_rect);
+    for offset in [0.0, -track_width] {
+        let segment_start = start_x + offset;
+        painter.line_segment(
+            [
+                pos2(segment_start, y),
+                pos2(segment_start + segment_width, y),
+            ],
+            stroke,
+        );
+    }
+    ui.ctx().request_repaint();
 }
 
 #[cfg(test)]
