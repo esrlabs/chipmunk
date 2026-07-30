@@ -1,9 +1,14 @@
 //! Runtime shortcut state shared by host and active-tab shortcut handlers.
 //!
-//! The state stores the latest unconsumed key press for sequence-style shortcuts. It does not
-//! assign meaning to keys; shortcut handlers decide whether the last key completes an action.
+//! The state stores the latest unconsumed key press for sequence-style shortcuts and semantic
+//! shortcut actions pending until the end of the current UI pass. It does not assign meaning to
+//! keys; shortcut handlers do that.
+
+use std::vec::Drain;
 
 use egui::{Context, Event, Key, Modifiers};
+use session_core::state::IndexedNavigation;
+use uuid::Uuid;
 
 const LAST_KEY_TIMEOUT_SECONDS: f64 = 0.75;
 
@@ -13,6 +18,19 @@ pub struct ShortcutState {
     /// Last unconsumed pressed key while there is no input-text active.
     /// Used to handle vim like keybindings.
     last_key: Option<LastShortcutKey>,
+    pending_actions: Vec<ShortcutAction>,
+}
+
+/// Semantic shortcut work deferred until the current host UI pass has rendered.
+#[derive(Debug)]
+pub enum ShortcutAction {
+    /// Requests nested navigation for a specific session.
+    FindNestedMatch {
+        /// Session that owned the consumed shortcut.
+        session_id: Uuid,
+        /// Direction to navigate through nested matches.
+        direction: IndexedNavigation,
+    },
 }
 
 /// A key press left unconsumed by shortcut handlers in a recent frame.
@@ -28,6 +46,21 @@ impl ShortcutState {
     /// Clears the last stored key press.
     pub fn clear_last_key(&mut self) {
         self.last_key = None;
+    }
+
+    /// Queues semantic work for post-render dispatch in the current UI pass.
+    pub fn queue_action(&mut self, action: ShortcutAction) {
+        self.pending_actions.push(action);
+    }
+
+    /// Drains semantic work queued during the current UI pass.
+    pub fn drain_actions(&mut self) -> Drain<'_, ShortcutAction> {
+        self.pending_actions.drain(..)
+    }
+
+    /// Returns whether semantic work is waiting for post-render dispatch.
+    pub fn has_pending_actions(&self) -> bool {
+        !self.pending_actions.is_empty()
     }
 
     /// Takes the last stored key press if it is still within the sequence timeout.

@@ -8,9 +8,9 @@ use crate::{
         shortcuts::{
             definitions::{Shortcut, ShortcutDisplay},
             matching::{consume_outside_text, consume_shortcut},
-            state::LastShortcutKey,
+            state::{LastShortcutKey, ShortcutAction},
         },
-        state::HostPreferences,
+        state::HostState,
     },
     session::command::SessionCommand,
 };
@@ -251,13 +251,20 @@ pub fn shortcut_defs() -> [&'static Shortcut; 22] {
     ]
 }
 
+/// Handles session shortcuts, returning `true` when a shortcut is consumed.
 pub fn handle(
     session: &mut Session,
     actions: &mut UiActions,
-    preferences: &mut HostPreferences,
+    host_state: &mut HostState,
     ctx: &Context,
     last_key: Option<&LastShortcutKey>,
 ) -> bool {
+    let HostState {
+        preferences,
+        shortcuts: shortcut_state,
+        ..
+    } = host_state;
+
     let nested_search_visible = preferences.panels_visibility.bottom
         && session.shared.bottom_tab == BottomTabType::Search
         && session.nested_search_available()
@@ -385,13 +392,16 @@ pub fn handle(
         return true;
     }
 
+    // Nested requests set pending state immediately. Defer shortcut navigation until after
+    // rendering; otherwise the shell paints its disabled state for this frame and flickers.
     if consume_outside_text(ctx, previous_indexed_row) {
         if session.shared.search.nested().has_active_filter() {
-            session.shared.search.nested_mut().request_match(
-                IndexedNavigation::Previous,
-                &session.cmd_tx,
-                actions,
-            );
+            let session_id = session.get_info().id;
+            let action = ShortcutAction::FindNestedMatch {
+                session_id,
+                direction: IndexedNavigation::Previous,
+            };
+            shortcut_state.queue_action(action);
         } else {
             actions.try_send_command(
                 &session.cmd_tx,
@@ -406,11 +416,12 @@ pub fn handle(
 
     if consume_outside_text(ctx, next_indexed_row) {
         if session.shared.search.nested().has_active_filter() {
-            session.shared.search.nested_mut().request_match(
-                IndexedNavigation::Next,
-                &session.cmd_tx,
-                actions,
-            );
+            let session_id = session.get_info().id;
+            let action = ShortcutAction::FindNestedMatch {
+                session_id,
+                direction: IndexedNavigation::Next,
+            };
+            shortcut_state.queue_action(action);
         } else {
             actions.try_send_command(
                 &session.cmd_tx,

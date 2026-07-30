@@ -614,6 +614,7 @@ impl eframe::App for Host {
 
         dnd_paths::handle_path_drops(ui, &mut self.ui_actions, &self.senders.cmd_tx);
 
+        shortcuts::handler::dispatch_pending(self);
         self.handle_ui_actions(ui.ctx());
     }
 
