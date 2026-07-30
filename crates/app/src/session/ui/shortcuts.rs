@@ -340,7 +340,7 @@ pub fn handle(
         let nested_search_visible = preferences.panels_visibility.bottom
             && session.shared.bottom_tab == BottomTabType::Search
             && session.nested_search_available()
-            && session.shared.search.nested().is_visible();
+            && session.shared.search.nested().is_open();
         if nested_search_visible && !session.nested_search_focused(ctx) {
             session.focus_nested_search();
         } else {
