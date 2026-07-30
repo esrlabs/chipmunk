@@ -7,11 +7,16 @@ use crate::host::ui::{Host, file_dialog_commands, state::modal::HostModal, tabs:
 use super::{
     definitions::{AppShortcuts, OPEN_SHORTCUTS_F1, app_shortcuts},
     matching::{consume_binding, consume_questionmark, consume_shortcut},
-    state::LastShortcutKey,
+    state::{LastShortcutKey, ShortcutAction},
 };
 
 /// Handles host and active-tab shortcuts, returning true when a shortcut is consumed.
 pub fn handle(host: &mut Host, ctx: &Context) -> bool {
+    debug_assert!(
+        !host.state.shortcuts.has_pending_actions(),
+        "Shortcut actions leaked from the previous UI pass."
+    );
+
     if ctx.memory(|memory| memory.top_modal_layer().is_some()) {
         host.state.shortcuts.clear_last_key();
         return false;
@@ -199,5 +204,35 @@ fn handle_active_tab_shortcuts(
         return false;
     };
 
-    session.handle_shortcuts(ui_actions, &mut state.preferences, ctx, last_key)
+    session.handle_shortcuts(ui_actions, state, ctx, last_key)
+}
+
+/// Dispatches semantic shortcut actions after the current host UI pass has rendered.
+pub fn dispatch_pending(host: &mut Host) {
+    let Host {
+        state,
+        tabs,
+        ui_actions,
+        ..
+    } = host;
+
+    for action in state.shortcuts.drain_actions() {
+        match action {
+            ShortcutAction::FindNestedMatch {
+                session_id,
+                direction,
+            } => {
+                let target = tabs.tabs_mut().iter_mut().find_map(|tab| {
+                    let HostTab::Session(session) = tab else {
+                        return None;
+                    };
+
+                    (session.get_info().id == session_id).then_some(session)
+                });
+                if let Some(session) = target {
+                    session.request_nested_match(direction, ui_actions);
+                }
+            }
+        }
+    }
 }

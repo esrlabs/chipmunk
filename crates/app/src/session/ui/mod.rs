@@ -7,7 +7,7 @@ use std::{
 use egui::{CentralPanel, Context, Frame, Margin, Panel, Ui};
 use log::warn;
 use regex::Regex;
-use session_core::state::NestedMatch;
+use session_core::state::{IndexedNavigation, NestedMatch};
 use tokio::sync::mpsc::{Sender, error::TrySendError};
 use uuid::Uuid;
 
@@ -23,7 +23,7 @@ use crate::{
             HostAction, UiActions,
             registry::{HostRegistry, filters::FilterRegistry},
             shortcuts::state::LastShortcutKey,
-            state::HostPreferences,
+            state::{HostPreferences, HostState},
             storage::{
                 HostStorage,
                 recent::session::{RecentSessionSource, RecentSessionStateSnapshot},
@@ -609,6 +609,21 @@ impl Session {
         self.bottom_panel.search.table_available(&self.shared)
     }
 
+    /// Dispatches nested navigation through the canonical request state.
+    ///
+    /// Returns `true` when the request was enqueued and `false` when navigation is not ready or
+    /// enqueueing fails.
+    pub fn request_nested_match(
+        &mut self,
+        direction: IndexedNavigation,
+        actions: &mut UiActions,
+    ) -> bool {
+        self.shared
+            .search
+            .nested_mut()
+            .request_match(direction, &self.cmd_tx, actions)
+    }
+
     /// Toggles Find in Search Results and reveals its bottom-panel table when available.
     pub fn toggle_nested_search(&mut self, preferences: &mut HostPreferences) {
         if !self.nested_search_available() {
@@ -628,14 +643,15 @@ impl Session {
         self.bottom_panel.search.close_nested(&mut self.shared);
     }
 
+    /// Handles session shortcuts, returning `true` when a shortcut is consumed.
     pub fn handle_shortcuts(
         &mut self,
         actions: &mut UiActions,
-        preferences: &mut HostPreferences,
+        host_state: &mut HostState,
         ctx: &Context,
         last_key: Option<&LastShortcutKey>,
     ) -> bool {
-        shortcuts::handle(self, actions, preferences, ctx, last_key)
+        shortcuts::handle(self, actions, host_state, ctx, last_key)
     }
 
     fn activate_search_tab(&mut self, preferences: &mut HostPreferences) {
@@ -737,6 +753,7 @@ fn clear_text_edit_focus(ctx: &Context) {
 mod tests {
     use std::path::PathBuf;
 
+    use egui::{Event, Key, Modifiers, RawInput};
     use processor::search::filter::SearchFilter;
     use regex::Regex;
     use session_core::state::{IndexedNavigation, NestedMatch};
@@ -746,7 +763,10 @@ mod tests {
 
     use super::{SearchTableSync, Session};
     use crate::{
-        host::{common::parsers::ParserNames, ui::UiActions},
+        host::{
+            common::parsers::ParserNames,
+            ui::{UiActions, shortcuts::state::ShortcutAction, state::HostState},
+        },
         session::{
             RecentSessionRuntimeInit, SessionUiInit,
             command::SessionCommand,
@@ -821,6 +841,53 @@ mod tests {
         {
             SessionCommand::FindNestedMatch(params) => params.request_id,
             other => panic!("expected nested command, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn bracket_navigation_defers_nested_request() {
+        let (mut session, mut service, _runtime, mut actions) = new_session();
+        assert!(
+            session
+                .shared
+                .search
+                .nested_mut()
+                .apply_filter(SearchFilter::plain("warn"))
+                .is_eligible()
+        );
+
+        let mut host_state = HostState::default();
+        let input = RawInput {
+            events: vec![Event::Key {
+                key: Key::OpenBracket,
+                physical_key: Some(Key::OpenBracket),
+                pressed: true,
+                repeat: false,
+                modifiers: Modifiers::NONE,
+            }],
+            ..Default::default()
+        };
+        let ctx = egui::Context::default();
+        let mut consumed = false;
+        let _ = ctx.run_ui(input, |ui| {
+            consumed = session.handle_shortcuts(&mut actions, &mut host_state, ui.ctx(), None);
+        });
+
+        assert!(consumed);
+        assert!(!session.shared.search.nested().is_pending());
+        assert!(service.cmd_rx.try_recv().is_err());
+
+        let mut queued = host_state.shortcuts.drain_actions();
+        let action = queued.next().expect("bracket action should be queued");
+        assert!(queued.next().is_none());
+        match action {
+            ShortcutAction::FindNestedMatch {
+                session_id,
+                direction,
+            } => {
+                assert_eq!(session_id, session.get_info().id);
+                assert_eq!(direction, IndexedNavigation::Previous);
+            }
         }
     }
 
