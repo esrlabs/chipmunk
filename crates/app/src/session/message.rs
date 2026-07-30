@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use regex::Regex;
 use session_core::state::NestedMatch;
 use stypes::{AttachmentInfo, FilterMatch, GrabbedElement};
 use uuid::Uuid;
@@ -46,6 +47,8 @@ pub enum SessionMessage {
     NestedMatchResult {
         /// Identifies the request that produced this response.
         request_id: Uuid,
+        /// Newly compiled displayed-text matcher, when requested and successful.
+        matcher: Option<Box<Regex>>,
         /// Matching coordinates, no-match outcome, or backend failure.
         result: Result<Option<NestedMatch>, SessionError>,
     },

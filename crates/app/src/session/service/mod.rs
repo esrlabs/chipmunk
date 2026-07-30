@@ -7,19 +7,25 @@ use std::{
 
 use image::ImageError;
 use itertools::Itertools;
+use regex::Regex;
 use tokio::{select, sync::mpsc, task};
 use uuid::Uuid;
 
-use processor::grabber::LineRange;
+use processor::{grabber::LineRange, search::filter};
 use session_core::session::Session;
 use stypes::{
-    CallbackEvent, ComputationError, ObserveOptions, ObserveOrigin, SdeRequest, Transport,
+    CallbackEvent, ComputationError, NativeError, NativeErrorKind, ObserveOptions, ObserveOrigin,
+    SdeRequest, Severity, Transport,
 };
 
 mod export;
 mod tracker;
 
-use super::{command::SessionCommand, communication::ServiceHandle, error::SessionError};
+use super::{
+    command::{FindNestedMatchParams, SessionCommand},
+    communication::ServiceHandle,
+    error::SessionError,
+};
 use crate::{
     common::time::unix_timestamp_now,
     host::{
@@ -361,20 +367,54 @@ impl SessionService {
                     .send_session_msg(SessionMessage::NearestIndexedRow { result })
                     .await;
             }
-            SessionCommand::FindNestedMatch {
-                request_id,
-                filter,
-                search_result_anchor,
-                direction,
-            } => {
-                let result = self
-                    .session
-                    .search_nested_match(filter, search_result_anchor, direction)
-                    .await
-                    .map_err(SessionError::from);
+            SessionCommand::FindNestedMatch(params) => {
+                let FindNestedMatchParams {
+                    request_id,
+                    filter,
+                    search_result_anchor,
+                    direction,
+                    include_matcher,
+                } = *params;
+
+                let matcher = if include_matcher {
+                    let pattern = filter::as_regex(&filter);
+                    Regex::new(&pattern)
+                        .map(Box::new)
+                        .map(Some)
+                        .map_err(|error| {
+                            let error = NativeError {
+                                severity: Severity::ERROR,
+                                kind: NativeErrorKind::OperationSearch,
+                                message: Some(error.to_string()),
+                            };
+                            SessionError::NativeError(error)
+                        })
+                } else {
+                    Ok(None)
+                };
+
+                let (matcher, result) = match matcher {
+                    Ok(matcher) => {
+                        let result = self
+                            .session
+                            .search_nested_match(filter, search_result_anchor, direction)
+                            .await
+                            .map_err(SessionError::from);
+                        if result.is_ok() {
+                            (matcher, result)
+                        } else {
+                            (None, result)
+                        }
+                    }
+                    Err(error) => (None, Err(error)),
+                };
 
                 self.senders
-                    .send_session_msg(SessionMessage::NestedMatchResult { request_id, result })
+                    .send_session_msg(SessionMessage::NestedMatchResult {
+                        request_id,
+                        matcher,
+                        result,
+                    })
                     .await;
             }
             SessionCommand::GetIndexedNeighbor { anchor, direction } => {

@@ -224,6 +224,7 @@ impl NestedSearch {
 #[cfg(test)]
 mod tests {
     use processor::search::filter::SearchFilter;
+    use regex::Regex;
     use tokio::{runtime::Runtime, sync::mpsc};
 
     use super::NestedSearch;
@@ -241,12 +242,17 @@ mod tests {
         let mut widget = NestedSearch::new(cmd_tx);
         widget.query = "(".to_owned();
         let active_filter = SearchFilter::plain("status=ok");
-        assert!(state.apply_filter(active_filter).is_eligible());
-        let expected_state = state.clone();
+        assert!(state.apply_filter(active_filter.clone()).is_eligible());
+        state.set_matcher(Box::new(Regex::new("status=ok").unwrap()));
 
         widget.submit(&mut state, &mut actions);
 
-        assert_eq!(state, expected_state);
+        assert_eq!(state.active_filter(), Some(&active_filter));
+        assert!(
+            state
+                .matcher()
+                .is_some_and(|matcher| matcher.is_match("status=ok"))
+        );
         assert!(cmd_rx.try_recv().is_err());
         let notifications: Vec<_> = actions.drain_notifications().collect();
         assert_eq!(notifications.len(), 1);

@@ -45,16 +45,10 @@ pub enum SessionCommand {
     },
 
     /// Find one match within the active primary search results.
-    FindNestedMatch {
-        /// Correlates this request with its service response.
-        request_id: Uuid,
-        /// Complete validated filter used to scan the primary search results.
-        filter: SearchFilter,
-        /// Exclusive position within the primary search-result sequence.
-        search_result_anchor: Option<u64>,
-        /// Direction to scan from the exclusive anchor.
-        direction: IndexedNavigation,
-    },
+    ///
+    /// Bookmark-only rows are intentionally excluded because supporting them adds
+    /// disproportionate navigation complexity for limited benefit.
+    FindNestedMatch(Box<FindNestedMatchParams>),
 
     /// Request the adjacent indexed row in the main logs table.
     GetIndexedNeighbor {
@@ -152,6 +146,21 @@ pub enum SessionCommand {
         /// Notifies synchronous shutdown callers after service-owned cleanup finished.
         confirm_tx: Option<Sender<()>>,
     },
+}
+
+/// Parameters for one correlated Find in Search Results request.
+#[derive(Debug)]
+pub struct FindNestedMatchParams {
+    /// Correlates this request with its service response.
+    pub request_id: Uuid,
+    /// Complete validated filter used to scan the primary search results.
+    pub filter: SearchFilter,
+    /// Exclusive position within the primary search-result sequence.
+    pub search_result_anchor: Option<u64>,
+    /// Direction to scan from the exclusive anchor.
+    pub direction: IndexedNavigation,
+    /// Whether a compiled renderer matcher should be returned on success.
+    pub include_matcher: bool,
 }
 
 #[derive(Debug)]
