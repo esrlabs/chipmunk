@@ -1,8 +1,10 @@
 //! Floating Find in Search Results UI.
 
+use std::time::Instant;
+
 use egui::{
-    Align2, Area, Frame, Id, Key, Margin, Modifiers, Order, Rect, RichText, TextEdit, Ui, Widget,
-    vec2,
+    Align2, Area, Context, Frame, Id, Key, Margin, Modifiers, Order, Rect, RichText, TextEdit, Ui,
+    Widget, vec2,
 };
 use processor::search::filter::SearchFilter;
 use session_core::state::IndexedNavigation;
@@ -46,9 +48,15 @@ impl NestedSearch {
         }
     }
 
-    /// Requests input focus on the next rendered frame.
+    /// Requests input focus when the enabled editor next renders.
     pub fn request_focus(&mut self) {
         self.focus_requested = true;
+    }
+
+    /// Returns whether this session's nested-search input owns keyboard focus.
+    pub fn has_focus(&self, session_id: Uuid, ctx: &Context) -> bool {
+        let input_id = Self::input_id(session_id);
+        ctx.memory(|memory| memory.focused() == Some(input_id))
     }
 
     /// Restores the draft and controls to their initial state.
@@ -82,7 +90,7 @@ impl NestedSearch {
 
         let position = table_rect.right_top() + vec2(-MARGIN, MARGIN);
         Area::new(Id::new(("nested_search", session_id)))
-            .order(Order::Foreground)
+            .order(Order::Middle)
             .pivot(Align2::RIGHT_TOP)
             .fixed_pos(position)
             .show(ui.ctx(), |ui| {
@@ -100,13 +108,15 @@ impl NestedSearch {
         ui: &mut Ui,
     ) {
         let pending = state.is_pending();
-        let text_id = Id::new(("nested_search_input", session_id));
+        let text_id = Self::input_id(session_id);
         let text_focused = ui.memory(|memory| memory.focused() == Some(text_id));
         let enter_pressed = ui.input_mut(|input| {
             !pending && text_focused && input.consume_key(Modifiers::NONE, Key::Enter)
         });
+        let escape_key_pressed = ui.input(|input| input.key_pressed(Key::Escape));
 
         let mut clicked_button = None;
+        let mut escape_pressed = false;
         ui.horizontal(|ui| {
             let has_active_filter = state.has_active_filter();
             ui.add_enabled_ui(!pending, |ui| {
@@ -116,9 +126,19 @@ impl NestedSearch {
                     .desired_width(220.0)
                     .show(ui)
                     .response;
-                if self.focus_requested {
+                if self.focus_requested && !pending {
                     response.request_focus();
                     self.focus_requested = false;
+                }
+                // egui may release text focus while processing Escape in this frame.
+                let editor_owned_escape = escape_key_pressed
+                    && (response.has_focus() || response.lost_focus())
+                    && ui.memory(|memory| memory.top_modal_layer().is_none());
+                if editor_owned_escape {
+                    ui.input_mut(|input| {
+                        input.consume_key(Modifiers::NONE, Key::Escape);
+                    });
+                    escape_pressed = true;
                 }
 
                 ui.toggle_value(
@@ -165,8 +185,12 @@ impl NestedSearch {
                 }
             });
 
-            if pending {
-                ui.spinner();
+            if let Some(remaining) = state.progress_remaining(Instant::now()) {
+                if remaining.is_zero() {
+                    ui.spinner();
+                } else {
+                    ui.ctx().request_repaint_after(remaining);
+                }
             }
 
             if buttons::bottom_panel_icon(RichText::new(icons::regular::X).size(14.0))
@@ -177,6 +201,11 @@ impl NestedSearch {
                 clicked_button = Some(NestedSearchButton::Close);
             }
         });
+
+        if escape_pressed {
+            self.close(state);
+            return;
+        }
 
         if enter_pressed {
             self.submit(state, actions);
@@ -193,6 +222,10 @@ impl NestedSearch {
             }
             None => {}
         }
+    }
+
+    fn input_id(session_id: Uuid) -> Id {
+        Id::new(("nested_search_input", session_id))
     }
 
     fn submit(&self, state: &mut NestedSearchState, actions: &mut UiActions) {
@@ -223,15 +256,121 @@ impl NestedSearch {
 
 #[cfg(test)]
 mod tests {
+    use egui::{Context, Event, Id, Key, Modifiers, RawInput, Rect, TextEdit, pos2, vec2};
     use processor::search::filter::SearchFilter;
     use regex::Regex;
+    use session_core::state::IndexedNavigation;
     use tokio::{runtime::Runtime, sync::mpsc};
+    use uuid::Uuid;
 
     use super::NestedSearch;
     use crate::{
         host::{notification::AppNotification, ui::UiActions},
-        session::ui::shared::searching::NestedSearchState,
+        session::{command::SessionCommand, ui::shared::searching::NestedSearchState},
     };
+
+    fn escape_input() -> RawInput {
+        RawInput {
+            events: vec![Event::Key {
+                key: Key::Escape,
+                physical_key: Some(Key::Escape),
+                pressed: true,
+                repeat: false,
+                modifiers: Modifiers::NONE,
+            }],
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn escape_closes_focused_editor() {
+        let runtime = Runtime::new().expect("runtime should initialize");
+        let mut actions = UiActions::new(runtime.handle().clone());
+        let mut state = NestedSearchState::default();
+        state.open();
+        let (cmd_tx, _cmd_rx) = mpsc::channel(1);
+        let mut widget = NestedSearch::new(cmd_tx);
+        widget.request_focus();
+
+        let session_id = Uuid::new_v4();
+        let table_rect = Rect::from_min_size(pos2(0.0, 0.0), vec2(600.0, 300.0));
+        let ctx = Context::default();
+        let _ = ctx.run_ui(RawInput::default(), |ui| {
+            widget.render(session_id, table_rect, &mut state, &mut actions, ui);
+        });
+        let _ = ctx.run_ui(RawInput::default(), |ui| {
+            widget.render(session_id, table_rect, &mut state, &mut actions, ui);
+        });
+        assert!(widget.has_focus(session_id, &ctx));
+
+        let _ = ctx.run_ui(escape_input(), |ui| {
+            widget.render(session_id, table_rect, &mut state, &mut actions, ui);
+        });
+        assert!(!state.is_visible());
+    }
+
+    #[test]
+    fn escape_ignores_other_editor() {
+        let runtime = Runtime::new().expect("runtime should initialize");
+        let mut actions = UiActions::new(runtime.handle().clone());
+        let mut state = NestedSearchState::default();
+        state.open();
+        let (cmd_tx, _cmd_rx) = mpsc::channel(1);
+        let mut widget = NestedSearch::new(cmd_tx);
+
+        let session_id = Uuid::new_v4();
+        let table_rect = Rect::from_min_size(pos2(0.0, 0.0), vec2(600.0, 300.0));
+        let ctx = Context::default();
+        let mut other_query = String::new();
+        let _ = ctx.run_ui(RawInput::default(), |ui| {
+            let response = TextEdit::singleline(&mut other_query)
+                .id(Id::new("other_search_input"))
+                .show(ui)
+                .response;
+            response.request_focus();
+            widget.render(session_id, table_rect, &mut state, &mut actions, ui);
+        });
+        assert!(!widget.has_focus(session_id, &ctx));
+
+        let _ = ctx.run_ui(escape_input(), |ui| {
+            widget.render(session_id, table_rect, &mut state, &mut actions, ui);
+        });
+        assert!(state.is_visible());
+    }
+
+    #[test]
+    fn pending_editor_applies_deferred_focus_after_response() {
+        let runtime = Runtime::new().expect("runtime should initialize");
+        let mut actions = UiActions::new(runtime.handle().clone());
+        let mut state = NestedSearchState::default();
+        assert!(
+            state
+                .apply_filter(SearchFilter::plain("status=ok"))
+                .is_eligible()
+        );
+        let (cmd_tx, mut cmd_rx) = mpsc::channel(1);
+        let mut widget = NestedSearch::new(cmd_tx.clone());
+        assert!(state.request_match(IndexedNavigation::Next, &cmd_tx, &mut actions));
+        let request_id = match cmd_rx.try_recv().expect("request should be sent") {
+            SessionCommand::FindNestedMatch(params) => params.request_id,
+            command => panic!("expected nested request, got {command:?}"),
+        };
+        widget.request_focus();
+
+        let session_id = Uuid::new_v4();
+        let table_rect = Rect::from_min_size(pos2(0.0, 0.0), vec2(600.0, 300.0));
+        let ctx = Context::default();
+        let _ = ctx.run_ui(RawInput::default(), |ui| {
+            widget.render(session_id, table_rect, &mut state, &mut actions, ui);
+        });
+        assert!(!widget.has_focus(session_id, &ctx));
+
+        assert!(state.accept_response(request_id));
+        let _ = ctx.run_ui(RawInput::default(), |ui| {
+            widget.render(session_id, table_rect, &mut state, &mut actions, ui);
+        });
+        assert!(widget.has_focus(session_id, &ctx));
+    }
 
     #[test]
     fn invalid_submission_warns_without_replacing_filter() {

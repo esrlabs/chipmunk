@@ -2,7 +2,7 @@
 
 use std::{path::PathBuf, sync::Arc, time::Duration};
 
-use egui::{Align, Align2, Context, Key, Modifiers, ScrollArea, Ui, Window, vec2};
+use egui::{Align, Align2, Context, Key, Modifiers, Order, ScrollArea, Ui, Window, vec2};
 use tokio::sync::mpsc::Sender;
 
 use crate::{
@@ -153,6 +153,7 @@ impl QuickOpen {
         let window_id = parent_ui.make_persistent_id("quick_open_window");
         let window_response = Window::new("quick_open")
             .id(window_id)
+            .order(Order::Foreground)
             .title_bar(false)
             .collapsible(false)
             .resizable(false)

@@ -1,8 +1,8 @@
 use std::rc::Rc;
 
+use egui::{Context, Frame, Margin, Ui};
 use tokio::sync::mpsc::Sender;
-
-use egui::{Frame, Margin, Ui};
+use uuid::Uuid;
 
 use crate::{
     host::ui::{UiActions, registry::filters::FilterRegistry},
@@ -72,7 +72,17 @@ impl SearchUI {
     /// Opens nested search and requests focus for its input.
     pub fn open_nested(&mut self, shared: &mut SessionShared) {
         shared.search.nested_mut().open();
+        self.focus_nested();
+    }
+
+    /// Requests focus for the nested-search input.
+    pub fn focus_nested(&mut self) {
         self.nested.request_focus();
+    }
+
+    /// Returns whether the nested-search input owns keyboard focus.
+    pub fn nested_focused(&self, session_id: Uuid, ctx: &Context) -> bool {
+        self.nested.has_focus(session_id, ctx)
     }
 
     /// Closes nested search and clears both canonical and widget-local state.

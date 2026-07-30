@@ -265,17 +265,6 @@ pub fn handle(
         ..
     } = host_state;
 
-    let nested_search_visible = preferences.panels_visibility.bottom
-        && session.shared.bottom_tab == BottomTabType::Search
-        && session.nested_search_available()
-        && session.shared.search.nested().is_visible();
-    if nested_search_visible
-        && ctx.input_mut(|input| input.consume_key(Modifiers::NONE, Key::Escape))
-    {
-        session.close_nested_search();
-        return true;
-    }
-
     let SessionShortcuts {
         activate_main_output,
         activate_search_output,
@@ -348,7 +337,15 @@ pub fn handle(
     }
 
     if consume_shortcut(ctx, toggle_nested_search) {
-        session.toggle_nested_search(preferences);
+        let nested_search_visible = preferences.panels_visibility.bottom
+            && session.shared.bottom_tab == BottomTabType::Search
+            && session.nested_search_available()
+            && session.shared.search.nested().is_visible();
+        if nested_search_visible && !session.nested_search_focused(ctx) {
+            session.focus_nested_search();
+        } else {
+            session.toggle_nested_search(preferences);
+        }
         return true;
     }
 

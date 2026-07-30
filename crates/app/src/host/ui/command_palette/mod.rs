@@ -1,6 +1,6 @@
 //! Host-level Command Palette overlay for application commands.
 
-use egui::{Align, Align2, Key, Modifiers, ScrollArea, Ui, Window, vec2};
+use egui::{Align, Align2, Key, Modifiers, Order, ScrollArea, Ui, Window, vec2};
 use tokio::sync::mpsc::Sender;
 
 use crate::{
@@ -141,6 +141,7 @@ impl CommandPalette {
         let window_id = parent_ui.make_persistent_id("command_palette_window");
         let window_response = Window::new("command_palette")
             .id(window_id)
+            .order(Order::Foreground)
             .title_bar(false)
             .collapsible(false)
             .resizable(false)
