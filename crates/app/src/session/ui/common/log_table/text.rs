@@ -472,7 +472,7 @@ fn linear_channel(value: u8) -> f32 {
 
 #[cfg(test)]
 mod tests {
-    use std::{ops::Range, path::PathBuf};
+    use std::{ops::Range, path::PathBuf, slice};
 
     use egui::{Color32, TextFormat, text::LayoutJob};
     use processor::search::filter::{self, SearchFilter};
@@ -827,7 +827,12 @@ mod tests {
 
     #[test]
     fn disjoint_primary_and_nested_backgrounds_remain_distinct() {
-        let job = nested_layout("primary nested", &[], &[0..7], &[8..14]);
+        let job = nested_layout(
+            "primary nested",
+            &[],
+            slice::from_ref(&(0..7)),
+            slice::from_ref(&(8..14)),
+        );
 
         assert_eq!(format_at(&job, 1).background, FILTER_MATCH_HIGHLIGHT_BG);
         assert_eq!(format_at(&job, 9).background, NESTED_MATCH_HIGHLIGHT_BG);
@@ -835,7 +840,12 @@ mod tests {
 
     #[test]
     fn nested_background_wins_only_on_primary_overlap() {
-        let job = nested_layout("abcdef", &[], &[0..6], &[2..4]);
+        let job = nested_layout(
+            "abcdef",
+            &[],
+            slice::from_ref(&(0..6)),
+            slice::from_ref(&(2..4)),
+        );
 
         assert_eq!(format_at(&job, 1).background, FILTER_MATCH_HIGHLIGHT_BG);
         assert_eq!(format_at(&job, 2).background, NESTED_MATCH_HIGHLIGHT_BG);
@@ -853,7 +863,7 @@ mod tests {
                 bg: Some(background),
             },
         }];
-        let job = nested_layout("abcdef", &ansi_spans, &[], &[2..4]);
+        let job = nested_layout("abcdef", &ansi_spans, &[], slice::from_ref(&(2..4)));
 
         assert_eq!(format_at(&job, 1).background, background);
         assert_eq!(format_at(&job, 2).background, NESTED_MATCH_HIGHLIGHT_BG);
@@ -869,7 +879,12 @@ mod tests {
     fn nested_layout_preserves_text_and_complete_byte_coverage() {
         let content = "pré match suffix";
         let nested = Regex::new("match").unwrap().find(content).unwrap().range();
-        let job = nested_layout(content, &[], &[0..10], &[nested]);
+        let job = nested_layout(
+            content,
+            &[],
+            slice::from_ref(&(0..10)),
+            slice::from_ref(&nested),
+        );
 
         assert_eq!(job.text, content);
         assert_eq!(job.sections.first().unwrap().byte_range.start, 0);
