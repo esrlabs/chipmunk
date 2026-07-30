@@ -1,5 +1,7 @@
 //! Session state for Find in Search Results.
 
+use std::time::{Duration, Instant};
+
 use processor::search::filter::SearchFilter;
 use regex::Regex;
 use session_core::state::IndexedNavigation;
@@ -19,17 +21,13 @@ pub struct NestedSearchState {
     active_filter: Option<SearchFilter>,
     matcher: Option<Box<Regex>>,
     anchor: Option<u64>,
-    pending_request: Option<Uuid>,
-    status: NestedSearchStatus,
+    pending_request: Option<PendingRequest>,
 }
 
-/// Outcome of the most recently completed nested navigation.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-pub enum NestedSearchStatus {
-    #[default]
-    Idle,
-    Active,
-    NoMatch,
+#[derive(Debug)]
+struct PendingRequest {
+    id: Uuid,
+    started_at: Instant,
 }
 
 impl NestedSearchState {
@@ -58,6 +56,15 @@ impl NestedSearchState {
         self.pending_request.is_some()
     }
 
+    /// Returns the delay remaining before pending progress should be shown.
+    pub fn progress_remaining(&self, now: Instant) -> Option<Duration> {
+        const PROGRESS_DELAY: Duration = Duration::from_millis(250);
+
+        let started_at = self.pending_request.as_ref()?.started_at;
+        let elapsed = now.saturating_duration_since(started_at);
+        Some(PROGRESS_DELAY.saturating_sub(elapsed))
+    }
+
     /// Shows nested search without changing its active filter.
     pub fn open(&mut self) {
         self.visible = true;
@@ -81,7 +88,6 @@ impl NestedSearchState {
             matcher,
             anchor,
             pending_request,
-            status,
         } = self;
         if active_filter.as_ref() != Some(&filter) {
             *active_filter = Some(filter);
@@ -89,7 +95,6 @@ impl NestedSearchState {
             *anchor = None;
             *pending_request = None;
         }
-        *status = NestedSearchStatus::Active;
 
         eligibility
     }
@@ -102,13 +107,11 @@ impl NestedSearchState {
             matcher,
             anchor,
             pending_request,
-            status,
         } = self;
         *active_filter = None;
         *matcher = None;
         *anchor = None;
         *pending_request = None;
-        *status = NestedSearchStatus::Idle;
     }
 
     /// Dispatches one correlated nested request when navigation is ready.
@@ -138,15 +141,18 @@ impl NestedSearchState {
             include_matcher: self.matcher.is_none(),
         };
         let command = SessionCommand::FindNestedMatch(Box::new(params));
-        self.pending_request = Some(request_id);
-        self.status = NestedSearchStatus::Active;
+        self.pending_request = Some(PendingRequest {
+            id: request_id,
+            started_at: Instant::now(),
+        });
 
         if actions.try_send_command(cmd_tx, command) {
             true
         } else {
             if self
                 .pending_request
-                .is_some_and(|pending| pending == request_id)
+                .as_ref()
+                .is_some_and(|pending| pending.id == request_id)
             {
                 self.pending_request = None;
             }
@@ -158,7 +164,8 @@ impl NestedSearchState {
     pub fn accept_response(&mut self, request_id: Uuid) -> bool {
         if !self
             .pending_request
-            .is_some_and(|pending| pending == request_id)
+            .as_ref()
+            .is_some_and(|pending| pending.id == request_id)
         {
             return false;
         }
@@ -172,15 +179,9 @@ impl NestedSearchState {
         self.matcher = Some(matcher);
     }
 
-    /// Records that the current nested filter produced no result.
-    pub fn set_no_match(&mut self) {
-        self.status = NestedSearchStatus::NoMatch;
-    }
-
     /// Records a successful nested match using its primary search-result coordinate.
     pub fn set_match(&mut self, search_result_index: u64) {
         self.anchor = Some(search_result_index);
-        self.status = NestedSearchStatus::Active;
     }
 
     /// Aligns navigation with an explicitly selected primary search result.
@@ -193,13 +194,15 @@ impl NestedSearchState {
 
 #[cfg(test)]
 mod tests {
+    use std::time::{Duration, Instant};
+
     use processor::search::filter::SearchFilter;
     use regex::Regex;
     use session_core::state::IndexedNavigation;
     use tokio::{runtime::Runtime, sync::mpsc};
     use uuid::Uuid;
 
-    use super::{NestedSearchState, NestedSearchStatus};
+    use super::NestedSearchState;
     use crate::{
         common::validation::ValidationEligibility,
         host::ui::UiActions,
@@ -272,6 +275,7 @@ mod tests {
 
         assert!(state.matcher().is_none());
         assert!(!state.is_pending());
+        assert!(state.progress_remaining(Instant::now()).is_none());
         assert!(!state.accept_response(stale_request));
         assert!(state.request_match(IndexedNavigation::Next, &cmd_tx, &mut actions));
         let request = receive_request(&mut cmd_rx);
@@ -312,6 +316,7 @@ mod tests {
             .expect("channel should accept filler");
         assert!(!state.request_match(IndexedNavigation::Next, &full_tx, &mut actions));
         assert!(!state.is_pending());
+        assert!(state.progress_remaining(Instant::now()).is_none());
         assert!(state.matcher().is_none());
 
         let (retry_tx, mut retry_rx) = mpsc::channel(1);
@@ -334,6 +339,34 @@ mod tests {
     }
 
     #[test]
+    fn progress_appears_after_delay() {
+        let (_runtime, mut actions) = actions();
+        let (cmd_tx, mut cmd_rx) = mpsc::channel(1);
+        let mut state = NestedSearchState::default();
+        assert!(state.apply_filter(complete_filter()).is_eligible());
+        assert!(state.request_match(IndexedNavigation::Next, &cmd_tx, &mut actions));
+        let _ = receive_request(&mut cmd_rx);
+        let started_at = state
+            .pending_request
+            .as_ref()
+            .expect("request should be pending")
+            .started_at;
+
+        assert_eq!(
+            state.progress_remaining(started_at + Duration::from_millis(249)),
+            Some(Duration::from_millis(1))
+        );
+        assert_eq!(
+            state.progress_remaining(started_at + Duration::from_millis(250)),
+            Some(Duration::ZERO)
+        );
+        assert_eq!(
+            state.progress_remaining(started_at + Duration::from_secs(1)),
+            Some(Duration::ZERO)
+        );
+    }
+
+    #[test]
     fn stale_response_preserves_pending_state() {
         let (_runtime, mut actions) = actions();
         let (cmd_tx, mut cmd_rx) = mpsc::channel(1);
@@ -343,14 +376,24 @@ mod tests {
         state.set_match(9);
         assert!(state.request_match(IndexedNavigation::Next, &cmd_tx, &mut actions));
         let request_id = receive_request(&mut cmd_rx).request_id;
+        let started_at = state
+            .pending_request
+            .as_ref()
+            .expect("request should be pending")
+            .started_at;
 
         assert!(!state.accept_response(Uuid::new_v4()));
         assert!(state.is_pending());
+        assert_eq!(
+            state.progress_remaining(started_at + Duration::from_millis(100)),
+            Some(Duration::from_millis(150))
+        );
         assert!(state.matcher().is_some());
         assert_eq!(state.anchor, Some(9));
 
         assert!(state.accept_response(request_id));
         assert!(!state.is_pending());
+        assert!(state.progress_remaining(Instant::now()).is_none());
     }
 
     #[test]
@@ -366,10 +409,10 @@ mod tests {
 
         state.clear_filter();
         assert!(!state.accept_response(first_request));
+        assert!(state.progress_remaining(Instant::now()).is_none());
         assert!(state.is_visible());
         assert!(!state.has_active_filter());
         assert!(state.matcher().is_none());
-        assert_eq!(state.status, NestedSearchStatus::Idle);
 
         assert!(state.apply_filter(complete_filter()).is_eligible());
         set_matcher(&mut state);
@@ -377,25 +420,10 @@ mod tests {
         let second_request = receive_request(&mut cmd_rx).request_id;
         state.close();
         assert!(!state.accept_response(second_request));
+        assert!(state.progress_remaining(Instant::now()).is_none());
         assert!(!state.is_visible());
         assert!(!state.has_active_filter());
         assert!(state.matcher().is_none());
-        assert_eq!(state.status, NestedSearchStatus::Idle);
-    }
-
-    #[test]
-    fn result_transitions_preserve_or_replace_anchor() {
-        let mut state = NestedSearchState::default();
-        assert!(state.apply_filter(complete_filter()).is_eligible());
-        state.set_match(7);
-
-        state.set_no_match();
-        assert_eq!(state.anchor, Some(7));
-        assert_eq!(state.status, NestedSearchStatus::NoMatch);
-
-        state.set_match(11);
-        assert_eq!(state.anchor, Some(11));
-        assert_eq!(state.status, NestedSearchStatus::Active);
     }
 
     #[test]
@@ -409,7 +437,6 @@ mod tests {
         state.set_match(7);
         assert!(state.request_match(IndexedNavigation::Next, &cmd_tx, &mut actions));
         let request_id = receive_request(&mut cmd_rx).request_id;
-        let status = state.status;
 
         let eligibility = state.apply_filter(SearchFilter::plain("(").regex(true));
 
@@ -420,7 +447,9 @@ mod tests {
         assert_eq!(state.active_filter(), Some(&filter));
         assert!(state.matcher().is_some());
         assert_eq!(state.anchor, Some(7));
-        assert_eq!(state.pending_request, Some(request_id));
-        assert_eq!(state.status, status);
+        assert_eq!(
+            state.pending_request.as_ref().map(|pending| pending.id),
+            Some(request_id)
+        );
     }
 }

@@ -464,7 +464,9 @@ impl Session {
             self.shared.search.nested_mut().set_matcher(matcher);
         }
         let Some(nested_match) = nested_match else {
-            self.shared.search.nested_mut().set_no_match();
+            actions.add_notification(AppNotification::Info(
+                "No matches in the current search results.".to_owned(),
+            ));
 
             return;
         };
@@ -643,6 +645,16 @@ impl Session {
         self.bottom_panel.search.close_nested(&mut self.shared);
     }
 
+    fn focus_nested_search(&mut self) {
+        self.bottom_panel.search.focus_nested();
+    }
+
+    fn nested_search_focused(&self, ctx: &Context) -> bool {
+        self.bottom_panel
+            .search
+            .nested_focused(self.get_info().id, ctx)
+    }
+
     /// Handles session shortcuts, returning `true` when a shortcut is consumed.
     pub fn handle_shortcuts(
         &mut self,
@@ -751,7 +763,7 @@ fn clear_text_edit_focus(ctx: &Context) {
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
+    use std::{assert_matches, path::PathBuf};
 
     use egui::{Event, Key, Modifiers, RawInput};
     use processor::search::filter::SearchFilter;
@@ -761,10 +773,11 @@ mod tests {
     use tokio::{runtime::Runtime, sync::mpsc};
     use uuid::Uuid;
 
-    use super::{SearchTableSync, Session};
+    use super::{BottomTabType, SearchTableSync, Session};
     use crate::{
         host::{
             common::parsers::ParserNames,
+            notification::AppNotification,
             ui::{UiActions, shortcuts::state::ShortcutAction, state::HostState},
         },
         session::{
@@ -892,6 +905,38 @@ mod tests {
     }
 
     #[test]
+    fn nested_shortcut_preserves_unfocused_pending_search() {
+        let (mut session, mut service, _runtime, mut actions) = new_session();
+        session.shared.bottom_tab = BottomTabType::Search;
+        session.shared.insert_bookmark(1);
+        session.shared.search.nested_mut().open();
+        let _ = start_request(&mut session, &mut service, &mut actions);
+
+        let mut host_state = HostState::default();
+        let input = RawInput {
+            events: vec![Event::Key {
+                key: Key::F,
+                physical_key: Some(Key::F),
+                pressed: true,
+                repeat: false,
+                modifiers: Modifiers::COMMAND.plus(Modifiers::SHIFT),
+            }],
+            ..Default::default()
+        };
+        let ctx = egui::Context::default();
+        let mut consumed = false;
+        let _ = ctx.run_ui(input, |ui| {
+            consumed = session.handle_shortcuts(&mut actions, &mut host_state, ui.ctx(), None);
+        });
+
+        assert!(consumed);
+        assert!(session.shared.search.nested().is_visible());
+        assert!(session.shared.search.nested().has_active_filter());
+        assert!(session.shared.search.nested().is_pending());
+        assert!(service.cmd_rx.try_recv().is_err());
+    }
+
+    #[test]
     fn nested_success_routes_selection_and_anchor_coordinates() {
         let (mut session, mut service, _runtime, mut actions) = new_session();
         let request_id = start_request(&mut session, &mut service, &mut actions);
@@ -996,6 +1041,9 @@ mod tests {
         assert!(session.shared.search.nested().matcher().is_some());
         assert_eq!(session.shared.logs.single_selected_row(), Some(9));
         assert!(session.shared.logs.take_main_row_focus().is_none());
+        let notifications: Vec<_> = actions.drain_notifications().collect();
+        assert_eq!(notifications.len(), 1);
+        assert_matches!(notifications.first(), Some(AppNotification::Info(_)));
     }
 
     #[test]
