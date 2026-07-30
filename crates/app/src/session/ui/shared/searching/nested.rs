@@ -17,7 +17,7 @@ use crate::{
 /// Canonical state tied to the current primary search lifecycle.
 #[derive(Debug, Default)]
 pub struct NestedSearchState {
-    visible: bool,
+    open: bool,
     active_filter: Option<SearchFilter>,
     matcher: Option<Box<Regex>>,
     anchor: Option<u64>,
@@ -31,9 +31,9 @@ struct PendingRequest {
 }
 
 impl NestedSearchState {
-    /// Returns whether the nested-search UI should be rendered.
-    pub fn is_visible(&self) -> bool {
-        self.visible
+    /// Returns whether the nested-search shell is logically open.
+    pub fn is_open(&self) -> bool {
+        self.open
     }
 
     /// Returns the complete filter used by nested navigation.
@@ -65,9 +65,9 @@ impl NestedSearchState {
         Some(PROGRESS_DELAY.saturating_sub(elapsed))
     }
 
-    /// Shows nested search without changing its active filter.
+    /// Opens nested search without changing its active filter.
     pub fn open(&mut self) {
-        self.visible = true;
+        self.open = true;
     }
 
     /// Clears all nested state when the widget closes or its primary search changes.
@@ -83,7 +83,7 @@ impl NestedSearchState {
         }
 
         let Self {
-            visible: _,
+            open: _,
             active_filter,
             matcher,
             anchor,
@@ -102,7 +102,7 @@ impl NestedSearchState {
     /// Drops the active filter while keeping the widget open.
     pub fn clear_filter(&mut self) {
         let Self {
-            visible: _,
+            open: _,
             active_filter,
             matcher,
             anchor,
@@ -410,7 +410,7 @@ mod tests {
         state.clear_filter();
         assert!(!state.accept_response(first_request));
         assert!(state.progress_remaining(Instant::now()).is_none());
-        assert!(state.is_visible());
+        assert!(state.is_open());
         assert!(!state.has_active_filter());
         assert!(state.matcher().is_none());
 
@@ -421,7 +421,7 @@ mod tests {
         state.close();
         assert!(!state.accept_response(second_request));
         assert!(state.progress_remaining(Instant::now()).is_none());
-        assert!(!state.is_visible());
+        assert!(!state.is_open());
         assert!(!state.has_active_filter());
         assert!(state.matcher().is_none());
     }

@@ -25,7 +25,8 @@ pub struct NestedSearch {
     is_regex: bool,
     match_case: bool,
     is_word: bool,
-    focus_requested: bool,
+    /// Requests focus when the enabled editor next renders.
+    pub focus_requested: bool,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -46,11 +47,6 @@ impl NestedSearch {
             is_word: false,
             focus_requested: false,
         }
-    }
-
-    /// Requests input focus when the enabled editor next renders.
-    pub fn request_focus(&mut self) {
-        self.focus_requested = true;
     }
 
     /// Returns whether this session's nested-search input owns keyboard focus.
@@ -290,7 +286,7 @@ mod tests {
         state.open();
         let (cmd_tx, _cmd_rx) = mpsc::channel(1);
         let mut widget = NestedSearch::new(cmd_tx);
-        widget.request_focus();
+        widget.focus_requested = true;
 
         let session_id = Uuid::new_v4();
         let table_rect = Rect::from_min_size(pos2(0.0, 0.0), vec2(600.0, 300.0));
@@ -306,7 +302,7 @@ mod tests {
         let _ = ctx.run_ui(escape_input(), |ui| {
             widget.render(session_id, table_rect, &mut state, &mut actions, ui);
         });
-        assert!(!state.is_visible());
+        assert!(!state.is_open());
     }
 
     #[test]
@@ -335,7 +331,7 @@ mod tests {
         let _ = ctx.run_ui(escape_input(), |ui| {
             widget.render(session_id, table_rect, &mut state, &mut actions, ui);
         });
-        assert!(state.is_visible());
+        assert!(state.is_open());
     }
 
     #[test]
@@ -355,7 +351,7 @@ mod tests {
             SessionCommand::FindNestedMatch(params) => params.request_id,
             command => panic!("expected nested request, got {command:?}"),
         };
-        widget.request_focus();
+        widget.focus_requested = true;
 
         let session_id = Uuid::new_v4();
         let table_rect = Rect::from_min_size(pos2(0.0, 0.0), vec2(600.0, 300.0));

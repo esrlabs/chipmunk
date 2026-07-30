@@ -633,7 +633,7 @@ impl Session {
             return;
         }
 
-        if self.shared.search.nested().is_visible() {
+        if self.shared.search.nested().is_open() {
             self.close_nested_search();
         } else {
             self.bottom_panel.search.open_nested(&mut self.shared);
@@ -667,7 +667,7 @@ impl Session {
     }
 
     fn activate_search_tab(&mut self, preferences: &mut HostPreferences) {
-        self.bottom_panel.search.bar.request_focus();
+        self.bottom_panel.search.focus_primary();
         self.activate_bottom_tab(BottomTabType::Search, preferences);
     }
 
@@ -930,7 +930,7 @@ mod tests {
         });
 
         assert!(consumed);
-        assert!(session.shared.search.nested().is_visible());
+        assert!(session.shared.search.nested().is_open());
         assert!(session.shared.search.nested().has_active_filter());
         assert!(session.shared.search.nested().is_pending());
         assert!(service.cmd_rx.try_recv().is_err());

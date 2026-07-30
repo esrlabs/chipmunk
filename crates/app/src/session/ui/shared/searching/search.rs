@@ -512,7 +512,7 @@ mod tests {
 
         state.drop_search();
 
-        assert!(!state.nested().is_visible());
+        assert!(!state.nested().is_open());
         assert!(!state.nested().has_active_filter());
         assert!(state.nested().matcher().is_none());
         assert!(!state.nested().is_pending());

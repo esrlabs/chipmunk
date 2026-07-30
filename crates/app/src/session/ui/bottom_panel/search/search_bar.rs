@@ -9,7 +9,6 @@ use processor::search::filter::SearchFilter;
 use crate::{
     common::{
         phosphor::{self, icons},
-        ui::visibility_tracker::VisibilityTracker,
         validation::{ValidationEligibility, validate_filter},
     },
     host::{
@@ -19,10 +18,7 @@ use crate::{
     session::{
         command::SessionCommand,
         types::OperationPhase,
-        ui::{
-            common::log_table::LogTableKind,
-            shared::{SearchSyncTarget, SessionShared},
-        },
+        ui::shared::{SearchSyncTarget, SessionShared},
     },
 };
 
@@ -33,9 +29,6 @@ pub struct SearchBar {
     pub is_regex: bool,
     pub match_case: bool,
     pub is_word: bool,
-    focus_requested: bool,
-    // Used to focus the search input when the search bar becomes visible again.
-    visibility_tracker: VisibilityTracker,
 }
 
 impl SearchBar {
@@ -46,13 +39,7 @@ impl SearchBar {
             is_regex: true,
             match_case: false,
             is_word: false,
-            focus_requested: false,
-            visibility_tracker: VisibilityTracker::default(),
         }
-    }
-
-    pub fn request_focus(&mut self) {
-        self.focus_requested = true;
     }
 
     pub fn render_content(
@@ -60,6 +47,7 @@ impl SearchBar {
         shared: &mut SessionShared,
         actions: &mut UiActions,
         registry: &mut FilterRegistry,
+        focus_requested: bool,
         ui: &mut Ui,
     ) {
         // Text id is needed to keep track if the text control is focused.
@@ -107,12 +95,6 @@ impl SearchBar {
                     .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
             }
         }
-
-        let newly_visible = self.visibility_tracker.is_newly_visible(ui);
-        // Don't focus search input on switching tabs if search table is focused.
-        let should_focus = self.focus_requested
-            || (newly_visible && shared.view.active_log_table != LogTableKind::Search);
-        self.focus_requested = false;
 
         ui.allocate_ui_with_layout(
             vec2(ui.available_width(), 25.),
@@ -164,7 +146,7 @@ impl SearchBar {
                                     text_output.state.store(ui.ctx(), text_output.response.id);
                                 }
 
-                                if should_focus {
+                                if focus_requested {
                                     text_output.response.request_focus();
                                 }
                             })
