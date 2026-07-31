@@ -4575,6 +4575,7 @@ dependencies = [
 name = "processor"
 version = "4.1.0"
 dependencies = [
+ "anstyle-parse",
  "bincode",
  "bufread",
  "bytecount",
@@ -4586,6 +4587,7 @@ dependencies = [
  "itertools 0.14.0",
  "lazy_static",
  "log",
+ "memchr",
  "parsers",
  "plugins_host",
  "pretty_assertions",

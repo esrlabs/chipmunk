@@ -1,9 +1,13 @@
 //! Includes utilities for searching matches in a string.
 //! Primarily used for nested searches, such as filtering results from a primary search.
 
-use crate::search::{error::SearchError, filter, filter::SearchFilter};
-use regex::Regex;
 use std::str::FromStr;
+
+use anstyle_parse::{DefaultCharAccumulator, Parser, Perform};
+use memchr::memchr;
+use regex::Regex;
+
+use crate::search::{error::SearchError, filter, filter::SearchFilter};
 
 /// Represents a utility for searching matches in a string.
 /// Primarily used for nested searches, such as filtering results from a primary search.
@@ -44,6 +48,41 @@ impl LineSearcher {
     /// * `true` - If the line matches the regular expression.
     /// * `false` - Otherwise.
     pub fn is_match(&self, ln: &str) -> bool {
-        self.re.is_match(ln)
+        // Check raw text first to avoid ANSI strip's parsing and allocation
+        // for normal matches.
+        if self.re.is_match(ln) {
+            return true;
+        }
+
+        // ANSI codes can split visible text.
+        // We retry only when an escape code is present.
+        if memchr(0x1b, ln.as_bytes()).is_none() {
+            return false;
+        }
+
+        self.re.is_match(&strip_ansi(ln))
+    }
+}
+
+fn strip_ansi(content: &str) -> String {
+    let mut parser = Parser::<DefaultCharAccumulator>::new();
+    let mut visible = VisibleText(String::with_capacity(content.len()));
+    for byte in content.bytes() {
+        parser.advance(&mut visible, byte);
+    }
+    visible.0
+}
+
+struct VisibleText(String);
+
+impl Perform for VisibleText {
+    fn print(&mut self, character: char) {
+        self.0.push(character);
+    }
+
+    fn execute(&mut self, byte: u8) {
+        if matches!(byte, b'\t' | b'\n' | b'\r') {
+            self.0.push(char::from(byte));
+        }
     }
 }
