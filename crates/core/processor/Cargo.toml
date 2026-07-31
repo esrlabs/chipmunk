@@ -17,6 +17,7 @@ text_grep.workspace = true
 stypes.workspace = true
 
 # External crates
+anstyle-parse.workspace = true
 bincode.workspace = true
 bytecount.workspace = true
 futures.workspace = true
@@ -25,6 +26,7 @@ grep-searcher.workspace = true
 itertools.workspace = true
 lazy_static.workspace = true
 log.workspace = true
+memchr.workspace = true
 regex.workspace = true
 serde = { workspace = true , features = ["derive"] }
 serde_json.workspace = true

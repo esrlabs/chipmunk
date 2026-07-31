@@ -72,3 +72,11 @@ fn whole_word_matching_rejects_partial_words() {
     assert!(searcher.is_match("status warn received"));
     assert!(!searcher.is_match("status warning received"));
 }
+
+#[test]
+fn matching_retries_against_visible_ansi_text() {
+    let searcher = LineSearcher::new(&SearchFilter::plain("warn").word(true)).unwrap();
+
+    assert!(searcher.is_match("status w\x1b[31marn received"));
+    assert!(!searcher.is_match("status w\x1b[31marning received"));
+}
