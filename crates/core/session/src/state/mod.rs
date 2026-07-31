@@ -233,6 +233,11 @@ impl SessionState {
         })?;
         let mut candidates = Vec::new();
         let mut offset = 0;
+        // NOTE:
+        // This scan runs synchronously on the session-state task. Sparse result sets may
+        // require many individual grabs and delay other state requests.
+        // We are keeping it simple for now until profiling shows user-visible latency, then
+        // we can move it to a cancellable worker tasks.
         while offset < candidate_count {
             candidates.clear();
             let search_result_index = candidate_index(offset);

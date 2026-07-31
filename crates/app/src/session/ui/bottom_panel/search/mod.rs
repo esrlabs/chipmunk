@@ -51,7 +51,7 @@ impl SearchUI {
         registry: &mut FilterRegistry,
         ui: &mut Ui,
     ) {
-        let nested_visible = shared.search.nested().is_open() && self.table_available(shared);
+        let nested_visible = shared.search.nested().is_open() && self.nested_available(shared);
         let newly_visible = self.visibility_tracker.is_newly_visible(ui);
         let primary_focus_requested = std::mem::take(&mut self.primary_focus_requested);
         if newly_visible && nested_visible && !primary_focus_requested {
@@ -76,7 +76,7 @@ impl SearchUI {
             // tables from different tabs (different sessions).
             ui.push_id(shared.get_id(), |ui| {
                 let table_rect = self.table.render_content(shared, actions, registry, ui);
-                if shared.search.nested().is_open() {
+                if shared.search.nested().is_open() && self.nested_available(shared) {
                     self.nested.render(
                         shared.get_id(),
                         table_rect,
@@ -117,6 +117,11 @@ impl SearchUI {
     pub fn close_nested(&mut self, shared: &mut SessionShared) {
         shared.search.nested_mut().close();
         self.nested.reset();
+    }
+
+    /// Returns whether Find in Search Results has primary results to search.
+    pub fn nested_available(&self, shared: &SessionShared) -> bool {
+        shared.search.search_result_count() > 0
     }
 
     /// Returns whether the indexed search-results table can currently be rendered.
@@ -188,6 +193,7 @@ mod tests {
         let mut registry = FilterRegistry::default();
         let mut shared = new_shared();
         shared.insert_bookmark(1);
+        shared.search.set_search_result_count(1);
         let (cmd_tx, _cmd_rx) = mpsc::channel(1);
         let mut search = SearchUI::new(cmd_tx, Rc::clone(&shared.schema));
         let ctx = Context::default();
@@ -210,6 +216,7 @@ mod tests {
         let mut registry = FilterRegistry::default();
         let mut shared = new_shared();
         shared.insert_bookmark(1);
+        shared.search.set_search_result_count(1);
         let (cmd_tx, _cmd_rx) = mpsc::channel(1);
         let mut search = SearchUI::new(cmd_tx, Rc::clone(&shared.schema));
         let ctx = Context::default();
@@ -228,12 +235,24 @@ mod tests {
     }
 
     #[test]
+    fn bookmark_only_table_does_not_allow_nested_search() {
+        let mut shared = new_shared();
+        shared.insert_bookmark(1);
+        let (cmd_tx, _cmd_rx) = mpsc::channel(1);
+        let search = SearchUI::new(cmd_tx, Rc::clone(&shared.schema));
+
+        assert!(search.table_available(&shared));
+        assert!(!search.nested_available(&shared));
+    }
+
+    #[test]
     fn active_search_table_preserves_focus_without_nested_search() {
         let runtime = Runtime::new().expect("runtime should initialize");
         let mut actions = UiActions::new(runtime.handle().clone());
         let mut registry = FilterRegistry::default();
         let mut shared = new_shared();
         shared.insert_bookmark(1);
+        shared.search.set_search_result_count(1);
         let (cmd_tx, _cmd_rx) = mpsc::channel(1);
         let mut search = SearchUI::new(cmd_tx, Rc::clone(&shared.schema));
         let ctx = Context::default();

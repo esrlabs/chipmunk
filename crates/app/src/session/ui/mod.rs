@@ -295,6 +295,9 @@ impl Session {
                 }
                 SessionMessage::SearchResultCountUpdated { count } => {
                     self.shared.search.set_search_result_count(count);
+                    if !self.nested_search_available() {
+                        self.close_nested_search();
+                    }
                     self.bottom_panel.chart.on_chart_data_changes(&self.shared);
                 }
                 SessionMessage::SearchResults(filter_matches) => {
@@ -606,9 +609,9 @@ impl Session {
         }
     }
 
-    /// Returns whether Find in Search Results can be shown for the active indexed table.
+    /// Returns whether Find in Search Results has primary results to search.
     pub fn nested_search_available(&self) -> bool {
-        self.bottom_panel.search.table_available(&self.shared)
+        self.bottom_panel.search.nested_available(&self.shared)
     }
 
     /// Dispatches nested navigation through the canonical request state.
@@ -908,7 +911,7 @@ mod tests {
     fn nested_shortcut_preserves_unfocused_pending_search() {
         let (mut session, mut service, _runtime, mut actions) = new_session();
         session.shared.bottom_tab = BottomTabType::Search;
-        session.shared.insert_bookmark(1);
+        session.shared.search.set_search_result_count(1);
         session.shared.search.nested_mut().open();
         let _ = start_request(&mut session, &mut service, &mut actions);
 
