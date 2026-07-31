@@ -127,7 +127,6 @@ impl NestedSearch {
         ui.horizontal(|ui| {
             ui.spacing_mut().item_spacing.x = 1.0;
 
-            let has_active_filter = state.has_active_filter();
             ui.add_enabled_ui(!pending, |ui| {
                 let response = TextEdit::singleline(&mut self.query)
                     .id(text_id)
@@ -171,9 +170,10 @@ impl NestedSearch {
 
                 ui.add_space(GROUP_SPACING);
 
+                let can_navigate = !self.query.is_empty();
                 let previous_button = icon_button(icons::regular::ARROW_UP);
                 if ui
-                    .add_enabled(has_active_filter, previous_button)
+                    .add_enabled(can_navigate, previous_button)
                     .on_hover_text("Previous match")
                     .on_disabled_hover_text("Previous match")
                     .clicked()
@@ -182,7 +182,7 @@ impl NestedSearch {
                 }
                 let next_button = icon_button(icons::regular::ARROW_DOWN);
                 if ui
-                    .add_enabled(has_active_filter, next_button)
+                    .add_enabled(can_navigate, next_button)
                     .on_hover_text("Next match")
                     .on_disabled_hover_text("Next match")
                     .clicked()
@@ -206,17 +206,17 @@ impl NestedSearch {
         }
 
         if enter_pressed {
-            self.submit(state, actions);
+            self.navigate(state, actions, IndexedNavigation::Next);
             return;
         }
 
         match clicked_button {
             Some(NestedSearchButton::Close) => self.close(state),
             Some(NestedSearchButton::Previous) => {
-                state.request_match(IndexedNavigation::Previous, &self.cmd_tx, actions);
+                self.navigate(state, actions, IndexedNavigation::Previous);
             }
             Some(NestedSearchButton::Next) => {
-                state.request_match(IndexedNavigation::Next, &self.cmd_tx, actions);
+                self.navigate(state, actions, IndexedNavigation::Next);
             }
             None => {}
         }
@@ -226,7 +226,12 @@ impl NestedSearch {
         Id::new(("nested_search_input", session_id))
     }
 
-    fn submit(&self, state: &mut NestedSearchState, actions: &mut UiActions) {
+    fn navigate(
+        &self,
+        state: &mut NestedSearchState,
+        actions: &mut UiActions,
+        direction: IndexedNavigation,
+    ) {
         if self.query.is_empty() {
             state.clear_filter();
             return;
@@ -243,7 +248,7 @@ impl NestedSearch {
             return;
         }
 
-        state.request_match(IndexedNavigation::Next, &self.cmd_tx, actions);
+        state.request_match(direction, &self.cmd_tx, actions);
     }
 
     fn close(&mut self, state: &mut NestedSearchState) {
@@ -412,7 +417,47 @@ mod tests {
     }
 
     #[test]
-    fn invalid_submission_warns_without_replacing_filter() {
+    fn changed_draft_is_applied_before_directional_navigation() {
+        let runtime = Runtime::new().expect("runtime should initialize");
+        let mut actions = UiActions::new(runtime.handle().clone());
+        let mut state = NestedSearchState::default();
+        let (cmd_tx, mut cmd_rx) = mpsc::channel(2);
+        let mut widget = NestedSearch::new(cmd_tx);
+        widget.query = "first".to_owned();
+
+        widget.navigate(&mut state, &mut actions, IndexedNavigation::Next);
+        let first_request = match cmd_rx.try_recv().expect("request should be sent") {
+            SessionCommand::FindNestedMatch(params) => *params,
+            command => panic!("expected nested request, got {command:?}"),
+        };
+        assert!(state.accept_response(first_request.request_id));
+        state.set_matcher(Box::new(Regex::new("first").unwrap()));
+        state.set_match(4);
+
+        widget.query = "second".to_owned();
+        widget.is_regex = false;
+        widget.match_case = true;
+        widget.is_word = true;
+        widget.navigate(&mut state, &mut actions, IndexedNavigation::Previous);
+
+        let second_request = match cmd_rx.try_recv().expect("request should be sent") {
+            SessionCommand::FindNestedMatch(params) => *params,
+            command => panic!("expected nested request, got {command:?}"),
+        };
+        assert_eq!(
+            second_request.filter,
+            SearchFilter::plain("second")
+                .regex(false)
+                .ignore_case(false)
+                .word(true)
+        );
+        assert_eq!(second_request.direction, IndexedNavigation::Previous);
+        assert_eq!(second_request.search_result_anchor, None);
+        assert!(second_request.include_matcher);
+    }
+
+    #[test]
+    fn invalid_navigation_warns_without_replacing_filter() {
         let runtime = Runtime::new().expect("runtime should initialize");
         let mut actions = UiActions::new(runtime.handle().clone());
         let mut state = NestedSearchState::default();
@@ -423,7 +468,7 @@ mod tests {
         assert!(state.apply_filter(active_filter.clone()).is_eligible());
         state.set_matcher(Box::new(Regex::new("status=ok").unwrap()));
 
-        widget.submit(&mut state, &mut actions);
+        widget.navigate(&mut state, &mut actions, IndexedNavigation::Next);
 
         assert_eq!(state.active_filter(), Some(&active_filter));
         assert!(
