@@ -8,6 +8,14 @@ Filters can be created from the search input and adjusted later without recreati
   <video src="../assets/filters/filter_create.mp4" controls muted loop playsinline width="100%"></video>
 </p>
 
+### Find in search results
+
+Find in Search Results locates matching text within the entries produced by the current search. It helps identify specific occurrences without replacing the primary search, while highlighting matches in both the search results and the main logs.
+
+<p align="center">
+  <video src="../assets/search/nested_search.mp4" controls muted loop playsinline width="100%"></video>
+</p>
+
 ### Library
 
 The library keeps the filters and charts applied to the current session in one place, so the active analysis setup stays easy to review and manage.
