@@ -1,5 +1,3 @@
-extern crate tempdir;
-
 use std::{
     fs::{self, File},
     path::PathBuf,
@@ -7,10 +5,10 @@ use std::{
 
 use dir_checksum::*;
 use pretty_assertions::{assert_eq, assert_ne};
-use tempdir::TempDir;
+use tempfile::{Builder, TempDir};
 
 fn create_tmp_dir_with_file(dir_name: &'static str) -> anyhow::Result<(TempDir, PathBuf)> {
-    let tmp_dir = TempDir::new(dir_name)?;
+    let tmp_dir = Builder::new().prefix(dir_name).tempdir()?;
     let file_path = tmp_dir.path().join("file1.txt");
     fs::write(&file_path, "Initial text")?;
 

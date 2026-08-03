@@ -16,6 +16,6 @@ log.workspace = true
 
 [dev-dependencies]
 # External crates
-tempdir.workspace = true
+tempfile.workspace = true
 anyhow.workspace = true
 pretty_assertions.workspace = true

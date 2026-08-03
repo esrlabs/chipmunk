@@ -92,7 +92,7 @@ memmap2 = "0.9"
 mime_guess = "2.0"
 nom = "7.1"
 pcap-parser = "0.16"
-tempfile = "3.14"
+tempfile = "3.27"
 env_logger = "0.11"
 log4rs = "1.4"
 walkdir = "2.5"
@@ -145,7 +145,6 @@ criterion = { version = "0.5", features = ["html_reports"] }
 insta = { version = "1.41", features = ["yaml"] }
 proptest = "1.6"
 pretty_assertions = "1.4"
-tempdir = "0.3"
 trybuild = "1.0"
 
 [patch.crates-io]
