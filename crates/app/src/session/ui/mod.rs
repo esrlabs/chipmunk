@@ -45,6 +45,7 @@ use crate::{
 };
 use bottom_panel::{BottomPanelUI, BottomTabType};
 use common::log_table::{LogTableKind, table::TableScroll};
+use jump_to_row::JumpToRow;
 use logs_table::LogsTable;
 use side_panel::{SidePanelUi, SideTabType};
 
@@ -53,6 +54,7 @@ mod bottom_panel;
 mod common;
 pub mod definitions;
 mod export_modal;
+mod jump_to_row;
 mod logs_table;
 mod recent;
 mod sde_bar;
@@ -73,6 +75,7 @@ pub struct Session {
     shared: SessionShared,
     pub recent_session: RecentSessionRuntime,
     logs_table: LogsTable,
+    jump_to_row: JumpToRow,
     sde_bar: SdeBarUi,
     bottom_panel: BottomPanelUI,
     side_panel: SidePanelUi,
@@ -120,6 +123,7 @@ impl Session {
             shared,
             recent_session,
             logs_table,
+            jump_to_row: JumpToRow::default(),
             sde_bar,
             bottom_panel,
             attachment_modal: attachment_modal::AttachmentModalUi::new(),
@@ -136,6 +140,21 @@ impl Session {
         self.sde_bar.is_available()
     }
 
+    /// Opens Jump to Row for this session.
+    pub fn open_jump_to_row(&mut self) {
+        self.jump_to_row.open();
+    }
+
+    /// Returns whether this session owns an open lightweight input overlay.
+    pub fn has_input_overlay(&self) -> bool {
+        self.jump_to_row.is_open()
+    }
+
+    /// Closes and resets lightweight input overlays owned by this session.
+    pub fn close_input_overlays(&mut self) {
+        self.jump_to_row.close();
+    }
+
     pub fn render_content(
         &mut self,
         actions: &mut UiActions,
@@ -146,6 +165,7 @@ impl Session {
         let Self {
             cmd_tx,
             logs_table,
+            jump_to_row,
             sde_bar,
             bottom_panel,
             side_panel,
@@ -157,6 +177,10 @@ impl Session {
             shared.signals.is_empty(),
             "Signals leaked from previous frame."
         );
+
+        if jump_to_row.is_open() {
+            jump_to_row.render(shared, ui);
+        }
 
         shared.exports.handle_dialogs(actions, cmd_tx);
 
@@ -768,7 +792,7 @@ fn clear_text_edit_focus(ctx: &Context) {
 mod tests {
     use std::{assert_matches, path::PathBuf};
 
-    use egui::{Event, Key, Modifiers, RawInput};
+    use egui::{Context, Event, Key, Modifiers, RawInput};
     use processor::search::filter::SearchFilter;
     use regex::Regex;
     use session_core::state::{IndexedNavigation, NestedMatch};
@@ -798,7 +822,7 @@ mod tests {
         let (host_message_tx, _host_message_rx) = mpsc::channel(4);
         let (notification_tx, _notification_rx) = mpsc::channel(4);
         let shared_senders =
-            SharedSenders::new(host_message_tx, notification_tx, egui::Context::default());
+            SharedSenders::new(host_message_tx, notification_tx, Context::default());
         let (communication, service) = communication::init(shared_senders);
         let (host_cmd_tx, _host_cmd_rx) = mpsc::channel(4);
 
@@ -883,7 +907,7 @@ mod tests {
             }],
             ..Default::default()
         };
-        let ctx = egui::Context::default();
+        let ctx = Context::default();
         let mut consumed = false;
         let _ = ctx.run_ui(input, |ui| {
             consumed = session.handle_shortcuts(&mut actions, &mut host_state, ui.ctx(), None);
@@ -926,7 +950,7 @@ mod tests {
             }],
             ..Default::default()
         };
-        let ctx = egui::Context::default();
+        let ctx = Context::default();
         let mut consumed = false;
         let _ = ctx.run_ui(input, |ui| {
             consumed = session.handle_shortcuts(&mut actions, &mut host_state, ui.ctx(), None);

@@ -133,27 +133,6 @@ impl MainMenuBar {
                 }
             });
 
-            ui.menu_button("Edit", |ui| {
-                ui.set_min_size(MENU_MIN_SIZE);
-
-                let nested_search_available = matches!(
-                    tabs.active(),
-                    HostTab::Session(session) if session.nested_search_available()
-                );
-                if ui
-                    .add_enabled(
-                        nested_search_available,
-                        Button::new("Find in Search Results"),
-                    )
-                    .clicked()
-                {
-                    if let HostTab::Session(session) = tabs.active_mut() {
-                        session.toggle_nested_search(&mut state.preferences);
-                    }
-                    ui.close();
-                }
-            });
-
             ui.menu_button("Connections", |ui| {
                 render_connections_menu(ui, actions, &self.cmd_tx);
             });
@@ -180,6 +159,28 @@ impl MainMenuBar {
                     ui.close();
                 }
             });
+
+            if let HostTab::Session(session) = tabs.active_mut() {
+                ui.menu_button("Session", |ui| {
+                    ui.set_min_size(MENU_MIN_SIZE);
+
+                    if ui.button("Jump to Row").clicked() {
+                        session.open_jump_to_row();
+                        ui.close();
+                    }
+
+                    if ui
+                        .add_enabled(
+                            session.nested_search_available(),
+                            Button::new("Find in Search Results"),
+                        )
+                        .clicked()
+                    {
+                        session.toggle_nested_search(&mut state.preferences);
+                        ui.close();
+                    }
+                });
+            }
 
             ui.menu_button("View", |ui| {
                 ui.set_min_size(MENU_MIN_SIZE);

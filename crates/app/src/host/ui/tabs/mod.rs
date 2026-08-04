@@ -88,16 +88,29 @@ impl HostTabs {
         &mut self.tabs[self.active_idx]
     }
 
+    /// Returns whether the active tab owns a lightweight input overlay.
+    pub fn has_input_overlay(&self) -> bool {
+        self.active().has_input_overlay()
+    }
+
     /// Activates the Home tab.
     pub fn activate_home(&mut self) {
-        self.active_idx = HOME_TAB_IDX;
+        self.activate_tab(HOME_TAB_IDX);
     }
 
     /// Activates the tab at `index` when it exists.
     pub fn activate_tab(&mut self, index: usize) {
-        if index < self.tabs.len() {
-            self.active_idx = index;
+        if index >= self.tabs.len() || index == self.active_idx {
+            return;
         }
+
+        self.tabs[self.active_idx].close_input_overlays();
+        self.active_idx = index;
+    }
+
+    fn activate_last_tab(&mut self) {
+        let last_idx = self.tabs.len() - 1;
+        self.activate_tab(last_idx);
     }
 
     /// Activates the next tab, wrapping around at the end.
@@ -106,7 +119,8 @@ impl HostTabs {
             return;
         }
 
-        self.active_idx = (self.active_idx + 1) % self.tabs.len();
+        let next_idx = (self.active_idx + 1) % self.tabs.len();
+        self.activate_tab(next_idx);
     }
 
     /// Activates the previous tab, wrapping around at the start.
@@ -115,11 +129,12 @@ impl HostTabs {
             return;
         }
 
-        self.active_idx = if self.active_idx == HOME_TAB_IDX {
+        let previous_idx = if self.active_idx == HOME_TAB_IDX {
             self.tabs.len() - 1
         } else {
             self.active_idx - 1
         };
+        self.activate_tab(previous_idx);
     }
 
     /// Opens or focuses the singleton Plugin Manager tab.
@@ -129,14 +144,14 @@ impl HostTabs {
             .iter()
             .position(|tab| matches!(tab, HostTab::PluginManager(_)))
         {
-            self.active_idx = tab_idx;
+            self.activate_tab(tab_idx);
             return;
         }
 
         let plugin_manager = PluginManagerView::new(self.cmd_tx.clone());
         let tab = HostTab::PluginManager(Box::new(plugin_manager));
         self.tabs.push(tab);
-        self.active_idx = self.tabs.len() - 1;
+        self.activate_last_tab();
     }
 
     /// Opens or focuses the singleton application settings tab.
@@ -146,28 +161,28 @@ impl HostTabs {
             .iter()
             .position(|tab| matches!(tab, HostTab::AppSettings(_)))
         {
-            self.active_idx = tab_idx;
+            self.activate_tab(tab_idx);
             return;
         }
 
         let settings = AppSettingsView::new(settings);
         let tab = HostTab::AppSettings(Box::new(settings));
         self.tabs.push(tab);
-        self.active_idx = self.tabs.len() - 1;
+        self.activate_last_tab();
     }
 
     /// Adds and activates a single-session setup tab.
     pub fn add_session_setup(&mut self, setup_state: SessionSetupState) {
         let setup = SessionSetup::new(setup_state, self.cmd_tx.clone());
         self.tabs.push(HostTab::SessionSetup(Box::new(setup)));
-        self.active_idx = self.tabs.len() - 1;
+        self.activate_last_tab();
     }
 
     /// Adds and activates a multiple-file setup tab.
     pub fn add_multi_files(&mut self, state: MultiFileState) {
         let setup = MultiFileSetup::new(state, self.cmd_tx.clone());
         self.tabs.push(HostTab::MultiFileSetup(Box::new(setup)));
-        self.active_idx = self.tabs.len() - 1;
+        self.activate_last_tab();
     }
 
     /// Adds a session tab, replacing a matching setup tab when one is provided.
@@ -183,7 +198,7 @@ impl HostTabs {
         }
 
         self.tabs.push(HostTab::Session(Box::new(session)));
-        self.active_idx = self.tabs.len() - 1;
+        self.activate_last_tab();
     }
 
     /// Gracefully closes all live session services during application shutdown.
@@ -431,6 +446,7 @@ impl HostTabs {
 
     fn update_active_on_close(&mut self, removed_idx: usize) {
         if self.active_idx == removed_idx {
+            self.tabs[self.active_idx].close_input_overlays();
             let remaining_tabs = self.tabs.len().saturating_sub(1);
             self.active_idx = if removed_idx < remaining_tabs {
                 removed_idx
@@ -439,6 +455,32 @@ impl HostTabs {
             };
         } else if self.active_idx > removed_idx {
             self.active_idx -= 1;
+        }
+    }
+}
+
+impl HostTab {
+    /// Returns whether this tab owns an open lightweight input overlay.
+    fn has_input_overlay(&self) -> bool {
+        match self {
+            Self::Session(session) => session.has_input_overlay(),
+            Self::Home(_)
+            | Self::SessionSetup(_)
+            | Self::MultiFileSetup(_)
+            | Self::PluginManager(_)
+            | Self::AppSettings(_) => false,
+        }
+    }
+
+    /// Closes and resets lightweight input overlays owned by this tab.
+    fn close_input_overlays(&mut self) {
+        match self {
+            Self::Session(session) => session.close_input_overlays(),
+            Self::Home(_)
+            | Self::SessionSetup(_)
+            | Self::MultiFileSetup(_)
+            | Self::PluginManager(_)
+            | Self::AppSettings(_) => {}
         }
     }
 }

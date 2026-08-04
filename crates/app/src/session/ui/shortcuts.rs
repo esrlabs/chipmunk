@@ -52,6 +52,10 @@ const SEARCH_FOCUS_DISPLAY: &str = "Slash / Cmd+F";
 const SEARCH_FOCUS_DISPLAY: &str = "Slash / Ctrl+F";
 
 static SHORTCUTS: SessionShortcuts = SessionShortcuts {
+    jump_to_row: Shortcut::new(
+        &[KeyboardShortcut::new(Modifiers::COMMAND, Key::G)],
+        "Jump to row",
+    ),
     activate_main_output: Shortcut::new(
         &[KeyboardShortcut::new(Modifiers::COMMAND, Key::Num1)],
         "Focus main logs table",
@@ -173,6 +177,7 @@ static SHORTCUTS: SessionShortcuts = SessionShortcuts {
 };
 
 struct SessionShortcuts {
+    jump_to_row: Shortcut,
     activate_main_output: Shortcut,
     activate_search_output: Shortcut,
     active_page_up: Shortcut,
@@ -198,8 +203,9 @@ struct SessionShortcuts {
     previous_bookmark: Shortcut,
 }
 
-pub fn shortcut_defs() -> [&'static Shortcut; 22] {
+pub fn shortcut_defs() -> [&'static Shortcut; 23] {
     let SessionShortcuts {
+        jump_to_row,
         activate_main_output,
         activate_search_output,
         active_page_up,
@@ -226,6 +232,7 @@ pub fn shortcut_defs() -> [&'static Shortcut; 22] {
     } = &SHORTCUTS;
 
     [
+        jump_to_row,
         activate_search_tab,
         activate_search_tab_outside_text,
         toggle_nested_search,
@@ -266,6 +273,7 @@ pub fn handle(
     } = host_state;
 
     let SessionShortcuts {
+        jump_to_row,
         activate_main_output,
         activate_search_output,
         active_page_up,
@@ -290,6 +298,11 @@ pub fn handle(
         next_bookmark,
         previous_bookmark,
     } = &SHORTCUTS;
+
+    if consume_shortcut(ctx, jump_to_row) {
+        session.open_jump_to_row();
+        return true;
+    }
 
     if consume_shortcut(ctx, activate_main_output) {
         session.activate_main_logs_table(ctx);
