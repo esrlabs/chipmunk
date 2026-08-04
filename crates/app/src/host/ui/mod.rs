@@ -493,6 +493,18 @@ impl Host {
             },
         );
     }
+
+    /// Returns whether a host- or active-tab-owned input overlay is open.
+    fn has_input_overlay(&self) -> bool {
+        let Self {
+            quick_open,
+            command_palette,
+            tabs,
+            ..
+        } = self;
+
+        quick_open.is_open() || command_palette.is_open() || tabs.has_input_overlay()
+    }
 }
 
 fn render_tab_bar_utilities(
@@ -590,9 +602,9 @@ impl eframe::App for Host {
     }
 
     fn ui(&mut self, ui: &mut Ui, frame: &mut eframe::Frame) {
+        let overlay_was_open = self.has_input_overlay();
+
         let Self {
-            quick_open,
-            command_palette,
             storage,
             state,
             tabs,
@@ -600,10 +612,11 @@ impl eframe::App for Host {
             ..
         } = self;
 
-        let overlay_was_open = quick_open.is_open() || command_palette.is_open();
-        quick_open.handle_input(ui, storage, ui_actions);
-        command_palette.handle_input(ui, state, tabs, storage, ui_actions);
-        if !overlay_was_open && !quick_open.is_open() && !command_palette.is_open() {
+        self.quick_open.handle_input(ui, storage, ui_actions);
+        self.command_palette
+            .handle_input(ui, state, tabs, storage, ui_actions);
+
+        if !overlay_was_open && !self.has_input_overlay() {
             shortcuts::handler::handle(self, ui.ctx());
         }
 
