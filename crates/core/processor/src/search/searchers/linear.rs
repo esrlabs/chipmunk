@@ -48,19 +48,11 @@ impl LineSearcher {
     /// * `true` - If the line matches the regular expression.
     /// * `false` - Otherwise.
     pub fn is_match(&self, ln: &str) -> bool {
-        // Check raw text first to avoid ANSI strip's parsing and allocation
-        // for normal matches.
-        if self.re.is_match(ln) {
-            return true;
+        if memchr(0x1b, ln.as_bytes()).is_some() {
+            return self.re.is_match(&strip_ansi(ln));
         }
 
-        // ANSI codes can split visible text.
-        // We retry only when an escape code is present.
-        if memchr(0x1b, ln.as_bytes()).is_none() {
-            return false;
-        }
-
-        self.re.is_match(&strip_ansi(ln))
+        self.re.is_match(ln)
     }
 }
 

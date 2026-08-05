@@ -74,9 +74,17 @@ fn whole_word_matching_rejects_partial_words() {
 }
 
 #[test]
-fn matching_retries_against_visible_ansi_text() {
+fn matching_uses_visible_ansi_text() {
     let searcher = LineSearcher::new(&SearchFilter::plain("warn").word(true)).unwrap();
 
     assert!(searcher.is_match("status w\x1b[31marn received"));
     assert!(!searcher.is_match("status w\x1b[31marning received"));
+}
+
+#[test]
+fn matching_ignores_ansi_sequence_text() {
+    let searcher = LineSearcher::new(&SearchFilter::plain("31m")).unwrap();
+
+    assert!(searcher.is_match("status 31m warn received"));
+    assert!(!searcher.is_match("status \x1b[31mwarn received"));
 }
