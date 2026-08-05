@@ -263,8 +263,10 @@ mod tests {
 
     #[test]
     fn opening_starts_with_fresh_input() {
-        let mut jump = JumpToRow::default();
-        jump.input = "stale".to_owned();
+        let mut jump = JumpToRow {
+            input: "stale".to_owned(),
+            ..Default::default()
+        };
 
         jump.open();
         assert!(jump.is_open());

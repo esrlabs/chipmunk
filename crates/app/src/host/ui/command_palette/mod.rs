@@ -12,7 +12,7 @@ use crate::{
     },
 };
 
-use commands::CommandAction;
+use commands::{CommandAction, CommandScope};
 
 mod commands;
 mod row;
@@ -25,6 +25,8 @@ pub struct CommandPalette {
     query: String,
     matcher: FuzzyMatcher,
     results: Vec<CommandPaletteItem>,
+    /// Active-tab scope captured for the current palette search session.
+    active_scope: CommandScope,
     selected_index: usize,
     /// True until the search field receives focus after opening.
     first_open_frame: bool,
@@ -49,7 +51,8 @@ impl CommandPalette {
     pub fn new(cmd_tx: Sender<HostCommand>) -> Self {
         let mut matcher = FuzzyMatcher::default();
         matcher.build_query("");
-        let results = commands::recompute_results(&mut matcher);
+        let active_scope = CommandScope::Global;
+        let results = commands::recompute_results(&mut matcher, active_scope);
 
         Self {
             cmd_tx,
@@ -57,6 +60,7 @@ impl CommandPalette {
             query: String::new(),
             matcher,
             results,
+            active_scope,
             selected_index: 0,
             first_open_frame: false,
             scroll_selected_into_view: false,
@@ -69,13 +73,14 @@ impl CommandPalette {
     }
 
     /// Opens the overlay and starts a fresh command search session.
-    pub fn open(&mut self) {
+    pub fn open(&mut self, tabs: &HostTabs) {
         let Self {
             cmd_tx: _,
             open,
             query,
             matcher,
             results,
+            active_scope,
             selected_index,
             first_open_frame,
             scroll_selected_into_view,
@@ -88,7 +93,8 @@ impl CommandPalette {
         *open = true;
         query.clear();
         matcher.build_query("");
-        *results = commands::recompute_results(matcher);
+        *active_scope = CommandScope::from_tabs(tabs);
+        *results = commands::recompute_results(matcher, *active_scope);
         *selected_index = 0;
         *first_open_frame = true;
         *scroll_selected_into_view = false;
@@ -174,7 +180,8 @@ impl CommandPalette {
 
                     if query_response.changed() {
                         self.matcher.build_query(&self.query);
-                        self.results = commands::recompute_results(&mut self.matcher);
+                        self.results =
+                            commands::recompute_results(&mut self.matcher, self.active_scope);
                         self.selected_index = 0;
                         self.scroll_selected_into_view = true;
                     }
@@ -201,6 +208,7 @@ impl CommandPalette {
             query,
             matcher,
             results,
+            active_scope,
             selected_index,
             first_open_frame,
             scroll_selected_into_view,
@@ -209,7 +217,8 @@ impl CommandPalette {
         *open = false;
         query.clear();
         matcher.build_query("");
-        *results = commands::recompute_results(matcher);
+        *active_scope = CommandScope::Global;
+        *results = commands::recompute_results(matcher, *active_scope);
         *selected_index = 0;
         *first_open_frame = false;
         *scroll_selected_into_view = false;
@@ -319,9 +328,10 @@ mod tests {
         let mut palette = CommandPalette::new(cmd_tx);
         palette.query = "plugin".to_owned();
         palette.matcher.build_query(&palette.query);
-        palette.results = commands::recompute_results(&mut palette.matcher);
+        palette.results = commands::recompute_results(&mut palette.matcher, CommandScope::Global);
+        let tabs = HostTabs::new(palette.cmd_tx.clone());
 
-        palette.open();
+        palette.open(&tabs);
 
         assert!(palette.is_open());
         assert!(palette.query.is_empty());

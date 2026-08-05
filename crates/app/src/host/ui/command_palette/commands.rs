@@ -9,41 +9,17 @@ use crate::{
     host::{
         command::HostCommand,
         common::{parsers::ParserNames, sources::StreamNames},
+        notification::AppNotification,
         ui::{
             UiActions, file_dialog_commands,
             state::{HostState, modal::HostModal},
             storage::HostStorage,
-            tabs::HostTabs,
+            tabs::{HostTab, HostTabs},
         },
     },
 };
 
 use super::CommandPaletteItem;
-
-/// Host-level action launched from a command-palette result.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CommandAction {
-    GoHome,
-    OpenFiles,
-    OpenFilesWithPlugin,
-    OpenFolderFiles(FileFormat),
-    CloseCurrentTab,
-    NextTab,
-    PreviousTab,
-    OpenPluginManager,
-    OpenSettings,
-    ReloadPlugins,
-    ShowShortcuts,
-    ShowAbout,
-    SetTheme(Theme),
-    ToggleRightPanel,
-    ToggleBottomPanel,
-    ToggleSdeBar,
-    ConnectionSetup {
-        stream: StreamNames,
-        parser: ParserNames,
-    },
-}
 
 /// Static command-palette entry.
 #[derive(Debug, Clone, Copy)]
@@ -136,6 +112,14 @@ const COMMANDS: &[CommandDefinition] = &[
         action: CommandAction::ToggleSdeBar,
     },
     CommandDefinition {
+        title: "Jump to Row",
+        action: CommandAction::JumpToRow,
+    },
+    CommandDefinition {
+        title: "Find in Search Results",
+        action: CommandAction::NestedSearch,
+    },
+    CommandDefinition {
         title: "Terminal with Plain Text",
         action: CommandAction::ConnectionSetup {
             stream: StreamNames::Process,
@@ -221,11 +205,89 @@ const COMMANDS: &[CommandDefinition] = &[
     },
 ];
 
+/// Host-level action launched from a command-palette result.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CommandAction {
+    GoHome,
+    OpenFiles,
+    OpenFilesWithPlugin,
+    OpenFolderFiles(FileFormat),
+    CloseCurrentTab,
+    NextTab,
+    PreviousTab,
+    OpenPluginManager,
+    OpenSettings,
+    ReloadPlugins,
+    ShowShortcuts,
+    ShowAbout,
+    SetTheme(Theme),
+    ToggleRightPanel,
+    ToggleBottomPanel,
+    ToggleSdeBar,
+    JumpToRow,
+    NestedSearch,
+    ConnectionSetup {
+        stream: StreamNames,
+        parser: ParserNames,
+    },
+}
+
+/// Active-tab scope used to select commands when the palette opens.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CommandScope {
+    Global,
+    Session,
+}
+
+impl CommandAction {
+    fn scope(self) -> CommandScope {
+        match self {
+            Self::JumpToRow | Self::NestedSearch => CommandScope::Session,
+            Self::GoHome
+            | Self::OpenFiles
+            | Self::OpenFilesWithPlugin
+            | Self::OpenFolderFiles(_)
+            | Self::CloseCurrentTab
+            | Self::NextTab
+            | Self::PreviousTab
+            | Self::OpenPluginManager
+            | Self::OpenSettings
+            | Self::ReloadPlugins
+            | Self::ShowShortcuts
+            | Self::ShowAbout
+            | Self::SetTheme(_)
+            | Self::ToggleRightPanel
+            | Self::ToggleBottomPanel
+            | Self::ToggleSdeBar
+            | Self::ConnectionSetup { .. } => CommandScope::Global,
+        }
+    }
+}
+
+impl CommandScope {
+    /// Returns the command scope for the active host tab.
+    pub fn from_tabs(tabs: &HostTabs) -> Self {
+        if matches!(tabs.active(), HostTab::Session(_)) {
+            Self::Session
+        } else {
+            Self::Global
+        }
+    }
+
+    fn includes(self, command_scope: Self) -> bool {
+        command_scope == Self::Global || command_scope == self
+    }
+}
+
 /// Rebuilds command-palette results from the static command list.
-pub fn recompute_results(matcher: &mut FuzzyMatcher) -> Vec<CommandPaletteItem> {
+pub fn recompute_results(
+    matcher: &mut FuzzyMatcher,
+    active_scope: CommandScope,
+) -> Vec<CommandPaletteItem> {
     let mut matches: Vec<_> = COMMANDS
         .iter()
         .enumerate()
+        .filter(|(_, command)| active_scope.includes(command.action.scope()))
         .filter_map(|(index, command)| {
             matcher
                 .score(command.title)
@@ -327,6 +389,24 @@ pub fn execute_action(
             *visible = !*visible;
             true
         }
+        CommandAction::JumpToRow => {
+            if let HostTab::Session(session) = tabs.active_mut() {
+                session.open_jump_to_row();
+            }
+            true
+        }
+        CommandAction::NestedSearch => {
+            if let HostTab::Session(session) = tabs.active_mut() {
+                if session.nested_search_available() {
+                    session.toggle_nested_search(&mut state.preferences);
+                } else {
+                    actions.add_notification(AppNotification::Info(
+                        "Nested search requires search results.".to_owned(),
+                    ));
+                }
+            }
+            true
+        }
         CommandAction::ConnectionSetup { stream, parser } => actions.try_send_command(
             cmd_tx,
             HostCommand::ConnectionSessionSetup { stream, parser },
@@ -352,7 +432,7 @@ mod tests {
     fn empty_query_preserves_command_order() {
         let mut matcher = build_matcher("");
 
-        let results = recompute_results(&mut matcher);
+        let results = recompute_results(&mut matcher, CommandScope::Session);
 
         assert_eq!(results.len(), COMMANDS.len());
         let expected: Vec<_> = COMMANDS[..3].iter().map(|command| command.action).collect();
@@ -364,7 +444,7 @@ mod tests {
     fn fuzzy_query_matches_titles_only_and_highlights_title() {
         let mut matcher = build_matcher("pm");
 
-        let results = recompute_results(&mut matcher);
+        let results = recompute_results(&mut matcher, CommandScope::Global);
 
         assert!(result_actions(&results).contains(&CommandAction::OpenPluginManager));
         assert!(!result_actions(&results).contains(&CommandAction::ReloadPlugins));
@@ -374,5 +454,20 @@ mod tests {
             .find(|item| item.action == CommandAction::OpenPluginManager)
             .expect("plugin manager command should match");
         assert!(!plugin_manager.title.highlights.is_empty());
+    }
+
+    #[test]
+    fn session_commands_follow_active_scope() {
+        let mut matcher = build_matcher("");
+
+        let global_results = recompute_results(&mut matcher, CommandScope::Global);
+        let global_actions = result_actions(&global_results);
+        assert!(!global_actions.contains(&CommandAction::JumpToRow));
+        assert!(!global_actions.contains(&CommandAction::NestedSearch));
+
+        let session_results = recompute_results(&mut matcher, CommandScope::Session);
+        let session_actions = result_actions(&session_results);
+        assert!(session_actions.contains(&CommandAction::JumpToRow));
+        assert!(session_actions.contains(&CommandAction::NestedSearch));
     }
 }
