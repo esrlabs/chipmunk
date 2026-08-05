@@ -99,7 +99,7 @@ fn handle_app_shortcuts(host: &mut Host, ctx: &Context) -> bool {
     }
 
     if consume_shortcut(ctx, command_palette_shortcut) {
-        command_palette.open();
+        command_palette.open(tabs);
         return true;
     }
 
