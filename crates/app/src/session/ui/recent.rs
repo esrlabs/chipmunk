@@ -413,9 +413,8 @@ mod tests {
         let mut recent = file_runtime();
 
         let _ = recent.capture_opened_state(&shared, &registry);
-        shared
-            .filters
-            .set_temp_search(SearchFilter::plain("status=ok").ignore_case(true));
+        let temp_search = SearchFilter::plain("status=ok").ignore_case(true).into();
+        shared.filters.active_temp_search = Some(temp_search);
 
         assert!(shared.pin_temp_search(&mut registry));
 
@@ -442,11 +441,11 @@ mod tests {
         let mut recent = file_runtime();
 
         let _ = recent.capture_opened_state(&shared, &registry);
-        shared.filters.set_temp_search(
-            SearchFilter::plain("cpu=(\\d+)")
-                .regex(true)
-                .ignore_case(true),
-        );
+        let temp_search = SearchFilter::plain("cpu=(\\d+)")
+            .regex(true)
+            .ignore_case(true)
+            .into();
+        shared.filters.active_temp_search = Some(temp_search);
 
         assert!(shared.pin_temp_search_as_value(&mut registry));
 

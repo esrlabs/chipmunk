@@ -5,7 +5,7 @@
 //! [`SearchState`] tracks log-search matches, and [`SearchValuesState`] tracks the separate
 //! extraction pipeline used by charts.
 
-mod filters;
+pub mod filters;
 pub mod nested;
 mod search;
 mod search_values;

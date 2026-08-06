@@ -101,7 +101,8 @@ impl PresetsUI {
             .copied()
             .collect::<Vec<_>>();
 
-        let filters_changed = before_filters != after_filters;
+        let filters_changed =
+            before_filters != after_filters && shared.filters.active_temp_search.is_none();
         let search_values_changed = before_search_values != after_search_values;
         let outcome = match (filters_changed, search_values_changed) {
             (false, false) if changed => PresetApplyOutcome::AppliedNoSync,
@@ -129,7 +130,7 @@ impl PresetsUI {
         // Preset apply mutates session state first, then issues the same explicit
         // sync commands used by the rest of the search/filter UI.
         shared
-            .sync_search(registry, target)
+            .sync_persistent_search(registry, target)
             .into_iter()
             .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
     }
@@ -317,6 +318,45 @@ mod tests {
 
         let commands = drain_commands(&mut cmd_rx);
         assert_eq!(commands.len(), 2);
+    }
+
+    #[test]
+    fn apply_preset_defers_filters_during_temp_search() {
+        let runtime = Runtime::new().unwrap();
+        let (presets, mut cmd_rx, _) = new_presets();
+        let mut shared = new_shared();
+        let mut actions = new_actions(&runtime);
+        let mut registry = HostRegistry::default();
+        let filters = vec![filter_entry("error", true, filter_colors(10, 20))];
+        let search_values = vec![search_value_entry(
+            "duration=(\\d+)",
+            true,
+            Color32::from_rgb(30, 40, 50),
+        )];
+        let preset_id =
+            add_preset_with_entries(&mut registry, "test", filters, search_values);
+        let temp_search = SearchFilter::plain("temporary").into();
+        shared.filters.active_temp_search = Some(temp_search);
+
+        let outcome = presets.apply_preset(&mut shared, &mut actions, &mut registry, preset_id);
+
+        assert_eq!(
+            outcome,
+            PresetApplyOutcome::Applied(SearchSyncTarget::SearchValue)
+        );
+        assert_eq!(applied_filter_values(&shared, &registry), ["error"]);
+        assert_eq!(
+            applied_search_value_values(&shared, &registry),
+            ["duration=(\\d+)"]
+        );
+
+        let commands = drain_commands(&mut cmd_rx);
+        assert_eq!(commands.len(), 1);
+        assert!(matches!(
+            &commands[0],
+            SessionCommand::ApplySearchValuesFilter { filters, .. }
+                if filters == &["duration=(\\d+)".to_owned()]
+        ));
     }
 
     #[test]

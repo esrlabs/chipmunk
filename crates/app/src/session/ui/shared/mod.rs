@@ -6,7 +6,7 @@ use egui::Color32;
 
 use crate::{
     host::{
-        common::colors::ColorPair,
+        common::colors::{ColorPair, TEMP_SEARCH_COLORS},
         ui::{UiActions, registry::filters::FilterRegistry},
     },
     session::{
@@ -203,6 +203,29 @@ impl SessionShared {
         commands
     }
 
+    /// Synchronizes persistent filter and search-value changes.
+    ///
+    /// Persistent filter changes are deferred while a temporary search is active. Search-value
+    /// changes synchronize immediately.
+    pub fn sync_persistent_search(
+        &mut self,
+        registry: &FilterRegistry,
+        target: SearchSyncTarget,
+    ) -> Vec<SessionCommand> {
+        let target = if self.filters.active_temp_search.is_some() {
+            match target {
+                SearchSyncTarget::Filter => return Vec::new(),
+                SearchSyncTarget::SearchValue | SearchSyncTarget::Both => {
+                    SearchSyncTarget::SearchValue
+                }
+            }
+        } else {
+            target
+        };
+
+        self.sync_search(registry, target)
+    }
+
     /// Synchronizes search and returns commands plus local effects.
     ///
     /// This path does not emit `SessionSignal`, so non-render callers can preserve the
@@ -228,7 +251,7 @@ impl SessionShared {
     /// When filters become empty we only drop the active search, otherwise we issue a
     /// drop-then-apply sequence so a running search does not keep the holder in use.
     fn sync_filter_search_pipeline(&mut self, registry: &FilterRegistry) -> SearchSyncOutcome {
-        let filters = self.search.get_active_filters(&self.filters, registry);
+        let filters = self.filters.effective_filters(registry);
         if filters.is_empty() {
             let operation_id = self.search.processing_search_operation();
             self.search.clear_compiled_filters();
@@ -308,6 +331,20 @@ impl SessionShared {
     /// Returns the current revision used for recent-session update polling.
     pub fn recent_revision(&self) -> u64 {
         self.recent_revision
+    }
+
+    /// Returns colors for a filter index reported by the active log search.
+    ///
+    /// Index `0` uses temporary-search colors while a temporary search is active. Otherwise,
+    /// indices resolve through enabled persistent filters in session order.
+    pub fn filter_match_colors(&self, filter_index: usize) -> Option<&ColorPair> {
+        if self.filters.active_temp_search.is_some() {
+            return (filter_index == 0).then_some(&TEMP_SEARCH_COLORS);
+        }
+
+        self.filters
+            .enabled_filter_at(filter_index)
+            .map(|entry| &entry.colors)
     }
 
     /// Updates one applied filter color pair and tracks recent-session dirtiness.
@@ -608,6 +645,33 @@ mod tests {
     }
 
     #[test]
+    fn filter_match_colors_follow_active_search_projection() {
+        let mut shared = new_shared();
+        let mut registry = FilterRegistry::default();
+        let filter_id = add_filter_def(
+            &mut shared,
+            &mut registry,
+            SearchFilter::plain("persistent"),
+        );
+        let persistent_colors = shared
+            .filters
+            .filter_entries
+            .iter()
+            .find(|entry| entry.id == filter_id)
+            .expect("applied filter should exist")
+            .colors
+            .clone();
+
+        assert_eq!(shared.filter_match_colors(0), Some(&persistent_colors));
+
+        let temp_search = SearchFilter::plain("temporary").into();
+        shared.filters.active_temp_search = Some(temp_search);
+
+        assert_eq!(shared.filter_match_colors(0), Some(&TEMP_SEARCH_COLORS));
+        assert_eq!(shared.filter_match_colors(1), None);
+    }
+
+    #[test]
     fn color_setters_bump_recent_revision_only_on_change() {
         let mut shared = new_shared();
         let mut registry = FilterRegistry::default();
@@ -747,7 +811,7 @@ mod tests {
         add_filter(&mut shared, &mut registry, "status=ok");
         let _ = shared.sync_search(&registry, SearchSyncTarget::Filter);
         assert_eq!(shared.search.compiled_filters().len(), 1);
-        shared.filters.clear_temp_search();
+        shared.filters.active_temp_search = None;
         let filter_id = shared.filters.filter_entries[0].id;
         shared.filters.unapply_filter(&mut registry, &filter_id);
         let previous_operation_id = Uuid::new_v4();
@@ -811,9 +875,8 @@ mod tests {
     fn filter_sync_applies_temp() {
         let mut shared = new_shared();
         let registry = FilterRegistry::default();
-        shared
-            .filters
-            .set_temp_search(SearchFilter::plain("temp").ignore_case(true));
+        let temp_search = SearchFilter::plain("temp").ignore_case(true).into();
+        shared.filters.active_temp_search = Some(temp_search);
 
         let commands = shared.sync_search(&registry, SearchSyncTarget::Filter);
 
@@ -830,23 +893,17 @@ mod tests {
     }
 
     #[test]
-    fn filter_sync_cache_matches_apply_payload() {
+    fn temp_search_dominates_filter_payload_and_cache() {
         let mut shared = new_shared();
         let mut registry = FilterRegistry::default();
         add_filter_def(&mut shared, &mut registry, SearchFilter::plain("status=ok"));
         add_filter_def(
             &mut shared,
             &mut registry,
-            SearchFilter::plain("cpu=\\d+").regex(true).word(true),
-        );
-        add_filter_def(
-            &mut shared,
-            &mut registry,
             SearchFilter::plain("warning").ignore_case(true),
         );
-        shared
-            .filters
-            .set_temp_search(SearchFilter::plain("temp").ignore_case(true));
+        let temp_search = SearchFilter::plain("temp").ignore_case(true).into();
+        shared.filters.active_temp_search = Some(temp_search);
 
         let commands = shared.sync_search(&registry, SearchSyncTarget::Filter);
 
@@ -854,22 +911,73 @@ mod tests {
             SessionCommand::ApplySearchFilter { filters, .. } => filters,
             other => panic!("expected ApplySearchFilter, got {other:?}"),
         };
+        assert_eq!(payload_filters.len(), 1);
+        assert_eq!(payload_filters[0].value, "temp");
 
         let compiled = shared.search.compiled_filters();
-        assert_eq!(compiled.len(), payload_filters.len());
-        assert_eq!(payload_filters.len(), 4);
+        assert_eq!(compiled.len(), 1);
+        assert!(compiled[0].is_match("TEMP"));
+        assert!(!compiled[0].is_match("TEAM"));
+    }
 
-        assert!(compiled[0].is_match("status=ok"));
-        assert!(!compiled[0].is_match("STATUS=OK"));
+    #[test]
+    fn persistent_filter_changes_wait_for_temp_search_to_end() {
+        let mut shared = new_shared();
+        let mut registry = FilterRegistry::default();
+        let first_id = add_filter_def(&mut shared, &mut registry, SearchFilter::plain("first"));
+        add_filter_def(&mut shared, &mut registry, SearchFilter::plain("second"));
+        let temp_search = SearchFilter::plain("temp").into();
+        shared.filters.active_temp_search = Some(temp_search);
 
-        assert!(compiled[1].is_match("cpu=42"));
-        assert!(!compiled[1].is_match("cpu=42x"));
+        let initial_commands = shared.sync_search(&registry, SearchSyncTarget::Filter);
+        let temp_operation_id = match &initial_commands[0] {
+            SessionCommand::ApplySearchFilter { operation_id, .. } => *operation_id,
+            other => panic!("expected ApplySearchFilter, got {other:?}"),
+        };
+        shared.search.set_search_result_count(7);
+        shared.signals.clear();
 
-        assert!(compiled[2].is_match("WARNING"));
-        assert!(!compiled[2].is_match("WARN"));
+        assert!(shared.set_filter_enabled(&first_id, false));
+        let deferred_commands = shared.sync_persistent_search(&registry, SearchSyncTarget::Filter);
 
-        assert!(compiled[3].is_match("TEMP"));
-        assert!(!compiled[3].is_match("TEAM"));
+        assert!(deferred_commands.is_empty());
+        assert_eq!(
+            shared.search.processing_search_operation(),
+            Some(temp_operation_id)
+        );
+        assert_eq!(shared.search.search_result_count(), 7);
+        assert!(shared.signals.is_empty());
+
+        shared.filters.active_temp_search = None;
+        let restored_commands = shared.sync_search(&registry, SearchSyncTarget::Filter);
+        assert_eq!(restored_commands.len(), 2);
+        match &restored_commands[1] {
+            SessionCommand::ApplySearchFilter { filters, .. } => {
+                assert_eq!(filters.len(), 1);
+                assert_eq!(filters[0].value, "second");
+            }
+            other => panic!("expected ApplySearchFilter, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn temp_search_does_not_defer_search_value_sync() {
+        let mut shared = new_shared();
+        let mut registry = FilterRegistry::default();
+        add_filter(&mut shared, &mut registry, "status=ok");
+        add_value(&mut shared, &mut registry, "cpu=(\\d+)");
+        let temp_search = SearchFilter::plain("temp").into();
+        shared.filters.active_temp_search = Some(temp_search);
+
+        let commands = shared.sync_persistent_search(&registry, SearchSyncTarget::Both);
+
+        assert_eq!(commands.len(), 1);
+        match &commands[0] {
+            SessionCommand::ApplySearchValuesFilter { filters, .. } => {
+                assert_eq!(filters, &["cpu=(\\d+)".to_owned()]);
+            }
+            other => panic!("expected ApplySearchValuesFilter, got {other:?}"),
+        }
     }
 
     #[test]

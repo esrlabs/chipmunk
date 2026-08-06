@@ -67,7 +67,11 @@ impl SearchBar {
         //   from it and use it as the current text for the text input.
         let move_cursor_end = if backspace_pressed
             && self.query.is_empty()
-            && let Some(mut filter) = shared.filters.take_temp_search()
+            && let Some(mut filter) = shared
+                .filters
+                .active_temp_search
+                .take()
+                .map(|temp| temp.into_filter())
         {
             if command_modifier {
                 self.drop_search(shared, actions, registry);
@@ -170,7 +174,8 @@ impl SearchBar {
         match validate_filter(&filter) {
             ValidationEligibility::Eligible => {
                 self.query.clear();
-                shared.filters.set_temp_search(filter);
+                let temp_search = filter.into();
+                shared.filters.active_temp_search = Some(temp_search);
                 shared
                     .sync_search(registry, SearchSyncTarget::Filter)
                     .into_iter()
@@ -354,7 +359,7 @@ impl SearchBar {
         actions: &mut UiActions,
         registry: &FilterRegistry,
     ) {
-        shared.filters.clear_temp_search();
+        shared.filters.active_temp_search = None;
         shared
             .sync_search(registry, SearchSyncTarget::Filter)
             .into_iter()
@@ -406,9 +411,8 @@ mod tests {
         let (cmd_tx, mut cmd_rx) = mpsc::channel(4);
         let mut search_bar = SearchBar::new(cmd_tx);
 
-        shared
-            .filters
-            .set_temp_search(SearchFilter::plain("status=ok").ignore_case(true));
+        let temp_search = SearchFilter::plain("status=ok").ignore_case(true).into();
+        shared.filters.active_temp_search = Some(temp_search);
         search_bar.query = "(".to_owned();
         search_bar.is_regex = true;
 
