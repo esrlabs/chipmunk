@@ -506,20 +506,7 @@ pub fn apply_log_row_colors(
             .search
             .filter_indices(pos)
             .and_then(|matches| matches.last())
-            .and_then(|filter_idx| {
-                let idx = filter_idx.0 as usize;
-                if let Some(filter_id) = shared.filters.enabled_filter_ids().nth(idx) {
-                    shared
-                        .filters
-                        .filter_entries
-                        .iter()
-                        .find(|item| item.id == *filter_id)
-                        .map(|item| &item.colors)
-                } else {
-                    // This is the temporary unregistered search.
-                    Some(&TEMP_SEARCH_COLORS)
-                }
-            })
+            .and_then(|filter_idx| shared.filter_match_colors(filter_idx.0 as usize))
             .or_else(|| {
                 shared
                     .logs

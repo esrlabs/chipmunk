@@ -86,10 +86,12 @@ impl FiltersUi {
                     RegistryEditOutcome::EditedInPlace => {
                         self.clear_filter_edit_for(filter_id);
                         shared.bump_recent_revision();
-                        shared
-                            .sync_search(registry, SearchSyncTarget::Filter)
-                            .into_iter()
-                            .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
+                        self.dispatch_sync_commands(
+                            shared,
+                            actions,
+                            registry,
+                            SearchSyncTarget::Filter,
+                        );
                     }
                     RegistryEditOutcome::Reassigned(next_filter_id) => {
                         if shared.rebind_filter(&filter_id, next_filter_id) {
@@ -99,10 +101,12 @@ impl FiltersUi {
                             );
                         }
                         self.clear_filter_edit_for(filter_id);
-                        shared
-                            .sync_search(registry, SearchSyncTarget::Filter)
-                            .into_iter()
-                            .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
+                        self.dispatch_sync_commands(
+                            shared,
+                            actions,
+                            registry,
+                            SearchSyncTarget::Filter,
+                        );
                     }
                 }
             }
@@ -138,10 +142,12 @@ impl FiltersUi {
                     RegistryEditOutcome::EditedInPlace => {
                         self.clear_search_value_edit_for(value_id);
                         shared.bump_recent_revision();
-                        shared
-                            .sync_search(registry, SearchSyncTarget::SearchValue)
-                            .into_iter()
-                            .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
+                        self.dispatch_sync_commands(
+                            shared,
+                            actions,
+                            registry,
+                            SearchSyncTarget::SearchValue,
+                        );
                     }
                     RegistryEditOutcome::Reassigned(next_value_id) => {
                         if shared.rebind_search_value(&value_id, next_value_id) {
@@ -151,10 +157,12 @@ impl FiltersUi {
                             );
                         }
                         self.clear_search_value_edit_for(value_id);
-                        shared
-                            .sync_search(registry, SearchSyncTarget::SearchValue)
-                            .into_iter()
-                            .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
+                        self.dispatch_sync_commands(
+                            shared,
+                            actions,
+                            registry,
+                            SearchSyncTarget::SearchValue,
+                        );
                     }
                 }
             }
@@ -163,10 +171,12 @@ impl FiltersUi {
             }
             FilterPanelAction::ToggleFilter(filter_id, enabled) => {
                 if shared.set_filter_enabled(&filter_id, enabled) {
-                    shared
-                        .sync_search(registry, SearchSyncTarget::Filter)
-                        .into_iter()
-                        .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
+                    self.dispatch_sync_commands(
+                        shared,
+                        actions,
+                        registry,
+                        SearchSyncTarget::Filter,
+                    );
                 }
             }
             FilterPanelAction::EditFilterFlags(filter_id, flags) => {
@@ -201,10 +211,12 @@ impl FiltersUi {
                     RegistryEditOutcome::NotFound => {}
                     RegistryEditOutcome::EditedInPlace => {
                         shared.bump_recent_revision();
-                        shared
-                            .sync_search(registry, SearchSyncTarget::Filter)
-                            .into_iter()
-                            .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
+                        self.dispatch_sync_commands(
+                            shared,
+                            actions,
+                            registry,
+                            SearchSyncTarget::Filter,
+                        );
                     }
                     RegistryEditOutcome::Reassigned(next_filter_id) => {
                         if shared.rebind_filter(&filter_id, next_filter_id) {
@@ -214,10 +226,12 @@ impl FiltersUi {
                             );
                         }
 
-                        shared
-                            .sync_search(registry, SearchSyncTarget::Filter)
-                            .into_iter()
-                            .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
+                        self.dispatch_sync_commands(
+                            shared,
+                            actions,
+                            registry,
+                            SearchSyncTarget::Filter,
+                        );
                     }
                 }
             }
@@ -225,10 +239,7 @@ impl FiltersUi {
                 self.clear_filter_edit_for(filter_id);
                 self.clear_selection_for(SelectedSidebarItem::Filter(filter_id));
                 shared.unapply_filter(registry, &filter_id);
-                shared
-                    .sync_search(registry, SearchSyncTarget::Filter)
-                    .into_iter()
-                    .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
+                self.dispatch_sync_commands(shared, actions, registry, SearchSyncTarget::Filter);
             }
             FilterPanelAction::RemoveAllFilters => {
                 self.filter_edit_state = None;
@@ -239,10 +250,7 @@ impl FiltersUi {
                     self.selected_item = None;
                 }
                 shared.unapply_all_filters(registry);
-                shared
-                    .sync_search(registry, SearchSyncTarget::Filter)
-                    .into_iter()
-                    .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
+                self.dispatch_sync_commands(shared, actions, registry, SearchSyncTarget::Filter);
             }
             FilterPanelAction::ReorderItem(item, insert_index) => {
                 let (changed, target) = match item {
@@ -257,10 +265,7 @@ impl FiltersUi {
                 };
                 // Backend result metadata uses positional indexes, so reorders currently resync.
                 if changed {
-                    shared
-                        .sync_search(registry, target)
-                        .into_iter()
-                        .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
+                    self.dispatch_sync_commands(shared, actions, registry, target);
                 }
             }
             FilterPanelAction::MoveFilterToValue(filter_id, insert_index) => {
@@ -281,28 +286,29 @@ impl FiltersUi {
                         SelectedSidebarItem::Filter(filter_id),
                         SelectedSidebarItem::SearchValue(value_id),
                     );
-                    shared
-                        .sync_search(registry, SearchSyncTarget::Both)
-                        .into_iter()
-                        .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
+                    self.dispatch_sync_commands(shared, actions, registry, SearchSyncTarget::Both);
                 }
             }
             FilterPanelAction::ToggleSearchValue(value_id, enabled) => {
                 if shared.set_search_value_enabled(&value_id, enabled) {
-                    shared
-                        .sync_search(registry, SearchSyncTarget::SearchValue)
-                        .into_iter()
-                        .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
+                    self.dispatch_sync_commands(
+                        shared,
+                        actions,
+                        registry,
+                        SearchSyncTarget::SearchValue,
+                    );
                 }
             }
             FilterPanelAction::RemoveSearchValue(value_id) => {
                 self.clear_search_value_edit_for(value_id);
                 self.clear_selection_for(SelectedSidebarItem::SearchValue(value_id));
                 shared.unapply_search_value(registry, &value_id);
-                shared
-                    .sync_search(registry, SearchSyncTarget::SearchValue)
-                    .into_iter()
-                    .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
+                self.dispatch_sync_commands(
+                    shared,
+                    actions,
+                    registry,
+                    SearchSyncTarget::SearchValue,
+                );
             }
             FilterPanelAction::RemoveAllSearchValues => {
                 self.search_value_edit_state = None;
@@ -313,10 +319,12 @@ impl FiltersUi {
                     self.selected_item = None;
                 }
                 shared.unapply_all_search_values(registry);
-                shared
-                    .sync_search(registry, SearchSyncTarget::SearchValue)
-                    .into_iter()
-                    .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
+                self.dispatch_sync_commands(
+                    shared,
+                    actions,
+                    registry,
+                    SearchSyncTarget::SearchValue,
+                );
             }
             FilterPanelAction::MoveValueToFilter(value_id, insert_index) => {
                 self.clear_search_value_edit_for(value_id);
@@ -336,15 +344,25 @@ impl FiltersUi {
                         SelectedSidebarItem::SearchValue(value_id),
                         SelectedSidebarItem::Filter(filter_id),
                     );
-                    shared
-                        .sync_search(registry, SearchSyncTarget::Both)
-                        .into_iter()
-                        .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
+                    self.dispatch_sync_commands(shared, actions, registry, SearchSyncTarget::Both);
                 }
             }
             FilterPanelAction::CapturePreset => {
                 shared.signals.push(SessionSignal::CapturePreset);
             }
         }
+    }
+
+    fn dispatch_sync_commands(
+        &self,
+        shared: &mut SessionShared,
+        actions: &mut UiActions,
+        registry: &FilterRegistry,
+        target: SearchSyncTarget,
+    ) {
+        shared
+            .sync_persistent_search(registry, target)
+            .into_iter()
+            .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
     }
 }

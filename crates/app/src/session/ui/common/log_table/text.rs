@@ -926,19 +926,18 @@ mod tests {
     }
 
     #[test]
-    fn active_filters_follow_backend_order() {
+    fn temp_highlight_uses_effective_backend_order() {
         let mut shared = new_shared();
         let mut registry = FilterRegistry::default();
 
-        let first_id = apply_filter(&mut shared, &mut registry, SearchFilter::plain("first"));
-        let second_id = apply_filter(&mut shared, &mut registry, SearchFilter::plain("second"));
-        shared
-            .filters
-            .set_temp_search(SearchFilter::plain("temp").ignore_case(true));
-        let filters = shared.search.get_active_filters(&shared.filters, &registry);
+        apply_filter(&mut shared, &mut registry, SearchFilter::plain("first"));
+        apply_filter(&mut shared, &mut registry, SearchFilter::plain("second"));
+        let temp_search = SearchFilter::plain("temp").ignore_case(true).into();
+        shared.filters.active_temp_search = Some(temp_search);
+        let filters = shared.filters.effective_filters(&registry);
         shared.search.refresh_compiled_filters(&filters);
 
-        append_row_match(&mut shared, 12, vec![0, 2]);
+        append_row_match(&mut shared, 12, vec![0]);
 
         let spans = matched_cell_spans(
             "first temp second",
@@ -947,8 +946,6 @@ mod tests {
             shared.search.compiled_filters(),
         );
 
-        assert_eq!(shared.filters.filter_entries[0].id, first_id);
-        assert_eq!(shared.filters.filter_entries[1].id, second_id);
-        assert_eq!(spans, vec![0..5, 6..10]);
+        assert_eq!(spans, vec![6..10]);
     }
 }

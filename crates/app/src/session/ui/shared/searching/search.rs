@@ -11,12 +11,9 @@ use rustc_hash::FxHashMap;
 use stypes::FilterMatch;
 use uuid::Uuid;
 
-use crate::session::types::OperationPhase;
-use crate::{
-    host::ui::registry::filters::FilterRegistry, session::ui::definitions::UpdateOperationOutcome,
-};
+use crate::session::{types::OperationPhase, ui::definitions::UpdateOperationOutcome};
 
-use super::{FiltersState, NestedSearchState};
+use super::NestedSearchState;
 
 #[derive(Debug, Clone, Copy)]
 pub struct FilterIndex(pub u8);
@@ -137,24 +134,6 @@ impl SearchState {
     /// Returns mutable Find in Search Results state for UI lifecycle updates.
     pub fn nested_mut(&mut self) -> &mut NestedSearchState {
         &mut self.nested
-    }
-
-    pub fn get_active_filters(
-        &self,
-        filters_state: &FiltersState,
-        registry: &FilterRegistry,
-    ) -> Vec<SearchFilter> {
-        let mut filters: Vec<_> = filters_state
-            .enabled_filter_ids()
-            .filter_map(|uuid| registry.get_filter(uuid))
-            .map(|def| def.filter.clone())
-            .collect();
-
-        if let Some(active) = &filters_state.active_temp_search {
-            filters.push(active.filter().clone());
-        }
-
-        filters
     }
 
     /// Rebuilds cached regex matchers from the current effective search filters.

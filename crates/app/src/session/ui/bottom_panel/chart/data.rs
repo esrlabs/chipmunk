@@ -74,13 +74,23 @@ impl ChartsData {
         }
     }
 
-    /// Resolve active histogram series for the current session in backend index order.
+    /// Resolves histogram series in the same order as the backend filter projection.
     ///
-    /// The expected index mapping is:
-    /// 1. Enabled filters in session order.
-    /// 2. Active temp search as the last series (if present).
+    /// An active temporary search becomes the only series at backend index `0`. Otherwise, enabled
+    /// persistent filters are resolved in session order.
     pub fn resolve_histogram_series(&mut self, shared: &SessionShared, registry: &FilterRegistry) {
         self.series.clear();
+
+        if let Some(temp_search) = shared.filters.active_temp_search.as_ref() {
+            let series = HistogramSeries {
+                filter_idx: 0,
+                name: temp_search.filter().value.clone(),
+                color: TEMP_SEARCH_COLORS.bg,
+            };
+            self.series.push(series);
+
+            return;
+        }
 
         for (idx, item) in shared
             .filters
@@ -100,17 +110,6 @@ impl ChartsData {
                 filter_idx,
                 name: filter_def.filter.value.clone(),
                 color: item.colors.bg,
-            });
-        }
-
-        // Append temp search to the end of charts
-        if let Some(temp_search) = &shared.filters.active_temp_search
-            && let Ok(filter_idx) = u8::try_from(shared.filters.enabled_filter_ids().count())
-        {
-            self.series.push(HistogramSeries {
-                filter_idx,
-                name: temp_search.filter().value.clone(),
-                color: TEMP_SEARCH_COLORS.bg,
             });
         }
     }
@@ -275,6 +274,33 @@ mod tests {
         assert_eq!(data.series[0].color, Color32::RED);
         assert_eq!(data.series[1].name, "status=warn");
         assert_eq!(data.series[1].color, Color32::GREEN);
+    }
+
+    #[test]
+    fn temp_search_replaces_histogram_but_not_value_series() {
+        let mut shared = new_shared();
+        let mut registry = FilterRegistry::default();
+        let mut data = ChartsData::default();
+
+        let filter = FilterDefinition::new(SearchFilter::plain("persistent"));
+        let filter_id = registry.add_filter(filter);
+        shared.filters.apply_filter(&mut registry, filter_id);
+
+        let value = SearchValueDefinition::new(SearchFilter::plain("cpu=(\\d+)").regex(true));
+        let value_id = registry.add_search_value(value);
+        shared.filters.apply_search_value(&mut registry, value_id);
+        let temp_search = SearchFilter::plain("temporary").into();
+        shared.filters.active_temp_search = Some(temp_search);
+
+        data.resolve_histogram_series(&shared, &registry);
+        data.resolve_search_value_series(&shared, &registry);
+
+        assert_eq!(data.series.len(), 1);
+        assert_eq!(data.series[0].filter_idx, 0);
+        assert_eq!(data.series[0].name, "temporary");
+        assert_eq!(data.series[0].color, TEMP_SEARCH_COLORS.bg);
+        assert_eq!(data.search_value_series.len(), 1);
+        assert_eq!(data.search_value_series[0].name, "cpu=(\\d+)");
     }
 
     #[test]

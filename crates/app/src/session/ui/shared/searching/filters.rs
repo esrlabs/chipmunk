@@ -25,7 +25,7 @@ pub struct TempSearch {
 }
 
 impl TempSearch {
-    pub fn new(filter: SearchFilter) -> Self {
+    fn new(filter: SearchFilter) -> Self {
         let filter_eligibility = validate_filter(&filter);
         let search_value_eligibility = validate_search_value_filter(&filter);
         Self {
@@ -35,36 +35,52 @@ impl TempSearch {
         }
     }
 
+    /// Returns the temporary search filter.
     pub const fn filter(&self) -> &SearchFilter {
         &self.filter
     }
 
+    /// Returns whether the temporary search can be pinned as a filter.
     pub const fn filter_eligibility(&self) -> &ValidationEligibility {
         &self.filter_eligibility
     }
 
+    /// Returns whether the temporary search can be pinned as a search value.
     pub const fn search_value_eligibility(&self) -> &ValidationEligibility {
         &self.search_value_eligibility
     }
 
+    /// Consumes the temporary search and returns its filter.
     pub fn into_filter(self) -> SearchFilter {
         self.filter
+    }
+}
+
+impl From<SearchFilter> for TempSearch {
+    fn from(filter: SearchFilter) -> Self {
+        Self::new(filter)
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// Session-local state for one applied filter.
 pub struct AppliedFilterState {
+    /// Registry ID of the filter definition.
     pub id: Uuid,
+    /// Whether the persistent filter is enabled.
     pub enabled: bool,
+    /// Foreground and background colors used for filter matches.
     pub colors: ColorPair,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 /// Session-local state for one applied chart/search value.
 pub struct AppliedSearchValueState {
+    /// Registry ID of the search-value definition.
     pub id: Uuid,
+    /// Whether the search value contributes to chart extraction.
     pub enabled: bool,
+    /// Color used to render the search-value series.
     pub color: Color32,
 }
 
@@ -89,12 +105,16 @@ impl AppliedSearchValueState {
 #[derive(Debug, Clone)]
 pub struct FiltersState {
     session_id: Uuid,
+    /// Applied persistent filters in session order.
     pub filter_entries: Vec<AppliedFilterState>,
+    /// Applied search values in chart order.
     pub search_value_entries: Vec<AppliedSearchValueState>,
+    /// Temporary search currently applied to this session.
     pub active_temp_search: Option<TempSearch>,
 }
 
 impl FiltersState {
+    /// Creates empty search-input state for a session.
     pub fn new(session_id: Uuid) -> Self {
         Self {
             session_id,
@@ -104,16 +124,27 @@ impl FiltersState {
         }
     }
 
-    pub fn set_temp_search(&mut self, filter: SearchFilter) {
-        self.active_temp_search = Some(TempSearch::new(filter));
+    /// Returns the filters currently effective for log searching.
+    ///
+    /// An active temporary search is exclusive; otherwise all enabled persistent filters apply.
+    pub fn effective_filters(&self, registry: &FilterRegistry) -> Vec<SearchFilter> {
+        if let Some(temp_search) = self.active_temp_search.as_ref() {
+            let filter = temp_search.filter().clone();
+            return vec![filter];
+        }
+
+        self.enabled_filter_ids()
+            .filter_map(|id| registry.get_filter(id))
+            .map(|definition| definition.filter.clone())
+            .collect()
     }
 
-    pub fn clear_temp_search(&mut self) {
-        self.active_temp_search = None;
-    }
-
-    pub fn take_temp_search(&mut self) -> Option<SearchFilter> {
-        self.active_temp_search.take().map(TempSearch::into_filter)
+    /// Returns an enabled persistent filter by its session-order index.
+    pub fn enabled_filter_at(&self, filter_index: usize) -> Option<&AppliedFilterState> {
+        self.filter_entries
+            .iter()
+            .filter(|entry| entry.enabled)
+            .nth(filter_index)
     }
 
     /// Converts the current temporary search into a persistent filter.
@@ -126,7 +157,7 @@ impl FiltersState {
             return false;
         }
 
-        if let Some(filter) = self.take_temp_search() {
+        if let Some(filter) = self.active_temp_search.take().map(TempSearch::into_filter) {
             let filter_id = registry.add_filter(FilterDefinition::new(filter));
             self.apply_filter(registry, filter_id);
             return true;
@@ -146,7 +177,7 @@ impl FiltersState {
             return false;
         }
 
-        if let Some(filter) = self.take_temp_search() {
+        if let Some(filter) = self.active_temp_search.take().map(TempSearch::into_filter) {
             let search_value_id = registry.add_search_value(SearchValueDefinition::new(filter));
             self.apply_search_value(registry, search_value_id);
             return true;
@@ -772,10 +803,39 @@ mod tests {
     }
 
     #[test]
+    fn temp_search_replaces_effective_filters() {
+        let mut state = new_state();
+        let mut registry = FilterRegistry::default();
+        let first_id = add_plain_filter_definition(&mut registry, "first");
+        let second_id = add_plain_filter_definition(&mut registry, "second");
+        state.apply_filter(&mut registry, first_id);
+        state.apply_filter(&mut registry, second_id);
+
+        let temp_search = SearchFilter::plain("temp").into();
+        state.active_temp_search = Some(temp_search);
+
+        let effective = state.effective_filters(&registry);
+        assert_eq!(effective.len(), 1);
+        assert_eq!(effective[0].value, "temp");
+
+        state.active_temp_search = None;
+
+        let effective = state.effective_filters(&registry);
+        assert_eq!(
+            effective
+                .iter()
+                .map(|filter| filter.value.as_str())
+                .collect::<Vec<_>>(),
+            ["first", "second"]
+        );
+    }
+
+    #[test]
     fn pinning_temp_search_assigns_filter_color() {
         let mut state = new_state();
         let mut registry = FilterRegistry::default();
-        state.set_temp_search(SearchFilter::plain("status=ok").ignore_case(true));
+        let temp_search = SearchFilter::plain("status=ok").ignore_case(true).into();
+        state.active_temp_search = Some(temp_search);
 
         assert!(state.pin_temp_search(&mut registry));
 
@@ -791,7 +851,8 @@ mod tests {
         let mut state = new_state();
         let mut registry = FilterRegistry::default();
         let existing_id = add_plain_filter_definition(&mut registry, "status=ok");
-        state.set_temp_search(SearchFilter::plain("status=ok").ignore_case(true));
+        let temp_search = SearchFilter::plain("status=ok").ignore_case(true).into();
+        state.active_temp_search = Some(temp_search);
 
         assert!(state.pin_temp_search(&mut registry));
 
@@ -805,7 +866,11 @@ mod tests {
     fn invalid_temp_search_does_not_pin() {
         let mut state = new_state();
         let mut registry = FilterRegistry::default();
-        state.set_temp_search(SearchFilter::plain("(").regex(true).ignore_case(true));
+        let temp_search = SearchFilter::plain("(")
+            .regex(true)
+            .ignore_case(true)
+            .into();
+        state.active_temp_search = Some(temp_search);
 
         assert!(!state.pin_temp_search(&mut registry));
         assert!(state.filter_entries.is_empty());
@@ -816,11 +881,11 @@ mod tests {
     fn pinning_temp_search_as_value_assigns_chart_color() {
         let mut state = new_state();
         let mut registry = FilterRegistry::default();
-        state.set_temp_search(
-            SearchFilter::plain("cpu=(\\d+)")
-                .regex(true)
-                .ignore_case(true),
-        );
+        let temp_search = SearchFilter::plain("cpu=(\\d+)")
+            .regex(true)
+            .ignore_case(true)
+            .into();
+        state.active_temp_search = Some(temp_search);
 
         assert!(state.pin_temp_search_as_value(&mut registry));
 
@@ -836,11 +901,11 @@ mod tests {
         let mut state = new_state();
         let mut registry = FilterRegistry::default();
         let existing_id = add_search_value_definition(&mut registry, "cpu=(\\d+)");
-        state.set_temp_search(
-            SearchFilter::plain("cpu=(\\d+)")
-                .regex(true)
-                .ignore_case(true),
-        );
+        let temp_search = SearchFilter::plain("cpu=(\\d+)")
+            .regex(true)
+            .ignore_case(true)
+            .into();
+        state.active_temp_search = Some(temp_search);
 
         assert!(state.pin_temp_search_as_value(&mut registry));
 
