@@ -28,7 +28,7 @@ mod info;
 mod logs;
 mod observe;
 pub(crate) mod searching;
-mod signal;
+pub mod signal;
 mod view;
 
 pub use attachments::{AttachmentModalState, AttachmentsState};

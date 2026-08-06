@@ -333,8 +333,7 @@ mod tests {
             true,
             Color32::from_rgb(30, 40, 50),
         )];
-        let preset_id =
-            add_preset_with_entries(&mut registry, "test", filters, search_values);
+        let preset_id = add_preset_with_entries(&mut registry, "test", filters, search_values);
         let temp_search = SearchFilter::plain("temporary").into();
         shared.filters.active_temp_search = Some(temp_search);
 
