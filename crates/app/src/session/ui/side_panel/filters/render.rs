@@ -430,7 +430,10 @@ impl FiltersUi {
         );
 
         let item_response = item_response.on_hover_cursor(CursorIcon::PointingHand);
-        if item_response.clicked() {
+        if side_action.is_none() && item_response.double_clicked() {
+            self.selected_item = Some(item);
+            side_action = Some(FilterPanelAction::ApplyTempSearch(item));
+        } else if item_response.clicked() {
             self.toggle_selected_item(item);
         }
 

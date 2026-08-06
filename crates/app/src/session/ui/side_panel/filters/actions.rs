@@ -4,9 +4,12 @@ use uuid::Uuid;
 
 use crate::{
     common::validation::{ValidationEligibility, validate_filter},
-    host::ui::{
-        UiActions,
-        registry::filters::{FilterRegistry, RegistryEditOutcome},
+    host::{
+        notification::AppNotification,
+        ui::{
+            UiActions,
+            registry::filters::{FilterRegistry, RegistryEditOutcome},
+        },
     },
     session::ui::shared::{SearchSyncTarget, SessionShared, SessionSignal},
 };
@@ -25,6 +28,7 @@ pub(super) enum FilterPanelAction {
     StartSearchValueEdit(Uuid),
     ApplySearchValueText(Uuid, String),
     CancelSearchValueEdit(Uuid),
+    ApplyTempSearch(SelectedSidebarItem),
     ToggleFilter(Uuid, bool),
     EditFilterFlags(Uuid, FilterFlags),
     RemoveFilter(Uuid),
@@ -168,6 +172,40 @@ impl FiltersUi {
             }
             FilterPanelAction::CancelSearchValueEdit(value_id) => {
                 self.clear_search_value_edit_for(value_id);
+            }
+            FilterPanelAction::ApplyTempSearch(item) => {
+                let filter = match item {
+                    SelectedSidebarItem::Filter(filter_id) => {
+                        let Some(definition) = registry.get_filter(&filter_id) else {
+                            return;
+                        };
+                        definition.filter.clone()
+                    }
+                    SelectedSidebarItem::SearchValue(value_id) => {
+                        let Some(definition) = registry.get_search_value(&value_id) else {
+                            return;
+                        };
+                        definition.filter.clone()
+                    }
+                };
+
+                match validate_filter(&filter) {
+                    ValidationEligibility::Eligible => {
+                        let temp_search = filter.clone().into();
+                        shared.filters.active_temp_search = Some(temp_search);
+                        shared
+                            .sync_search(registry, SearchSyncTarget::Filter)
+                            .into_iter()
+                            .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
+                        shared
+                            .signals
+                            .push(SessionSignal::TempSearchApplied(filter));
+                    }
+                    ValidationEligibility::Ineligible { reason } => {
+                        let message = format!("Filter couldn't be applied: {reason}");
+                        actions.add_notification(AppNotification::Warning(message));
+                    }
+                }
             }
             FilterPanelAction::ToggleFilter(filter_id, enabled) => {
                 if shared.set_filter_enabled(&filter_id, enabled) {
@@ -364,5 +402,130 @@ impl FiltersUi {
             .sync_persistent_search(registry, target)
             .into_iter()
             .for_each(|cmd| _ = actions.try_send_command(&self.cmd_tx, cmd));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::PathBuf;
+
+    use processor::search::filter::SearchFilter;
+    use stypes::{FileFormat, ObserveOrigin};
+    use tokio::{runtime::Runtime, sync::mpsc};
+    use uuid::Uuid;
+
+    use crate::{
+        host::{
+            common::parsers::ParserNames,
+            notification::AppNotification,
+            ui::{
+                UiActions,
+                registry::filters::{FilterDefinition, FilterRegistry, SearchValueDefinition},
+            },
+        },
+        session::{
+            command::SessionCommand,
+            types::ObserveOperation,
+            ui::{SessionInfo, definitions::schema::LogSchemaSpec, shared::SessionShared},
+        },
+    };
+
+    use super::{FilterPanelAction, FiltersUi, SelectedSidebarItem};
+
+    fn new_shared() -> SessionShared {
+        let session_info = SessionInfo {
+            id: Uuid::new_v4(),
+            title: "test".to_owned(),
+            parser: ParserNames::Text,
+            raw_export_supported: false,
+        };
+        let observe_op = ObserveOperation::new(
+            Uuid::new_v4(),
+            ObserveOrigin::File(
+                "source".to_owned(),
+                FileFormat::Text,
+                PathBuf::from("source.log"),
+            ),
+        );
+
+        SessionShared::new(session_info, observe_op, LogSchemaSpec::Text)
+    }
+
+    #[test]
+    fn copied_filter_replaces_temp_search_with_flags() {
+        let runtime = Runtime::new().expect("runtime should initialize");
+        let mut actions = UiActions::new(runtime.handle().clone());
+        let mut registry = FilterRegistry::default();
+        let mut shared = new_shared();
+        shared.filters.active_temp_search = Some(SearchFilter::plain("old").into());
+        let copied_filter = SearchFilter::plain("status=(ok|warn)")
+            .regex(true)
+            .ignore_case(true)
+            .word(true);
+        let value_id = registry.add_search_value(SearchValueDefinition::new(copied_filter.clone()));
+        let (cmd_tx, mut cmd_rx) = mpsc::channel(4);
+        let mut filters_ui = FiltersUi::new(cmd_tx);
+
+        filters_ui.handle_action(
+            Some(FilterPanelAction::ApplyTempSearch(
+                SelectedSidebarItem::SearchValue(value_id),
+            )),
+            &mut shared,
+            &mut actions,
+            &mut registry,
+        );
+
+        assert_eq!(
+            shared
+                .filters
+                .active_temp_search
+                .as_ref()
+                .map(|temp| temp.filter()),
+            Some(&copied_filter)
+        );
+        match cmd_rx.try_recv() {
+            Ok(SessionCommand::ApplySearchFilter { filters, .. }) => {
+                assert_eq!(filters, vec![copied_filter.clone()]);
+            }
+            other => panic!("expected ApplySearchFilter command, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn invalid_copied_filter_preserves_temp_search() {
+        let runtime = Runtime::new().expect("runtime should initialize");
+        let mut actions = UiActions::new(runtime.handle().clone());
+        let mut registry = FilterRegistry::default();
+        let mut shared = new_shared();
+        let current_filter = SearchFilter::plain("current").ignore_case(true);
+        shared.filters.active_temp_search = Some(current_filter.clone().into());
+        let invalid_filter = SearchFilter::plain("(").regex(true);
+        let filter_id = registry.add_filter(FilterDefinition::new(invalid_filter));
+        let (cmd_tx, mut cmd_rx) = mpsc::channel(1);
+        let mut filters_ui = FiltersUi::new(cmd_tx);
+
+        filters_ui.handle_action(
+            Some(FilterPanelAction::ApplyTempSearch(
+                SelectedSidebarItem::Filter(filter_id),
+            )),
+            &mut shared,
+            &mut actions,
+            &mut registry,
+        );
+
+        assert_eq!(
+            shared
+                .filters
+                .active_temp_search
+                .as_ref()
+                .map(|temp| temp.filter()),
+            Some(&current_filter)
+        );
+        assert!(cmd_rx.try_recv().is_err());
+        assert!(matches!(
+            actions.drain_notifications().next(),
+            Some(AppNotification::Warning(_))
+        ));
+        assert!(shared.signals.is_empty());
     }
 }

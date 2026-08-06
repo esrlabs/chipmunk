@@ -270,6 +270,9 @@ impl Session {
         for event in signals {
             match event {
                 SessionSignal::SearchDropped => self.handle_search_dropped(),
+                SessionSignal::TempSearchApplied(filter) => {
+                    self.bottom_panel.search.bar.adopt_filter(&filter)
+                }
                 SessionSignal::CapturePreset => self.capture_preset(registry, preferences),
             }
         }

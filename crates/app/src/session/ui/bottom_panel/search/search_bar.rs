@@ -173,7 +173,7 @@ impl SearchBar {
 
         match validate_filter(&filter) {
             ValidationEligibility::Eligible => {
-                self.query.clear();
+                self.adopt_filter(&filter);
                 let temp_search = filter.into();
                 shared.filters.active_temp_search = Some(temp_search);
                 shared
@@ -186,6 +186,14 @@ impl SearchBar {
                 actions.add_notification(AppNotification::Warning(msg));
             }
         }
+    }
+
+    /// Clears the pending draft and adopts the filter's matching flags.
+    pub fn adopt_filter(&mut self, filter: &SearchFilter) {
+        self.query.clear();
+        self.is_regex = filter.is_regex();
+        self.match_case = !filter.is_ignore_case();
+        self.is_word = filter.is_word();
     }
 
     /// Renders active search if exists inside input frame.
