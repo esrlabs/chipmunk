@@ -377,7 +377,7 @@ impl SearchBar {
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
+    use std::{assert_matches, path::PathBuf};
 
     use stypes::{FileFormat, ObserveOrigin};
     use tokio::{runtime::Runtime, sync::mpsc};
@@ -439,10 +439,10 @@ mod tests {
 
         let notifications: Vec<_> = actions.drain_notifications().collect();
         assert_eq!(notifications.len(), 1);
-        assert!(matches!(
-            &notifications[0],
+        assert_matches!(
+            &notifications[0].notification,
             AppNotification::Warning(msg)
                 if msg.starts_with("Filter couldn't be applied: Invalid regex:")
-        ));
+        );
     }
 }

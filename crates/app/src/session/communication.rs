@@ -94,6 +94,9 @@ impl ServiceSenders {
 
     /// Send notification to host and waking up UI.
     ///
+    /// Direct service notifications are displayed as banners and retained in notification
+    /// history.
+    ///
     /// # Return
     /// Returns `true` if the notification is sent successfully. On send errors
     /// it will log the error and return `false`.

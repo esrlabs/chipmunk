@@ -300,6 +300,8 @@ fn paint_pending_border(ui: &Ui, rect: Rect) {
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
+
     use egui::{Context, Event, Id, Key, Modifiers, RawInput, Rect, TextEdit, pos2, vec2};
     use processor::search::filter::SearchFilter;
     use regex::Regex;
@@ -479,6 +481,6 @@ mod tests {
         assert!(cmd_rx.try_recv().is_err());
         let notifications: Vec<_> = actions.drain_notifications().collect();
         assert_eq!(notifications.len(), 1);
-        assert!(matches!(notifications[0], AppNotification::Warning(_)));
+        assert_matches!(notifications[0].notification, AppNotification::Warning(_));
     }
 }

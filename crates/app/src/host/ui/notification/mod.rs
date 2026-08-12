@@ -75,9 +75,19 @@ impl NotificationUi {
             self.unseen_top_level = Some(entry.level);
         }
 
-        let active_banner = NotificationBanner::new(entry.clone());
-        self.active_banner = Some(active_banner);
+        self.show_banner(entry.clone(), true);
         self.queue.add_item(entry);
+    }
+
+    /// Shows a notification as a banner without adding it to history.
+    pub fn add_transient(&mut self, notification: AppNotification) {
+        let entry = NotificationEntry::from(notification);
+        self.show_banner(entry, false);
+    }
+
+    fn show_banner(&mut self, entry: NotificationEntry, history_backed: bool) {
+        let banner = NotificationBanner::new(entry, history_backed);
+        self.active_banner = Some(banner);
     }
 
     /// Renders the notification button with its popup, modal message, and latest banner.
@@ -146,11 +156,19 @@ impl NotificationUi {
 
         let clicked = banner.render(button_rect, ui);
         if clicked {
-            // Dismiss the banner and mark notifications as seen on click.
-            self.active_banner = None;
-            self.unseen_top_level = None;
+            self.dismiss_banner();
         } else if banner.expired() {
             self.active_banner = None;
+        }
+    }
+
+    fn dismiss_banner(&mut self) {
+        let Some(banner) = self.active_banner.take() else {
+            return;
+        };
+
+        if banner.history_backed() {
+            self.unseen_top_level = None;
         }
     }
 
@@ -299,5 +317,27 @@ impl From<AppNotification> for NotificationEntry {
         };
 
         Self { level, message }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{NotificationLevel, NotificationUi};
+    use crate::host::notification::AppNotification;
+
+    #[test]
+    fn transient_dismissal_preserves_unseen_history() {
+        let mut notifications = NotificationUi::default();
+        notifications.add(AppNotification::Warning("Retained".to_owned()));
+        notifications.add_transient(AppNotification::Error("Transient".to_owned()));
+
+        notifications.dismiss_banner();
+
+        assert_eq!(notifications.queue.len(), 1);
+        assert_eq!(
+            notifications.unseen_top_level,
+            Some(NotificationLevel::Warning)
+        );
+        assert!(notifications.active_banner.is_none());
     }
 }

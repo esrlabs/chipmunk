@@ -1,7 +1,8 @@
 use std::time::Duration;
 
-use crate::host::notification::AppNotification;
 use tokio::{runtime::Handle, sync::mpsc};
+
+use crate::host::notification::{AppNotification, NotificationDisplay, NotificationRequest};
 
 mod file_dialog;
 mod host_action;
@@ -16,7 +17,7 @@ pub struct UiActions {
     /// Tokio runtime handle for UI components that need to spawn service-side work.
     #[expect(dead_code, reason = "Reserved for upcoming UI async actions.")]
     pub tokio_handle: Handle,
-    pending_notifications: Vec<AppNotification>,
+    pending_notifications: Vec<NotificationRequest>,
     pub file_dialog: FileDialogHandle,
     // Queue of actions for the Host to process next frame
     host_actions: Vec<HostAction>,
@@ -32,11 +33,25 @@ impl UiActions {
         }
     }
 
-    pub fn add_notification(&mut self, notifi: AppNotification) {
-        self.pending_notifications.push(notifi);
+    /// Queues a notification for history and the active banner.
+    pub fn add_notification(&mut self, notification: AppNotification) {
+        let request = NotificationRequest {
+            notification,
+            display: NotificationDisplay::HistoryAndBanner,
+        };
+        self.pending_notifications.push(request);
     }
 
-    pub fn drain_notifications(&mut self) -> impl Iterator<Item = AppNotification> {
+    /// Queues a banner without adding it to notification history.
+    pub fn add_transient_notification(&mut self, notification: AppNotification) {
+        let request = NotificationRequest {
+            notification,
+            display: NotificationDisplay::BannerOnly,
+        };
+        self.pending_notifications.push(request);
+    }
+
+    pub fn drain_notifications(&mut self) -> impl Iterator<Item = NotificationRequest> {
         self.pending_notifications.drain(..)
     }
 
