@@ -21,6 +21,9 @@ pub enum SessionMessage {
     /// Result from fetching a specific log line.
     SelectedLog(Result<GrabbedElement, SessionError>),
 
+    /// Result from loading selected stream rows for clipboard copying.
+    CopyRowsLoaded(Result<Vec<GrabbedElement>, SessionError>),
+
     // --- Search ---
     //
     /// Total number of rows matched by the active search.

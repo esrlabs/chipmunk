@@ -450,6 +450,25 @@ impl SessionService {
                     .send_session_msg(SessionMessage::SelectedLog(selected_log))
                     .await;
             }
+            SessionCommand::CopyRows(rows) => {
+                let ranges = export::rows_to_ranges(rows);
+                let result = if ranges.is_empty() {
+                    Ok(Vec::new())
+                } else {
+                    self.session
+                        .grab_ranges(ranges)
+                        .await
+                        .map(|elements| elements.0)
+                        .map_err(SessionError::from)
+                };
+
+                // Keep display-specific formatting in the UI, which owns the log schema and
+                // ANSI display policy. Manual testing with 10,000 rows remained responsive,
+                // so moving formatting off the UI thread does not currently justify duplicating
+                // schema state or adding worker handoff complexity.
+                let msg = SessionMessage::CopyRowsLoaded(result);
+                self.senders.send_session_msg(msg).await;
+            }
             SessionCommand::PreviewAttachment(request) => {
                 self.preview_attachment(request).await;
             }

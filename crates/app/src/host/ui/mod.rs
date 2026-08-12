@@ -595,7 +595,7 @@ impl eframe::App for Host {
                 continue;
             };
 
-            session.handle_messages(&mut self.ui_actions, &mut self.storage, registry);
+            session.handle_messages(ctx, &mut self.ui_actions, &mut self.storage, registry);
         }
 
         self.handle_recent_sessions();
