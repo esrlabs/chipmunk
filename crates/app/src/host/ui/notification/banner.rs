@@ -13,6 +13,7 @@ use super::NotificationEntry;
 #[derive(Debug, Clone)]
 pub struct NotificationBanner {
     entry: NotificationEntry,
+    history_backed: bool,
     remaining: Duration,
     created_at: Instant,
     last_updated: Instant,
@@ -22,12 +23,19 @@ pub struct NotificationBanner {
 }
 
 impl NotificationBanner {
-    pub fn new(entry: NotificationEntry) -> Self {
+    /// Creates a banner with its full display lifetime available.
+    ///
+    /// # Arguments
+    ///
+    /// * `entry` - Display-ready notification content.
+    /// * `history_backed` - Whether dismissing the banner should mark notification history as seen.
+    pub fn new(entry: NotificationEntry, history_backed: bool) -> Self {
         const BANNER_TTL: Duration = Duration::from_secs(4);
 
         let now = Instant::now();
         Self {
             entry,
+            history_backed,
             remaining: BANNER_TTL,
             created_at: now,
             last_updated: now,
@@ -35,6 +43,21 @@ impl NotificationBanner {
         }
     }
 
+    /// Returns whether this banner represents a notification retained in history.
+    pub fn history_backed(&self) -> bool {
+        self.history_backed
+    }
+
+    /// Renders the banner below the notification button and advances its display lifetime.
+    ///
+    /// # Arguments
+    ///
+    /// * `button_rect` - Notification button bounds used to position the banner.
+    /// * `ui` - Parent UI used for rendering and repaint scheduling.
+    ///
+    /// # Return
+    ///
+    /// Returns `true` when the banner is clicked.
     pub fn render(&mut self, button_rect: Rect, ui: &mut Ui) -> bool {
         const BANNER_MAX_WIDTH: f32 = 340.0;
         const BANNER_MARGIN: f32 = 8.0;
@@ -144,6 +167,7 @@ impl NotificationBanner {
         false
     }
 
+    /// Returns whether the banner display lifetime has elapsed.
     pub fn expired(&self) -> bool {
         self.remaining.is_zero()
     }

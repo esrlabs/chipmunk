@@ -407,7 +407,7 @@ impl FiltersUi {
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
+    use std::{assert_matches, path::PathBuf};
 
     use processor::search::filter::SearchFilter;
     use stypes::{FileFormat, ObserveOrigin};
@@ -522,10 +522,13 @@ mod tests {
             Some(&current_filter)
         );
         assert!(cmd_rx.try_recv().is_err());
-        assert!(matches!(
-            actions.drain_notifications().next(),
+        assert_matches!(
+            actions
+                .drain_notifications()
+                .next()
+                .map(|request| request.notification),
             Some(AppNotification::Warning(_))
-        ));
+        );
         assert!(shared.signals.is_empty());
     }
 }

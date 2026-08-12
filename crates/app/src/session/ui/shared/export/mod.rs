@@ -251,6 +251,8 @@ pub fn full_row_text_options() -> TextExportOptions {
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
+
     use super::*;
     use crate::host::notification::AppNotification;
 
@@ -283,7 +285,7 @@ mod tests {
 
         let notifications = actions.drain_notifications().collect::<Vec<_>>();
         assert_eq!(notifications.len(), 1);
-        assert!(matches!(notifications[0], AppNotification::Info(_)));
+        assert_matches!(notifications[0].notification, AppNotification::Info(_));
     }
 
     #[test]

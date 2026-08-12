@@ -325,12 +325,17 @@ impl Session {
                     let Some(rows) = self.ok_or_notify(result, actions) else {
                         continue;
                     };
-                    let text = common::log_table::copy::format_rows(
-                        rows,
-                        self.shared.schema.as_ref(),
-                    );
+                    let row_count = rows.len();
+                    let text =
+                        common::log_table::copy::format_rows(rows, self.shared.schema.as_ref());
                     if !text.is_empty() {
                         ctx.copy_text(text);
+
+                        let message = match row_count {
+                            1 => "Copied 1 row to clipboard.".to_owned(),
+                            count => format!("Copied {count} rows to clipboard."),
+                        };
+                        actions.add_transient_notification(AppNotification::Info(message));
                     }
                 }
                 SessionMessage::SearchResultCountUpdated { count } => {
@@ -1086,7 +1091,10 @@ mod tests {
         assert!(session.shared.logs.take_main_row_focus().is_none());
         let notifications: Vec<_> = actions.drain_notifications().collect();
         assert_eq!(notifications.len(), 1);
-        assert_matches!(notifications.first(), Some(AppNotification::Info(_)));
+        assert_matches!(
+            notifications.first().map(|request| &request.notification),
+            Some(AppNotification::Info(_))
+        );
     }
 
     #[test]

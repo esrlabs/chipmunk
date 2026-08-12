@@ -461,7 +461,10 @@ mod tests {
         assert!(storage.file_explorer.get_save_data().is_some());
         assert!(storage.recent_sessions.get_save_data().is_some());
         assert!(matches!(
-            ui_actions.drain_notifications().next(),
+            ui_actions
+                .drain_notifications()
+                .next()
+                .map(|request| request.notification),
             Some(AppNotification::Error(message)) if message.contains("disk full")
         ));
     }
@@ -566,7 +569,10 @@ mod tests {
         );
 
         assert!(matches!(
-            ui_actions.drain_notifications().next(),
+            ui_actions
+                .drain_notifications()
+                .next()
+                .map(|request| request.notification),
             Some(AppNotification::Warning(_))
         ));
     }

@@ -19,6 +19,7 @@ use crate::{
         common::{app_style, colors},
         communication::{UiReceivers, UiSenders},
         message::HostMessage,
+        notification::NotificationDisplay,
         service::HostService,
         ui::{
             command_palette::CommandPalette,
@@ -420,9 +421,16 @@ impl Host {
 
     fn handle_ui_actions(&mut self, ctx: &Context) {
         let mut changed = false;
-        for notifi in self.ui_actions.drain_notifications() {
+        for request in self.ui_actions.drain_notifications() {
             changed = true;
-            self.notifications.add(notifi);
+            match request.display {
+                NotificationDisplay::HistoryAndBanner => {
+                    self.notifications.add(request.notification)
+                }
+                NotificationDisplay::BannerOnly => {
+                    self.notifications.add_transient(request.notification)
+                }
+            }
         }
 
         let host_actions: Vec<_> = self.ui_actions.drain_host_actions().collect();
