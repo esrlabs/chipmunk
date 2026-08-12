@@ -51,7 +51,7 @@ impl BottomPanelUI {
     ) -> Self {
         Self {
             search: SearchUI::new(cmd_tx.clone(), schema),
-            details: DetailsUI::default(),
+            details: DetailsUI::new(cmd_tx.clone()),
             library: LibraryUI::new(cmd_tx.clone()),
             presets: PresetsUI::new(cmd_tx.clone(), host_cmd_tx),
             chart: ChartUI::new(cmd_tx),
@@ -72,7 +72,7 @@ impl BottomPanelUI {
                 self.search
                     .render_content(shared, actions, &mut registry.filters, ui)
             }
-            BottomTabType::Details => self.details.render_content(shared, ui),
+            BottomTabType::Details => self.details.render_content(shared, actions, ui),
             BottomTabType::Library => {
                 self.library
                     .render_content(shared, actions, &mut registry.filters, ui)
