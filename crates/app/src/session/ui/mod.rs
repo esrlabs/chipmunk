@@ -703,6 +703,16 @@ impl Session {
             .nested_focused(self.get_info().id, ctx)
     }
 
+    /// Handles session-scoped copy behavior, returning `true` when the event is consumed.
+    pub fn handle_copy_event(
+        &mut self,
+        actions: &mut UiActions,
+        preferences: &HostPreferences,
+        ctx: &Context,
+    ) -> bool {
+        shortcuts::handle_copy_event(self, actions, preferences, ctx)
+    }
+
     /// Handles session shortcuts, returning `true` when a shortcut is consumed.
     pub fn handle_shortcuts(
         &mut self,
