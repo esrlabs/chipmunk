@@ -92,32 +92,42 @@ impl HostTabs {
             }
         }));
 
-        let tabs_event = strip.show(ui, control_rect, &self.tab_specs, |ui, idx| {
-            let Some(tab) = self.tabs.get(idx) else {
-                return;
-            };
+        let tabs = &self.tabs;
+        let tabs_event = strip.show(
+            ui,
+            control_rect,
+            &self.tab_specs,
+            |ui, idx| {
+                let Some(tab) = tabs.get(idx) else {
+                    return;
+                };
 
-            match tab {
-                HostTab::Home(_) => {
-                    ui.label(
-                        RichText::new(icons::fill::HOUSE)
-                            .family(phosphor::fill_font_family())
-                            .size(HOST_TAB_HOME_ICON_SIZE),
-                    );
+                match tab {
+                    HostTab::Home(_) => {
+                        ui.label(
+                            RichText::new(icons::fill::HOUSE)
+                                .family(phosphor::fill_font_family())
+                                .size(HOST_TAB_HOME_ICON_SIZE),
+                        );
+                    }
+                    HostTab::Session(session) => {
+                        let title = session.get_info().title.as_str();
+                        tab_label(ui, title);
+                    }
+                    HostTab::SessionSetup(setup) => {
+                        let title = setup.title();
+                        tab_label(ui, title.as_ref());
+                    }
+                    HostTab::MultiFileSetup(_) => tab_label(ui, "Multiple Files"),
+                    HostTab::PluginManager(_) => tab_label(ui, "Plugin Manager"),
+                    HostTab::AppSettings(_) => tab_label(ui, "App Settings"),
                 }
-                HostTab::Session(session) => {
-                    let title = session.get_info().title.as_str();
-                    tab_label(ui, title);
-                }
-                HostTab::SessionSetup(setup) => {
-                    let title = setup.title();
-                    tab_label(ui, title.as_ref());
-                }
-                HostTab::MultiFileSetup(_) => tab_label(ui, "Multiple Files"),
-                HostTab::PluginManager(_) => tab_label(ui, "Plugin Manager"),
-                HostTab::AppSettings(_) => tab_label(ui, "App Settings"),
-            }
-        });
+            },
+            |ui, idx| {
+                tabs.get(idx)
+                    .is_some_and(|tab| tab.render_tab_context_menu(actions, ui))
+            },
+        );
 
         if let Some(event) = tabs_event {
             match event {
