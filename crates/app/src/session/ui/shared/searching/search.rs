@@ -256,6 +256,13 @@ impl SearchState {
         *next_search_result_index = 0;
     }
 
+    /// Returns whether a session position belongs to the current primary search results.
+    pub fn has_match(&self, session_position: u64) -> bool {
+        self.matches_map
+            .as_ref()
+            .is_some_and(|matches| matches.contains_key(&LogMainIndex(session_position)))
+    }
+
     /// Returns the primary filter indices reported for one session position.
     pub fn filter_indices(&self, session_position: u64) -> Option<&[FilterIndex]> {
         self.matches_map

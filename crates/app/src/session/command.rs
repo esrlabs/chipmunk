@@ -62,6 +62,9 @@ pub enum SessionCommand {
     /// Request details for a specific log line.
     GetSelectedLog(u64),
 
+    /// Load the selected stream rows for clipboard copying.
+    CopyRows(Vec<u64>),
+
     /// Request preview content for one attachment.
     PreviewAttachment(attachment::PreviewRequest),
 

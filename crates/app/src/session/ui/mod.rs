@@ -296,6 +296,7 @@ impl Session {
     /// Check incoming messages and handle them.
     pub fn handle_messages(
         &mut self,
+        ctx: &Context,
         actions: &mut UiActions,
         storage: &mut HostStorage,
         registry: &HostRegistry,
@@ -318,6 +319,18 @@ impl Session {
                         self.bottom_panel
                             .details
                             .handle_selected_log(selected_row, selected);
+                    }
+                }
+                SessionMessage::CopyRowsLoaded(result) => {
+                    let Some(rows) = self.ok_or_notify(result, actions) else {
+                        continue;
+                    };
+                    let text = common::log_table::copy::format_rows(
+                        rows,
+                        self.shared.schema.as_ref(),
+                    );
+                    if !text.is_empty() {
+                        ctx.copy_text(text);
                     }
                 }
                 SessionMessage::SearchResultCountUpdated { count } => {

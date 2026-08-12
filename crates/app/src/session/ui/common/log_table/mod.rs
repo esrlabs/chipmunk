@@ -14,5 +14,6 @@ pub enum LogTableKind {
     Search,
 }
 
+pub mod copy;
 pub mod table;
 pub mod text;

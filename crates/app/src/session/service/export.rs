@@ -412,11 +412,11 @@ fn init_session_error_to_session_error(error: InitSessionError) -> SessionError 
     }
 }
 
-/// Converts selected stream row positions into compact inclusive ranges for raw export.
+/// Converts selected stream row positions into compact inclusive ranges.
 ///
-/// The UI snapshots selection from a hash set and does not own export range semantics, so
-/// the service normalizes row order, removes duplicates, and compacts adjacent rows here.
-fn rows_to_ranges(mut rows: Vec<u64>) -> Vec<RangeInclusive<u64>> {
+/// The UI snapshots selection from a hash set, so the service normalizes row order,
+/// removes duplicates, and compacts adjacent rows here.
+pub(super) fn rows_to_ranges(mut rows: Vec<u64>) -> Vec<RangeInclusive<u64>> {
     rows.sort_unstable();
     rows.dedup();
 

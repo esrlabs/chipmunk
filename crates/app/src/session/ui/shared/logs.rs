@@ -122,17 +122,15 @@ impl LogsState {
         self.selected_rows.len()
     }
 
+    /// Iterates over selected stream positions in unspecified order.
+    pub fn selected_rows(&self) -> impl Iterator<Item = u64> + '_ {
+        self.selected_rows.iter().copied()
+    }
+
     /// Clears all selected rows.
     pub fn clear_selection(&mut self) {
         self.selected_rows.clear();
         self.last_selected_row = None;
-    }
-
-    /// Returns selected stream positions without export-specific normalization.
-    pub fn selected_rows(&self) -> Vec<u64> {
-        // Export range preparation sorts and dedups in the session service.
-        // No need to sort in UI thread.
-        self.selected_rows.iter().copied().collect()
     }
 
     /// Returns the selected row only when the selection is singular.

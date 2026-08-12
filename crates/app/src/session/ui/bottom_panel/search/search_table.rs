@@ -22,6 +22,7 @@ use crate::{
                 self,
                 log_table::{
                     LogTableKind,
+                    copy::{self, CopyScope},
                     table::{
                         TableScroll, activate_table_on_click, apply_columns_to_table_state,
                         grab_cmd_consts, render_active_table_indicator, render_row_header,
@@ -166,13 +167,14 @@ impl SearchTable {
         registry: &FilterRegistry,
         ui: &mut Ui,
     ) {
+        copy::render_copy_action(shared, CopyScope::SearchRows, actions, &self.cmd_tx, ui);
         common::log_table::table::render_unselect_action(shared, ui);
 
         let can_start_export = shared.exports.can_start();
         let selected_count = shared.logs.selected_count();
         let indexed_count = shared.search.indexed_result_count();
 
-        let selected_target = ExportTarget::Rows(shared.logs.selected_rows());
+        let selected_target = ExportTarget::Rows(shared.logs.selected_rows().collect());
         let selected_label =
             export::rendered_text_export_label(shared.schema.as_ref(), &selected_target);
         if ui
@@ -207,7 +209,7 @@ impl SearchTable {
             )
             .clicked()
         {
-            let target = ExportTarget::Rows(shared.logs.selected_rows());
+            let target = ExportTarget::Rows(shared.logs.selected_rows().collect());
             let file_name = export::default_raw_file_name(shared);
             shared.exports.open_raw_dialog(
                 actions,
