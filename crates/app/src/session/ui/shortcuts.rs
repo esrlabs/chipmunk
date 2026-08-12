@@ -1,4 +1,4 @@
-use egui::{Context, Key, KeyboardShortcut, Modifiers};
+use egui::{Context, Event, Key, KeyboardShortcut, Modifiers};
 
 use session_core::state::IndexedNavigation;
 
@@ -10,14 +10,21 @@ use crate::{
             matching::{consume_outside_text, consume_shortcut},
             state::{LastShortcutKey, ShortcutAction},
         },
-        state::HostState,
+        state::{HostPreferences, HostState},
     },
     session::command::SessionCommand,
 };
 
 use super::{
-    Session, bottom_panel::BottomTabType, common::log_table::table::TableScroll,
-    shared::BookmarkNavigation, side_panel::SideTabType,
+    Session,
+    bottom_panel::BottomTabType,
+    common::log_table::{
+        LogTableKind,
+        copy::{self, COPY_ROWS_SHORTCUT, CopyScope},
+        table::TableScroll,
+    },
+    shared::BookmarkNavigation,
+    side_panel::SideTabType,
 };
 
 const ACTIVE_PAGE_UP_BINDINGS: &[KeyboardShortcut] = &[
@@ -256,6 +263,40 @@ pub fn shortcut_defs() -> [&'static Shortcut; 23] {
         activate_presets_tab,
         activate_chart_tab,
     ]
+}
+
+/// Handles session-scoped copy behavior, returning `true` when the event is consumed.
+pub fn handle_copy_event(
+    session: &mut Session,
+    actions: &mut UiActions,
+    preferences: &HostPreferences,
+    ctx: &Context,
+) -> bool {
+    // Selected rows use shifted copy because session routing cannot reliably determine whether
+    // manually selected label text owns plain Ctrl/Cmd+C; leave that event for egui.
+
+    if ctx.text_edit_focused()
+        || !ctx.input(|input| input.modifiers.matches_exact(COPY_ROWS_SHORTCUT.modifiers))
+    {
+        return false;
+    }
+
+    // Copy the active table's selected rows, treating a hidden search table as inactive.
+    let search_table_visible =
+        preferences.panels_visibility.bottom && session.shared.bottom_tab == BottomTabType::Search;
+    let scope = match session.shared.view.active_log_table {
+        LogTableKind::Search if search_table_visible => CopyScope::SearchRows,
+        LogTableKind::Main | LogTableKind::Search => CopyScope::AllSelected,
+    };
+
+    if !copy::copy_selected_rows(&session.shared, scope, actions, &session.cmd_tx) {
+        return false;
+    }
+
+    ctx.input_mut(|input| {
+        input.events.retain(|event| !matches!(event, Event::Copy));
+    });
+    true
 }
 
 /// Handles session shortcuts, returning `true` when a shortcut is consumed.

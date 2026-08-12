@@ -1,4 +1,4 @@
-//! Dispatches host-level shortcuts before forwarding unconsumed shortcuts to the active session.
+//! Dispatches host-level input shortcuts to the active application or session scope.
 
 use egui::{Context, Event};
 
@@ -20,6 +20,10 @@ pub fn handle(host: &mut Host, ctx: &Context) -> bool {
     if ctx.memory(|memory| memory.top_modal_layer().is_some()) {
         host.state.shortcuts.clear_last_key();
         return false;
+    }
+
+    if handle_copy_event(host, ctx) {
+        return true;
     }
 
     if !has_key_press(ctx) {
@@ -44,6 +48,35 @@ pub fn handle(host: &mut Host, ctx: &Context) -> bool {
 
     host.state.shortcuts.store_last_key(ctx);
     false
+}
+
+/// Routes a native copy event to the active session without consuming it preemptively.
+fn handle_copy_event(host: &mut Host, ctx: &Context) -> bool {
+    let has_copy_event = ctx.input(|input| {
+        input
+            .events
+            .iter()
+            .any(|event| matches!(event, Event::Copy))
+    });
+    if !has_copy_event {
+        return false;
+    }
+
+    let Host {
+        state,
+        tabs,
+        ui_actions,
+        ..
+    } = host;
+
+    match tabs.active_mut() {
+        HostTab::Session(session) => session.handle_copy_event(ui_actions, &state.preferences, ctx),
+        HostTab::Home(_)
+        | HostTab::SessionSetup(_)
+        | HostTab::MultiFileSetup(_)
+        | HostTab::PluginManager(_)
+        | HostTab::AppSettings(_) => false,
+    }
 }
 
 /// Returns true when a key press event exists in the current frame.

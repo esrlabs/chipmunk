@@ -1,6 +1,6 @@
 use std::fmt::Write as _;
 
-use egui::Ui;
+use egui::{Button, Key, KeyboardShortcut, Modifiers, Ui};
 use stypes::GrabbedElement;
 use tokio::sync::mpsc::Sender;
 
@@ -16,6 +16,10 @@ use crate::{
 };
 
 const COPY_COLUMN_SEPARATOR: &str = " | ";
+
+/// Platform copy command reserved for selected log rows.
+pub const COPY_ROWS_SHORTCUT: KeyboardShortcut =
+    KeyboardShortcut::new(Modifiers::COMMAND.plus(Modifiers::SHIFT), Key::C);
 
 /// Controls which globally selected rows a table copies.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -41,31 +45,37 @@ pub fn render_copy_action(
         count => format!("Copy {count} Rows"),
     };
 
-    if ui
-        .add_enabled(selected_count > 0, egui::Button::new(label))
-        .clicked()
-    {
-        let rows = selected_rows(shared, scope).collect();
-        actions.try_send_command(cmd_tx, SessionCommand::CopyRows(rows));
+    let shortcut_text = ui.ctx().format_shortcut(&COPY_ROWS_SHORTCUT);
+    let button = Button::new(label).shortcut_text(shortcut_text);
+    if ui.add_enabled(selected_count > 0, button).clicked() {
+        copy_selected_rows(shared, scope, actions, cmd_tx);
         ui.close();
     }
 
     ui.separator();
 }
 
-fn selected_rows(
+/// Requests a copy for selected rows in the supplied table scope.
+pub fn copy_selected_rows(
     shared: &SessionShared,
     scope: CopyScope,
-) -> impl Iterator<Item = u64> + '_ {
-    shared
-        .logs
-        .selected_rows()
-        .filter(move |&row| match scope {
-            CopyScope::AllSelected => true,
-            CopyScope::SearchRows => {
-                shared.search.has_match(row) || shared.logs.is_bookmarked(row)
-            }
-        })
+    actions: &mut UiActions,
+    cmd_tx: &Sender<SessionCommand>,
+) -> bool {
+    let rows = selected_rows(shared, scope).collect::<Vec<_>>();
+    if rows.is_empty() {
+        return false;
+    }
+
+    actions.try_send_command(cmd_tx, SessionCommand::CopyRows(rows));
+    true
+}
+
+fn selected_rows(shared: &SessionShared, scope: CopyScope) -> impl Iterator<Item = u64> + '_ {
+    shared.logs.selected_rows().filter(move |&row| match scope {
+        CopyScope::AllSelected => true,
+        CopyScope::SearchRows => shared.search.has_match(row) || shared.logs.is_bookmarked(row),
+    })
 }
 
 /// Formats loaded stream rows as readable clipboard text.
