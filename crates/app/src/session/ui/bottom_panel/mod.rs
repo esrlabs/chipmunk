@@ -123,15 +123,21 @@ impl BottomPanelUI {
             .tooltip(tab.label())
         });
 
-        match strip.show(ui, control_rect, &tabs, |ui, idx| {
-            let label = bottom_tab_from_index(idx).label();
-            ui.add(
-                Label::new(RichText::new(label).text_style(TextStyle::Button))
-                    .truncate()
-                    .show_tooltip_when_elided(false)
-                    .halign(Align::Center),
-            );
-        }) {
+        match strip.show(
+            ui,
+            control_rect,
+            &tabs,
+            |ui, idx| {
+                let label = bottom_tab_from_index(idx).label();
+                ui.add(
+                    Label::new(RichText::new(label).text_style(TextStyle::Button))
+                        .truncate()
+                        .show_tooltip_when_elided(false)
+                        .halign(Align::Center),
+                );
+            },
+            |_, _| false,
+        ) {
             Some(TabEvent::Select(idx)) => shared.bottom_tab = bottom_tab_from_index(idx),
             Some(TabEvent::Close(_)) | None => {}
         }

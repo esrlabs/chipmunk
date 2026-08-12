@@ -460,6 +460,18 @@ impl HostTabs {
 }
 
 impl HostTab {
+    /// Renders commands owned by this specific tab.
+    fn render_tab_context_menu(&self, actions: &mut UiActions, ui: &mut egui::Ui) -> bool {
+        match self {
+            Self::Session(session) => session.render_tab_context_menu(actions, ui),
+            Self::Home(_)
+            | Self::SessionSetup(_)
+            | Self::MultiFileSetup(_)
+            | Self::PluginManager(_)
+            | Self::AppSettings(_) => false,
+        }
+    }
+
     /// Returns whether this tab owns an open lightweight input overlay.
     fn has_input_overlay(&self) -> bool {
         match self {

@@ -185,12 +185,14 @@ impl TabStrip {
     ///   selection and emitted events.
     /// - `render_content` renders the visible content for one tab. It receives the tab body `Ui`
     ///   and the tab index from `tabs`.
+    /// - `render_context_menu` renders tab-specific commands and returns whether it added any.
     pub fn show(
         self,
         ui: &mut Ui,
         control_rect: Rect,
         tabs: &[TabSpec<'_>],
         mut render_content: impl FnMut(&mut Ui, usize),
+        mut render_context_menu: impl FnMut(&mut Ui, usize) -> bool,
     ) -> Option<TabEvent> {
         let rail_fill = colors::main_accent_background(ui.visuals().dark_mode);
         ui.painter().rect_filled(control_rect, 0, rail_fill);
@@ -236,11 +238,16 @@ impl TabStrip {
 
                 for (tab_index, spec) in tabs.iter().enumerate() {
                     let selected = tab_index == selected_tab_index;
-                    if let Some(event) =
-                        render_tab(ui, &self, strip_rect, tab_index, spec, selected, |ui| {
-                            render_content(ui, tab_index)
-                        })
-                    {
+                    if let Some(event) = render_tab(
+                        ui,
+                        &self,
+                        strip_rect,
+                        tab_index,
+                        spec,
+                        selected,
+                        |ui| render_content(ui, tab_index),
+                        |ui| render_context_menu(ui, tab_index),
+                    ) {
                         record_tab_event(&mut pending_event, event);
                     }
                 }
@@ -408,6 +415,7 @@ fn render_tab(
     spec: &TabSpec<'_>,
     selected: bool,
     add_content: impl FnOnce(&mut Ui),
+    add_context_menu: impl FnOnce(&mut Ui) -> bool,
 ) -> Option<TabEvent> {
     let TabSpec {
         key,
@@ -431,6 +439,10 @@ fn render_tab(
     let mut action = None;
     if can_close {
         body_response.context_menu(|ui| {
+            ui.set_min_width(140.0);
+            if add_context_menu(ui) {
+                ui.separator();
+            }
             if ui.button("Close").clicked() {
                 action = Some(TabEvent::Close(tab_index));
                 ui.close();

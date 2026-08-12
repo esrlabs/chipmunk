@@ -62,6 +62,7 @@ mod shared;
 mod shortcuts;
 mod side_panel;
 mod status_bar;
+mod tab_context_menu;
 
 pub use bottom_panel::chart;
 pub use recent::RecentSessionRuntime;
