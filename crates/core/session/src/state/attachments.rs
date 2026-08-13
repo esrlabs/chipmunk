@@ -1,7 +1,6 @@
 use mime_guess;
 use parsers::{self};
 use std::{
-    collections::HashMap,
     fs::{File, create_dir},
     io,
     io::Write,
@@ -93,14 +92,15 @@ fn write_attachment_file(
 
 #[derive(Debug)]
 pub struct Attachments {
-    attachments: HashMap<Uuid, stypes::AttachmentInfo>,
+    /// Descriptions of the stored attachments in the order they have been stored.
+    attachments: Vec<stypes::AttachmentInfo>,
     dest: Option<PathBuf>,
 }
 
 impl Attachments {
     pub fn new() -> Self {
         Attachments {
-            attachments: HashMap::new(),
+            attachments: Vec::new(),
             dest: None,
         }
     }
@@ -155,16 +155,14 @@ impl Attachments {
             messages: origin.messages,
         };
 
-        self.attachments.insert(Uuid::new_v4(), attachment.clone());
+        self.attachments.push(attachment.clone());
 
         Ok(attachment)
     }
 
-    pub fn get(&self) -> Vec<stypes::AttachmentInfo> {
-        self.attachments
-            .values()
-            .cloned()
-            .collect::<Vec<stypes::AttachmentInfo>>()
+    /// All the stored attachments in the order they have been stored.
+    pub fn attachments(&self) -> &[stypes::AttachmentInfo] {
+        &self.attachments
     }
 }
 
