@@ -51,7 +51,7 @@ use crate::{
         message::{BookmarkUpdate, SessionMessage},
         types::{
             ObserveOperation, OperationPhase,
-            attachment::{PreviewContent, PreviewKind, PreviewRequest},
+            attachment::{PreviewContent, PreviewImage, PreviewKind, PreviewRequest},
         },
         ui::{SessionInfo, chart::ChartBar, definitions::schema::LogSchemaSpec},
     },
@@ -761,12 +761,14 @@ impl SessionService {
                     .await
                     .map_err(|error| ComputationError::Decoding(error.to_string()))?
                     .map_err(|error| ComputationError::Decoding(error.to_string()))?;
+                let pixels = Arc::new(color_image);
                 let texture = self.senders.egui_ctx().load_texture(
                     format!("attachment-preview-{attachment_id}"),
-                    color_image,
+                    Arc::clone(&pixels),
                     egui::TextureOptions::LINEAR,
                 );
-                Ok(PreviewContent::Image(texture))
+                let image = PreviewImage::new(pixels, texture);
+                Ok(PreviewContent::Image(image))
             }
             PreviewKind::Unsupported => Err(ComputationError::OperationNotSupported(
                 "attachment preview".to_string(),

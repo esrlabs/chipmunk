@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::Arc};
 
 use uuid::Uuid;
 
@@ -18,8 +18,37 @@ pub enum PreviewKind {
 pub enum PreviewContent {
     /// Text content decoded from a UTF-8 file.
     Text(String),
-    /// Image content uploaded to egui's texture manager.
-    Image(egui::TextureHandle),
+    /// Decoded image content and its uploaded rendering texture.
+    Image(PreviewImage),
+}
+
+/// Shared image data retained for rendering and clipboard submission.
+#[derive(Clone)]
+pub struct PreviewImage {
+    pixels: Arc<egui::ColorImage>,
+    texture: egui::TextureHandle,
+}
+
+impl PreviewContent {
+    /// Submits the complete preview content to the system clipboard.
+    pub fn copy_to(&self, ctx: &egui::Context) {
+        match self {
+            Self::Text(text) => ctx.copy_text(text.clone()),
+            Self::Image(image) => ctx.copy_image(image.pixels.as_ref().clone()),
+        }
+    }
+}
+
+impl PreviewImage {
+    /// Retains decoded pixels alongside their rendering texture.
+    pub fn new(pixels: Arc<egui::ColorImage>, texture: egui::TextureHandle) -> Self {
+        Self { pixels, texture }
+    }
+
+    /// Returns the texture used to render the preview.
+    pub fn texture(&self) -> &egui::TextureHandle {
+        &self.texture
+    }
 }
 
 /// Request sent from UI to service to load and convert one attachment preview.
@@ -83,9 +112,9 @@ impl std::fmt::Debug for PreviewContent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Text(_) => f.debug_tuple("Text").field(&"...").finish(),
-            Self::Image(texture) => f
+            Self::Image(image) => f
                 .debug_struct("Image")
-                .field("size", &texture.size())
+                .field("size", &image.texture.size())
                 .finish(),
         }
     }
