@@ -407,6 +407,7 @@ fn record_tab_event(pending_event: &mut Option<TabEvent>, event: TabEvent) {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn render_tab(
     ui: &mut Ui,
     strip: &TabStrip,

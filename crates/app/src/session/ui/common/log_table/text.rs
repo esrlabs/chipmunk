@@ -33,18 +33,32 @@ pub fn render_log_cell_text(
     col_idx: usize,
     shared: &SessionShared,
 ) -> Response {
-    let Some(cell) = item.cells.get(col_idx) else {
-        return ui.monospace("");
+    let response = match item.cells.get(col_idx) {
+        Some(LogTableCell::Plain(range)) => {
+            let content = item.element.content.get(range.clone()).unwrap_or_default();
+            render_plain_cell(ui, content, item.element.pos as u64, shared)
+        }
+        Some(LogTableCell::Ansi(ansi_text)) => {
+            render_ansi_cell(ui, ansi_text, item.element.pos as u64, shared)
+        }
+        None => ui.monospace(""),
     };
 
-    let main_log_pos = item.element.pos as u64;
-    match cell {
-        LogTableCell::Plain(range) => {
-            let content = item.element.content.get(range.clone()).unwrap_or_default();
-            render_plain_cell(ui, content, main_log_pos, shared)
-        }
-        LogTableCell::Ansi(ansi_text) => render_ansi_cell(ui, ansi_text, main_log_pos, shared),
-    }
+    // Improve logs manual selection by expanding text respond, which:
+    // - Make dragging from everywhere selects texts.
+    // - Avoid egui_table drag on select annoying behavior.
+    expand_cell_response(ui, response)
+}
+
+fn expand_cell_response(ui: &Ui, mut response: Response) -> Response {
+    // Selectable labels normally claim only their text galley. In the remaining cell whitespace,
+    // egui_table's backing ScrollArea receives the drag and pans instead of starting selection.
+    // Change only the hit-test area so text layout and painting remain tied to the label itself.
+    response.interact_rect = ui.clip_rect();
+
+    // Re-register the same widget so egui hit testing sees the expanded rectangle this pass.
+    let sense = response.sense;
+    response.interact(sense)
 }
 
 fn render_plain_cell(
