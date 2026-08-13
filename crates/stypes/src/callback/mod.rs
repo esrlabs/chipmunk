@@ -53,12 +53,12 @@ pub enum CallbackEvent {
     /// - `Option<HashMap<u8, (f64, f64)>>`: The value map.
     SearchValuesUpdated(Option<HashMap<u8, (f64, f64)>>),
 
-    /// Triggered whenever a new attachment is detected in the logs.
+    /// Triggered whenever new attachments are detected in the logs.
     AttachmentsUpdated {
-        /// The size of the attachment in bytes.
+        /// The total count of the attachments stored in the session so far.
         len: u64,
-        /// The description of the attachment.
-        attachment: AttachmentInfo,
+        /// The descriptions of the newly stored attachments.
+        attachments: Vec<AttachmentInfo>,
     },
 
     /// Triggered when progress is made during an operation.

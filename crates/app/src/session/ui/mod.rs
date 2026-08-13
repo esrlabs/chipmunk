@@ -445,8 +445,8 @@ impl Session {
                     self.recent_session
                         .on_file_read_completed(&self.shared, actions, &self.cmd_tx);
                 }
-                SessionMessage::AttachmentsUpdated { attachment, len } => {
-                    self.shared.attachments.add(*attachment);
+                SessionMessage::AttachmentsUpdated { attachments, len } => {
+                    self.shared.attachments.add_all(attachments);
                     if self.shared.attachments.attachments().len() as u64 != len {
                         warn!(
                             "Unexpected internal error: Attachment count mismatch: expected {} from backend, got {}.",

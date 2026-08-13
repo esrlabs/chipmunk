@@ -911,12 +911,9 @@ impl SessionService {
                     .send_session_msg(SessionMessage::FileReadCompleted)
                     .await;
             }
-            CallbackEvent::AttachmentsUpdated { attachment, len } => {
+            CallbackEvent::AttachmentsUpdated { attachments, len } => {
                 self.senders
-                    .send_session_msg(SessionMessage::AttachmentsUpdated {
-                        attachment: Box::new(attachment),
-                        len,
-                    })
+                    .send_session_msg(SessionMessage::AttachmentsUpdated { attachments, len })
                     .await;
             }
             event => {

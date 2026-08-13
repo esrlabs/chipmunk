@@ -13,7 +13,7 @@ impl std::fmt::Display for CallbackEvent {
     /// - `IndexedMapUpdated(len)` - Displays the number of indexed map entries.
     /// - `SearchMapUpdated` - Indicates that the search map has been updated.
     /// - `SearchValuesUpdated` - Indicates that search values have been updated.
-    /// - `AttachmentsUpdated: {len}` - Displays the size of the updated attachment.
+    /// - `AttachmentsUpdated: {len}` - Displays the total count of the session attachments.
     /// - `Progress` - Indicates progress for an operation.
     /// - `SessionError: {err}` - Displays details of a session error.
     /// - `OperationError: {uuid}: {error}` - Displays the UUID of the operation and the error details.
@@ -29,7 +29,10 @@ impl std::fmt::Display for CallbackEvent {
             Self::IndexedMapUpdated { len } => write!(f, "IndexedMapUpdated({len})"),
             Self::SearchMapUpdated(_) => write!(f, "SearchMapUpdated"),
             Self::SearchValuesUpdated(_) => write!(f, "SearchValuesUpdated"),
-            Self::AttachmentsUpdated { len, attachment: _ } => {
+            Self::AttachmentsUpdated {
+                len,
+                attachments: _,
+            } => {
                 write!(f, "AttachmentsUpdated: {len}")
             }
             Self::Progress {

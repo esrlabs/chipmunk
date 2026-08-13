@@ -538,15 +538,30 @@ impl SessionState {
         })?
     }
 
-    fn handle_add_attachment(
+    /// Stores the given attachments and notifies the clients about the stored ones with a
+    /// single event. Attachments which can't be stored are logged and skipped, and no event
+    /// is sent when none of them could be stored.
+    fn handle_add_attachments(
         &mut self,
-        origin: parsers::Attachment,
+        origins: Vec<parsers::Attachment>,
         tx_callback_events: UnboundedSender<stypes::CallbackEvent>,
     ) -> Result<(), stypes::NativeError> {
-        let attachment = self.attachments.add(origin)?;
+        let mut attachments = Vec::with_capacity(origins.len());
+        for origin in origins {
+            // Failing on a single attachment must not drop the remaining ones.
+            match self.attachments.add(origin) {
+                Ok(attachment) => attachments.push(attachment),
+                Err(err) => error!("Fail to process attachment; error: {err}"),
+            }
+        }
+
+        if attachments.is_empty() {
+            return Ok(());
+        }
+
         tx_callback_events.send(stypes::CallbackEvent::AttachmentsUpdated {
             len: self.attachments.len() as u64,
-            attachment,
+            attachments,
         })?;
         Ok(())
     }
@@ -962,11 +977,8 @@ async fn handle_api_msg(
         Api::NotifyCanceledOperation(uuid) => {
             state.cancelling_operations.remove(&uuid);
         }
-        Api::AddAttachment(attachment) => {
-            let at_name = attachment.name.clone();
-            if let Err(err) = state.handle_add_attachment(attachment, tx_callback_events.clone()) {
-                error!("Fail to process attachment {at_name:?}; error: {err:?}");
-            }
+        Api::AddAttachments(attachments) => {
+            state.handle_add_attachments(attachments, tx_callback_events.clone())?;
         }
         Api::GetAttachments(tx_response) => {
             tx_response.send(state.attachments.get()).map_err(|_| {
