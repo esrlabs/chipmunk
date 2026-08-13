@@ -981,7 +981,8 @@ async fn handle_api_msg(
             state.handle_add_attachments(attachments, tx_callback_events.clone())?;
         }
         Api::GetAttachments(tx_response) => {
-            tx_response.send(state.attachments.get()).map_err(|_| {
+            let attachments = state.attachments.attachments().to_vec();
+            tx_response.send(attachments).map_err(|_| {
                 stypes::NativeError::channel("Failed to respond to Api::GetAttachments")
             })?;
         }
