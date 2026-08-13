@@ -12,22 +12,10 @@ use uuid::Uuid;
 
 #[derive(Error, Debug)]
 pub enum AttachmentsError {
-    #[error("Save error: {0}")]
-    Save(String),
-    #[error("IO error: {0:?}")]
-    Io(#[from] std::io::Error),
+    #[error("Failed to store attachment {name:?}: {source}")]
+    Store { name: String, source: io::Error },
     #[error("Session isn't created")]
     SessionNotCreated,
-}
-
-impl From<AttachmentsError> for stypes::NativeError {
-    fn from(err: AttachmentsError) -> Self {
-        stypes::NativeError {
-            severity: stypes::Severity::ERROR,
-            kind: stypes::NativeErrorKind::Io,
-            message: Some(err.to_string()),
-        }
-    }
 }
 
 const FILE_NAME_INDEXES_LIMIT: usize = 1000;
@@ -85,6 +73,24 @@ fn get_valid_file_path(dest: &Path, origin: &str) -> Result<PathBuf, io::Error> 
     }
 }
 
+/// Writes the payload of `origin` into `store_folder`, creating the folder when it's missing.
+///
+/// # Return:
+/// The path of the created file.
+fn write_attachment_file(
+    origin: &parsers::Attachment,
+    store_folder: &Path,
+) -> Result<PathBuf, io::Error> {
+    if !store_folder.exists() {
+        create_dir(store_folder)?;
+    }
+    let attachment_path = get_valid_file_path(store_folder, &origin.name)?;
+    let mut attachment_file = File::create(&attachment_path)?;
+    attachment_file.write_all(&origin.data)?;
+
+    Ok(attachment_path)
+}
+
 #[derive(Debug)]
 pub struct Attachments {
     attachments: HashMap<Uuid, stypes::AttachmentInfo>,
@@ -97,33 +103,6 @@ impl Attachments {
             attachments: HashMap::new(),
             dest: None,
         }
-    }
-
-    pub fn get_attch_from(
-        origin: parsers::Attachment,
-        store_folder: &PathBuf,
-    ) -> Result<stypes::AttachmentInfo, AttachmentsError> {
-        if !store_folder.exists() {
-            create_dir(store_folder).map_err(AttachmentsError::Io)?;
-        }
-        let uuid = Uuid::new_v4();
-        let attachment_path =
-            get_valid_file_path(store_folder, &origin.name).map_err(AttachmentsError::Io)?;
-        let mut attachment_file = File::create(&attachment_path)?;
-        attachment_file.write_all(&origin.data)?;
-        Ok(stypes::AttachmentInfo {
-            uuid,
-            filepath: attachment_path,
-            name: origin.name.clone(),
-            ext: Path::new(&origin.name)
-                .extension()
-                .map(|ex| ex.to_string_lossy().to_string()),
-            size: origin.size,
-            mime: mime_guess::from_path(origin.name)
-                .first()
-                .map(|guess| guess.to_string()),
-            messages: origin.messages,
-        })
     }
 
     pub fn set_dest_path(&mut self, dest: PathBuf) -> bool {
@@ -145,18 +124,40 @@ impl Attachments {
         self.len() == 0
     }
 
+    /// Stores the payload of the given attachment on disk and keeps its description.
     pub fn add(
         &mut self,
-        attachment: parsers::Attachment,
+        origin: parsers::Attachment,
     ) -> Result<stypes::AttachmentInfo, AttachmentsError> {
-        if let Some(dest) = self.dest.as_ref() {
-            let uuid = Uuid::new_v4();
-            let a = Self::get_attch_from(attachment, dest)?;
-            self.attachments.insert(uuid, a.clone());
-            Ok(a)
-        } else {
-            Err(AttachmentsError::SessionNotCreated)
-        }
+        let Some(dest) = self.dest.as_ref() else {
+            return Err(AttachmentsError::SessionNotCreated);
+        };
+
+        // The attachment name is cloned in the error path only, keeping the success path
+        // free of extra allocations.
+        let attachment_path =
+            write_attachment_file(&origin, dest).map_err(|source| AttachmentsError::Store {
+                name: origin.name.clone(),
+                source,
+            })?;
+
+        let attachment = stypes::AttachmentInfo {
+            uuid: Uuid::new_v4(),
+            filepath: attachment_path,
+            name: origin.name.clone(),
+            ext: Path::new(&origin.name)
+                .extension()
+                .map(|ex| ex.to_string_lossy().to_string()),
+            size: origin.size,
+            mime: mime_guess::from_path(origin.name)
+                .first()
+                .map(|guess| guess.to_string()),
+            messages: origin.messages,
+        };
+
+        self.attachments.insert(Uuid::new_v4(), attachment.clone());
+
+        Ok(attachment)
     }
 
     pub fn get(&self) -> Vec<stypes::AttachmentInfo> {

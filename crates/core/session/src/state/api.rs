@@ -195,7 +195,7 @@ pub enum Api {
     SetDebugMode((bool, oneshot::Sender<()>)),
     NotifyCancelingOperation(Uuid),
     NotifyCanceledOperation(Uuid),
-    AddAttachment(parsers::Attachment),
+    AddAttachments(Vec<parsers::Attachment>),
     GetAttachments(oneshot::Sender<Vec<stypes::AttachmentInfo>>),
     // Used for tests of error handeling
     ShutdownWithError,
@@ -250,7 +250,7 @@ impl Display for Api {
                 Self::SetDebugMode(_) => "SetDebugMode",
                 Self::NotifyCancelingOperation(_) => "NotifyCancelingOperation",
                 Self::NotifyCanceledOperation(_) => "NotifyCanceledOperation",
-                Self::AddAttachment(_) => "AddAttachment",
+                Self::AddAttachments(_) => "AddAttachments",
                 Self::GetAttachments(_) => "GetAttachments",
                 Self::Shutdown => "Shutdown",
                 Self::ShutdownWithError => "ShutdownWithError",
@@ -686,11 +686,21 @@ impl SessionStateAPI {
         })
     }
 
-    pub fn add_attachment(&self, origin: parsers::Attachment) -> Result<(), stypes::NativeError> {
-        self.tx_api.send(Api::AddAttachment(origin)).map_err(|e| {
-            stypes::NativeError::channel(
-                &format!("fail to send to Api::AddAttachment; error: {e}",),
-            )
+    /// Sends the given attachments to the session state to be stored and delivered to the
+    /// clients within a single event.
+    ///
+    /// # Note:
+    ///
+    /// This call doesn't wait for the attachments to be processed. Success means the request
+    /// has been queued only.
+    pub fn add_attachments(
+        &self,
+        origins: Vec<parsers::Attachment>,
+    ) -> Result<(), stypes::NativeError> {
+        self.tx_api.send(Api::AddAttachments(origins)).map_err(|e| {
+            stypes::NativeError::channel(&format!(
+                "fail to send to Api::AddAttachments; error: {e}",
+            ))
         })
     }
 

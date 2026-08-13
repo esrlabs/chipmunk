@@ -88,9 +88,11 @@ pub enum SessionMessage {
     /// This event is not triggered for streams within a session.
     FileReadCompleted,
 
-    /// Triggered when attachments are updated
+    /// Triggered when new attachments are detected in the session.
     AttachmentsUpdated {
-        attachment: Box<AttachmentInfo>,
+        /// The newly stored attachments.
+        attachments: Vec<AttachmentInfo>,
+        /// The total count of the attachments stored in the session so far.
         len: u64,
     },
 

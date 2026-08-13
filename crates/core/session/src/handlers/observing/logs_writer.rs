@@ -54,9 +54,10 @@ impl LogsWriter {
             self.text_buffer.clear();
             self.state.write_session_file(self.id, msgs).await?;
         }
-        for attachment in self.attachments.drain(..) {
-            // TODO: send all attachments with 1 call
-            self.state.add_attachment(attachment)?;
+        if !self.attachments.is_empty() {
+            // Draining into a new vector preserves the capacity of the internal buffer.
+            let attachments = self.attachments.drain(..).collect();
+            self.state.add_attachments(attachments)?;
         }
         Ok(())
     }

@@ -21,18 +21,27 @@ pub struct AttachmentsState {
     modal: AttachmentModalState,
 }
 
+/// State of the modal showing the preview of a single attachment.
 #[derive(Debug, Default)]
 pub enum AttachmentModalState {
+    /// No attachment preview is open.
     #[default]
     Closed,
+    /// Preview of the attachment is open while its content is still being loaded.
     Pending {
+        /// Attachment whose content is awaited.
         attachment: AttachmentInfo,
     },
+    /// Preview of the attachment with its loaded content.
     Content {
+        /// Previewed attachment.
         attachment: AttachmentInfo,
+        /// Loaded content to render.
         content: PreviewContent,
     },
+    /// Preview of an attachment whose type can't be rendered.
     NotSupported {
+        /// Attachment without preview support.
         attachment: AttachmentInfo,
     },
 }
@@ -47,6 +56,11 @@ pub struct AttachmentFilter {
 }
 
 impl AttachmentsState {
+    /// Add the given attachment, keeping the lookup indices, the known extensions and the
+    /// active filter up to date.
+    ///
+    /// Attachments with an already known UUID keep their existing entry, refreshing their
+    /// log-position lookups only.
     pub fn add(&mut self, attachment: AttachmentInfo) {
         let uuid = attachment.uuid;
         let index = self
@@ -85,6 +99,14 @@ impl AttachmentsState {
         self.attachments.push(attachment);
     }
 
+    /// Add all the given attachments, keeping their order.
+    pub fn add_all(&mut self, attachments: Vec<AttachmentInfo>) {
+        for attachment in attachments {
+            self.add(attachment);
+        }
+    }
+
+    /// Show the loaded `content` of the given attachment in the preview modal.
     pub fn show_preview_content(&mut self, attachment: AttachmentInfo, content: PreviewContent) {
         self.modal = AttachmentModalState::Content {
             attachment,
@@ -92,18 +114,26 @@ impl AttachmentsState {
         };
     }
 
+    /// Open the preview modal for the given attachment while its content is still loading.
     pub fn show_preview_pending(&mut self, attachment: AttachmentInfo) {
         self.modal = AttachmentModalState::Pending { attachment };
     }
 
+    /// Open the preview modal stating that the given attachment can't be previewed.
     pub fn show_preview_unsupported(&mut self, attachment: AttachmentInfo) {
         self.modal = AttachmentModalState::NotSupported { attachment };
     }
 
+    /// Close the preview modal, dropping its current state.
     pub fn close_preview_modal(&mut self) {
         self.modal = AttachmentModalState::Closed;
     }
 
+    /// Show `content` in the preview modal.
+    ///
+    /// The content is dropped unless the modal is still pending for the attachment with the
+    /// given ID, since the user may have closed the modal or opened another attachment while
+    /// the content was loading.
     pub fn handle_modal_preview(&mut self, attachment_id: Uuid, content: PreviewContent) {
         let AttachmentModalState::Pending { attachment } = &self.modal else {
             return;
@@ -119,6 +149,7 @@ impl AttachmentsState {
         };
     }
 
+    /// Close the preview modal if it is still pending for the attachment with the given ID.
     pub fn close_pending_modal(&mut self, attachment_id: Uuid) {
         let AttachmentModalState::Pending { attachment } = &self.modal else {
             return;
@@ -131,6 +162,7 @@ impl AttachmentsState {
         self.close_preview_modal();
     }
 
+    /// Current state of the attachment preview modal.
     pub fn preview_modal(&self) -> &AttachmentModalState {
         &self.modal
     }
@@ -202,6 +234,7 @@ impl AttachmentsState {
 }
 
 impl AttachmentModalState {
+    /// Returns `true` when no attachment preview is open.
     pub fn closed(&self) -> bool {
         matches!(self, AttachmentModalState::Closed)
     }
