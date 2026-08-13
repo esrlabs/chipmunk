@@ -241,7 +241,7 @@ impl Session {
         export_modal::render_content(&mut shared.exports, actions, ui);
 
         self.attachment_modal
-            .render_content(&mut shared.attachments, ui);
+            .render_content(&mut shared.attachments, actions, ui);
 
         self.handle_signals(registry, preferences);
     }

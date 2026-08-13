@@ -6,7 +6,8 @@ use log::error;
 use rustc_hash::FxHashSet;
 
 use egui::{
-    Frame, Label, Layout, Modifiers, RichText, Spinner, TextureHandle, Ui, UiBuilder, Widget, vec2,
+    Frame, Label, Layout, Modifiers, Rect, RichText, Spinner, TextureHandle, Ui, UiBuilder, Widget,
+    vec2,
 };
 use stypes::AttachmentInfo;
 use tokio::sync::mpsc;
@@ -29,6 +30,7 @@ use crate::{
             PreviewContent, PreviewKind, PreviewRequest, PreviewTarget, kind_for_mime,
         },
         ui::{
+            common::attachment_preview::render_copy_button,
             shared::{AttachmentsState, SearchTableSync, SessionShared},
             side_panel::TITLE_SIZE,
         },
@@ -282,28 +284,34 @@ impl AttachmentsUi {
                             content,
                         } if *attachment_id == attachment.uuid => {
                             can_open_preview = true;
-                            match content {
-                                PreviewContent::Text(txt) => {
+                            let (frame_rect, preview_clicked) = match content {
+                                PreviewContent::Text(text) => (
                                     Self::render_text_preview_frame(
                                         ui,
-                                        txt,
+                                        text,
                                         &mut self.reset_text_scroll,
-                                    );
+                                    ),
+                                    false,
+                                ),
+                                PreviewContent::Image(image) => {
+                                    Self::render_image_preview_frame(ui, image.texture())
                                 }
-                                PreviewContent::Image(texture_handle) => {
-                                    image_clicked =
-                                        Self::render_image_preview_frame(ui, texture_handle)
-                                }
-                            }
+                            };
+                            let copy_clicked =
+                                render_copy_button(ui, frame_rect, content, ui_actions);
+                            image_clicked = preview_clicked && !copy_clicked;
                         }
                         PreviewState::NotSupported { attachment_id }
                             if *attachment_id == attachment.uuid =>
                         {
                             render_centered_preview_status(ui, |ui| {
-                                ui.label(
+                                Label::new(
                                     RichText::new("Preview unavailable for this attachment type.")
                                         .weak(),
-                                );
+                                )
+                                .wrap()
+                                .halign(egui::Align::Center)
+                                .ui(ui);
                             });
                         }
                         _ => return,
@@ -837,11 +845,12 @@ impl AttachmentsUi {
             (self.preview_panel_height_index + 1) % PREVIEW_PANEL_HEIGHTS.len();
     }
 
-    fn render_text_preview_frame(ui: &mut Ui, content: &str, reset_scroll: &mut bool) {
+    fn render_text_preview_frame(ui: &mut Ui, content: &str, reset_scroll: &mut bool) -> Rect {
         const PREVIEW_FRAME_INNER_MARGIN: f32 = 8.0;
 
+        let mut frame_rect = Rect::NOTHING;
         ui.with_layout(Layout::top_down(egui::Align::Min), |ui| {
-            Frame::NONE
+            frame_rect = Frame::NONE
                 .inner_margin(egui::Margin::same(PREVIEW_FRAME_INNER_MARGIN as i8))
                 .stroke(ui.visuals().widgets.noninteractive.bg_stroke)
                 .show(ui, |ui| {
@@ -857,16 +866,19 @@ impl AttachmentsUi {
                             .extend()
                             .ui(ui);
                     });
-                });
+                })
+                .response
+                .rect;
         });
+        frame_rect
     }
 
-    fn render_image_preview_frame(ui: &mut Ui, texture: &TextureHandle) -> bool {
+    fn render_image_preview_frame(ui: &mut Ui, texture: &TextureHandle) -> (Rect, bool) {
         const PREVIEW_FRAME_INNER_MARGIN: f32 = 8.0;
 
         let image_size = texture.size_vec2();
         if image_size.x <= 0.0 || image_size.y <= 0.0 {
-            return false;
+            return (Rect::NOTHING, false);
         }
 
         let margin = egui::Vec2::splat(2.0 * PREVIEW_FRAME_INNER_MARGIN);
@@ -874,10 +886,10 @@ impl AttachmentsUi {
         let scale = (max_image_size / image_size).min_elem().clamp(0.0, 1.0);
         let preview_size = image_size * scale;
 
+        let mut frame_rect = Rect::NOTHING;
         let mut clicked = false;
         ui.with_layout(Layout::top_down(egui::Align::Center), |ui| {
-            let (frame_rect, _) =
-                ui.allocate_exact_size(preview_size + margin, egui::Sense::hover());
+            (frame_rect, _) = ui.allocate_exact_size(preview_size + margin, egui::Sense::hover());
             ui.painter().rect_stroke(
                 frame_rect,
                 4.0,
@@ -894,7 +906,7 @@ impl AttachmentsUi {
                 .clicked();
         });
 
-        clicked
+        (frame_rect, clicked)
     }
 }
 

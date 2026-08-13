@@ -11,9 +11,13 @@ use crate::{
         phosphor::icons,
         ui::modal::{ModalSize, ResponsiveModalSize, show_modal},
     },
+    host::ui::UiActions,
     session::{
         types::attachment::PreviewContent,
-        ui::shared::{AttachmentModalState, AttachmentsState},
+        ui::{
+            common::attachment_preview::render_copy_button,
+            shared::{AttachmentModalState, AttachmentsState},
+        },
     },
 };
 
@@ -40,7 +44,12 @@ impl AttachmentModalUi {
         Self::default()
     }
 
-    pub fn render_content(&mut self, attachments: &mut AttachmentsState, ui: &Ui) {
+    pub fn render_content(
+        &mut self,
+        attachments: &mut AttachmentsState,
+        actions: &mut UiActions,
+        ui: &Ui,
+    ) {
         if attachments.preview_modal().closed() {
             return;
         }
@@ -64,7 +73,7 @@ impl AttachmentModalUi {
                     modal_size.x,
                     (modal_size.y - HEADER_HEIGHT - HEADER_SPACING).max(0.0),
                 );
-                self.render_body(attachments.preview_modal(), body_size, ui);
+                self.render_body(attachments.preview_modal(), actions, body_size, ui);
             },
         );
 
@@ -117,7 +126,13 @@ impl AttachmentModalUi {
         close
     }
 
-    fn render_body(&mut self, state: &AttachmentModalState, size: egui::Vec2, ui: &mut Ui) {
+    fn render_body(
+        &mut self,
+        state: &AttachmentModalState,
+        actions: &mut UiActions,
+        size: egui::Vec2,
+        ui: &mut Ui,
+    ) {
         match state {
             AttachmentModalState::Closed => {}
             AttachmentModalState::Pending { .. } => render_centered_status(size, ui, |ui| {
@@ -126,7 +141,7 @@ impl AttachmentModalUi {
             AttachmentModalState::Content {
                 attachment,
                 content,
-            } => self.render_preview_content(attachment, content, size, ui),
+            } => self.render_preview_content(attachment, content, actions, size, ui),
             AttachmentModalState::NotSupported { .. } => render_centered_status(size, ui, |ui| {
                 ui.label(RichText::new("Preview unavailable for this attachment type.").weak());
             }),
@@ -137,18 +152,20 @@ impl AttachmentModalUi {
         &mut self,
         attachment: &AttachmentInfo,
         content: &PreviewContent,
+        actions: &mut UiActions,
         size: egui::Vec2,
         ui: &mut Ui,
     ) {
         match content {
-            PreviewContent::Text(content) => {
-                render_content_frame(size, ui, |ui, inner_size| {
-                    render_text(content, attachment.uuid, inner_size, ui);
-                });
-            }
-            PreviewContent::Image(texture) => {
+            PreviewContent::Text(text) => {
                 let frame_rect = render_content_frame(size, ui, |ui, inner_size| {
-                    self.render_image(texture, inner_size, ui)
+                    render_text(text, attachment.uuid, inner_size, ui);
+                });
+                render_copy_button(ui, frame_rect, content, actions);
+            }
+            PreviewContent::Image(image) => {
+                let frame_rect = render_content_frame(size, ui, |ui, inner_size| {
+                    self.render_image(image.texture(), inner_size, ui)
                 });
                 let (counter_clicked, clockwise_clicked) =
                     render_image_rotation_buttons(ui, frame_rect);
@@ -158,6 +175,7 @@ impl AttachmentModalUi {
                 if clockwise_clicked {
                     self.rotate_clockwise();
                 }
+                render_copy_button(ui, frame_rect, content, actions);
             }
         }
     }
