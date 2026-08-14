@@ -20,7 +20,6 @@ plugins_host.workspace = true
 # External crates
 dirs.workspace = true
 futures.workspace = true
-lazy_static.workspace = true
 log.workspace = true
 mime_guess.workspace = true
 rustc-hash.workspace = true
