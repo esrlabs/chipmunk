@@ -14,13 +14,10 @@ impl std::fmt::Display for CallbackEvent {
     /// - `SearchMapUpdated` - Indicates that the search map has been updated.
     /// - `SearchValuesUpdated` - Indicates that search values have been updated.
     /// - `AttachmentsUpdated: {len}` - Displays the total count of the session attachments.
-    /// - `Progress` - Indicates progress for an operation.
-    /// - `SessionError: {err}` - Displays details of a session error.
     /// - `OperationError: {uuid}: {error}` - Displays the UUID of the operation and the error details.
     /// - `OperationStarted: {uuid}` - Displays the UUID of a started operation.
     /// - `OperationProcessing: {uuid}` - Displays the UUID of an operation in progress.
     /// - `OperationDone: {info.uuid}` - Displays the UUID of a completed operation.
-    /// - `SessionDestroyed` - Indicates that the session has been destroyed.
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             Self::StreamUpdated(len) => write!(f, "StreamUpdated({len})"),
@@ -35,18 +32,12 @@ impl std::fmt::Display for CallbackEvent {
             } => {
                 write!(f, "AttachmentsUpdated: {len}")
             }
-            Self::Progress {
-                uuid: _,
-                progress: _,
-            } => write!(f, "Progress"),
-            Self::SessionError(err) => write!(f, "SessionError: {err}"),
             Self::OperationError { uuid, error } => {
                 write!(f, "OperationError: {uuid}: {error}")
             }
             Self::OperationStarted(uuid) => write!(f, "OperationStarted: {uuid}"),
             Self::OperationProcessing(uuid) => write!(f, "OperationProcessing: {uuid}"),
             Self::OperationDone(info) => write!(f, "OperationDone: {}", info.uuid),
-            Self::SessionDestroyed => write!(f, "SessionDestroyed"),
         }
     }
 }

@@ -61,17 +61,6 @@ pub enum CallbackEvent {
         attachments: Vec<AttachmentInfo>,
     },
 
-    /// Triggered when progress is made during an operation.
-    Progress {
-        /// The unique identifier of the operation.
-        uuid: Uuid,
-        /// Information about the progress.
-        progress: Progress,
-    },
-
-    /// Triggered in the event of an undefined session error.
-    SessionError(NativeError),
-
     /// Triggered when an operation ends with an error.
     /// This event may follow `OperationStarted` since that event only indicates
     /// that the operation began successfully. It may also follow `OperationProcessing`.
@@ -98,9 +87,4 @@ pub enum CallbackEvent {
     /// Triggered upon the successful completion of an operation.
     /// - `OperationDone`: The results of the completed operation.
     OperationDone(OperationDone),
-
-    /// Triggered when the current session is fully closed, and all necessary cleanup
-    /// procedures are completed. This event guarantees that all possible read/write
-    /// operations are stopped, and all previously created loops are terminated.
-    SessionDestroyed,
 }
