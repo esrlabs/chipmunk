@@ -45,7 +45,7 @@ chrono.workspace = true
 chrono-tz.workspace = true
 dirs.workspace = true
 serialport.workspace = true
-dlt-core.workspace = true
+dlt-core = { workspace = true, features = ["statistics"] }
 rustc-hash.workspace = true
 regex.workspace = true
 regex-syntax.workspace = true
