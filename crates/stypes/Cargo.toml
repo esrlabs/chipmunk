@@ -10,9 +10,8 @@ workspace = true
 [dependencies]
 # External crates
 serde = { workspace = true, features = ["derive"] }
-dlt-core = { workspace = true, features = ["fibex", "statistics", "serialization"] }
+dlt-core = { workspace = true, features = ["fibex", "serialization"] }
 uuid = { workspace = true, features = ["serde", "v4"] }
 tokio.workspace = true
 thiserror.workspace = true
-walkdir.workspace = true
 anyhow.workspace = true

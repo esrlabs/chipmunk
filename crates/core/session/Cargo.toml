@@ -9,8 +9,6 @@ workspace = true
 
 [dependencies]
 # Internal crates
-file_tools.workspace = true
-shell_tools.workspace = true
 indexer_base.workspace = true
 merging.workspace = true
 parsers.workspace = true
@@ -20,9 +18,7 @@ sources.workspace = true
 plugins_host.workspace = true
 
 # External crates
-blake3.workspace = true
 dirs.workspace = true
-dlt-core = { workspace = true, features = ["statistics", "serialization"] }
 futures.workspace = true
 lazy_static.workspace = true
 log.workspace = true
@@ -31,16 +27,12 @@ rustc-hash.workspace = true
 serde = { workspace = true , features = ["derive"] }
 bincode.workspace = true
 serde_json.workspace = true
-serialport.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true , features = ["full"] }
-tokio-stream.workspace = true
 tokio-util.workspace = true
 uuid = { workspace = true , features = ["serde", "v4"] }
-walkdir.workspace = true
 
 [dev-dependencies]
 # External crates
-lazy_static.workspace = true
 tempfile.workspace = true
 insta.workspace = true

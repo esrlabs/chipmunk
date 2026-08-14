@@ -2174,9 +2174,6 @@ dependencies = [
 [[package]]
 name = "file_tools"
 version = "4.1.0"
-dependencies = [
- "anyhow",
-]
 
 [[package]]
 name = "filetime"
@@ -4428,7 +4425,6 @@ dependencies = [
  "dirs",
  "log",
  "parsers",
- "processor",
  "rand 0.9.4",
  "serde",
  "serde_json",
@@ -5362,10 +5358,7 @@ name = "session"
 version = "4.1.0"
 dependencies = [
  "bincode",
- "blake3",
  "dirs",
- "dlt-core",
- "file_tools",
  "futures",
  "indexer_base",
  "insta",
@@ -5379,17 +5372,13 @@ dependencies = [
  "rustc-hash 2.1.2",
  "serde",
  "serde_json",
- "serialport",
- "shell_tools",
  "sources",
  "stypes",
  "tempfile",
  "thiserror 2.0.18",
  "tokio",
- "tokio-stream",
  "tokio-util",
  "uuid",
- "walkdir",
 ]
 
 [[package]]
@@ -5695,7 +5684,6 @@ dependencies = [
  "thiserror 2.0.18",
  "tokio",
  "uuid",
- "walkdir",
 ]
 
 [[package]]

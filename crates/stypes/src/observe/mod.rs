@@ -15,13 +15,6 @@ pub struct MulticastInfo {
     pub interface: Option<String>,
 }
 
-/// Configuration for UDP connections.
-#[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct UdpConnectionInfo {
-    /// A list of multicast addresses to listen on.
-    pub multicast_addr: Vec<MulticastInfo>,
-}
-
 /// Specifies the parser to be used for processing session data.
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug, Serialize, Deserialize, Clone)]
