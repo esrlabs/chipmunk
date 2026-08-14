@@ -8,6 +8,7 @@ use std::{
 };
 
 use log::error;
+use semver::Version;
 use session_core::paths::{get_chipmunk_downloads_dir, get_streams_dir};
 use stypes::{NativeError, NativeErrorKind, Severity};
 
@@ -30,47 +31,42 @@ pub fn cleanup_temp_files() {
 /// Iterates through chipmunk temporary directory and remove the entries older
 /// than one months.
 fn cleanup_temp_dir() -> Result<(), NativeError> {
-    let tmp_dir = get_streams_dir()?;
+    const ONE_MONTH: Duration = Duration::from_secs(30 * 24 * 60 * 60);
 
-    const ONE_MONTH_SECONDS: u64 = 30 * 24 * 60 * 60;
-    let modified_limit = SystemTime::now()
-        .checked_sub(Duration::from_secs(ONE_MONTH_SECONDS))
+    let tmp_dir = get_streams_dir()?;
+    cleanup_dir(&tmp_dir, stale_before(ONE_MONTH)?)?;
+
+    Ok(())
+}
+
+/// Modification time before which an entry counts as stale.
+fn stale_before(max_age: Duration) -> Result<SystemTime, NativeError> {
+    SystemTime::now()
+        .checked_sub(max_age)
         .ok_or_else(|| NativeError {
             severity: Severity::ERROR,
             kind: NativeErrorKind::Io,
             message: Some(String::from(
                 "Error while calculating modification time limit",
             )),
-        })?;
-
-    cleanup_dir(&tmp_dir, modified_limit)?;
-
-    Ok(())
+        })
 }
 
 /// Iterates through chipmunk downloads directory and remove stale entries alongside
 /// with the staging directories of the running version.
 fn cleanup_download_dir() -> Result<(), NativeError> {
+    const ONE_WEEK: Duration = Duration::from_secs(7 * 24 * 60 * 60);
+
     let download_dir = get_chipmunk_downloads_dir()?;
     if !download_dir.exists() {
         return Ok(());
     }
 
-    const ONE_WEEK_SECONDS: u64 = 7 * 24 * 60 * 60;
-    let modified_limit = SystemTime::now()
-        .checked_sub(Duration::from_secs(ONE_WEEK_SECONDS))
-        .ok_or_else(|| NativeError {
-            severity: Severity::ERROR,
-            kind: NativeErrorKind::Io,
-            message: Some(String::from(
-                "Error while calculating modification time limit",
-            )),
-        })?;
-
     // Staging directories of the running version can't belong to an install in
     // progress because the app has just started.
-    let prefix = version_dir_prefix(app_info::current_version());
-    cleanup_download_entries(&download_dir, modified_limit, &prefix)?;
+    let date_limit = stale_before(ONE_WEEK)?;
+    let current_version = app_info::current_version();
+    cleanup_download_entries(&download_dir, date_limit, current_version)?;
 
     Ok(())
 }
@@ -89,19 +85,23 @@ fn cleanup_dir(path: &Path, modified_date_limit: SystemTime) -> io::Result<()> {
         .try_for_each(remove_entry)
 }
 
+/// Clean stale entries within the given path, plus the staging directories of the
+/// given version.
 fn cleanup_download_entries(
     path: &Path,
     modified_date_limit: SystemTime,
-    prefix: &str,
+    version: &Version,
 ) -> io::Result<()> {
     if !path.exists() {
         return Ok(());
     }
 
+    let prefix = version_dir_prefix(version);
+
     fs::read_dir(path)?
         .flat_map(Result::ok)
         .filter(|entry| {
-            is_stale_entry(entry, modified_date_limit) || is_prefixed_dir(entry, prefix)
+            is_stale_entry(entry, modified_date_limit) || is_prefixed_dir(entry, &prefix)
         })
         .map(|entry| entry.path())
         .try_for_each(remove_entry)
@@ -140,6 +140,8 @@ mod tests {
         time::{Duration, SystemTime},
     };
 
+    use semver::Version;
+
     use super::{cleanup_dir, cleanup_download_entries};
 
     #[test]
@@ -161,7 +163,7 @@ mod tests {
         let old_limit = SystemTime::now()
             .checked_sub(Duration::from_secs(3600))
             .unwrap();
-        cleanup_download_entries(temp_path, old_limit, "update_4.0.1_").unwrap();
+        cleanup_download_entries(temp_path, old_limit, &Version::new(4, 0, 1)).unwrap();
 
         assert!(!current_update.exists());
         assert!(other_update.exists());

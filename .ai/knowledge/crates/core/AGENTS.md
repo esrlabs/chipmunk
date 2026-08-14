@@ -19,7 +19,7 @@ The native app and CLI depend on these crates directly through Rust APIs.
 - `processor`: ingestion/search pipeline; `MessageProducer` coordinates `ByteSource` and `Parser` implementations.
 - `sources`: byte ingestion from files, TCP, UDP, serial, processes, and pcap inputs.
 - `parsers`: DLT, SOME/IP, text, and plugin parser integration.
-- `indexer_base`: shared chunk, time, progress, and indexing primitives.
+- `indexer_base`: shared indexing primitives: index sections, timed lines, and file/line utilities.
 - `plugins_host`: runtime support for loading and executing WASM plugins.
 - `merging`: multi-source chronological merge logic.
 - `dlt_tools`: DLT-specific utility operations.
@@ -47,7 +47,7 @@ The native app and CLI depend on these crates directly through Rust APIs.
 - `session` owns operation state and coordinates processor work for live sessions.
 - `processor` reads bytes from `sources`, parses them with `parsers` or plugin-backed parsers, indexes chunks, and serves search/grab/export paths.
 - `plugins_host` loads plugin components and adapts them into parser/source flows.
-- `stypes` carries shared command, callback, progress, plugin, observe, and error types across crate boundaries.
+- `stypes` carries shared callback, plugin, observe, operation, and error types across crate boundaries.
 
 ## Landmarks and Hotspots
 
@@ -55,7 +55,7 @@ The native app and CLI depend on these crates directly through Rust APIs.
 - `Session` APIs in `crates/core/session/src/session.rs` for frontend/backend coordination.
 - Operation handlers in `crates/core/session/src/handlers/`.
 - State controllers under `crates/core/session/src/state/`.
-- `TimedLine` and chunk/progress types in `crates/core/indexer_base/src/`.
+- `TimedLine` and index-section types in `crates/core/indexer_base/src/`.
 - `PluginsManager` and plugin host wrappers in `crates/core/plugins_host/src/`.
 - Pcap handling under `crates/core/sources/src/binary/pcap/`.
 
