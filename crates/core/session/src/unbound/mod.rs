@@ -5,7 +5,6 @@
 //! of the available parsers and sources, and plugins management.
 
 pub mod api;
-mod cleanup;
 pub mod commands;
 mod signal;
 
@@ -16,7 +15,6 @@ use crate::{
         signal::Signal,
     },
 };
-pub use cleanup::cleanup_temp_files;
 use log::{debug, error, warn};
 use std::{collections::HashMap, sync::Arc};
 use tokio::{
@@ -140,17 +138,6 @@ impl UnboundSession {
             }
             finished.cancel();
             debug!("Unbound session is down");
-        });
-
-        // Call cleanup here because this function should be called once when chipmunk starts.
-        // Run cleaning up on a separate thread to avoid latency in startup in case temporary
-        // files are too large.
-        tokio::task::spawn_blocking(|| {
-            if let Err(errs) = cleanup_temp_files(None) {
-                errs.iter().for_each(|err| {
-                    log::error!("Error while cleaning up temporary files. Error: {err:?}")
-                });
-            }
         });
 
         Ok(())

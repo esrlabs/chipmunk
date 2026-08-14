@@ -35,6 +35,14 @@ mod release;
 
 use self::{github::GithubRelease, platform::UpdateWorkflowErr};
 
+/// Common name prefix of all staging directories of one update version.
+///
+/// Shared between download staging and the startup cleanup, which identifies
+/// leftover staging directories by this prefix.
+pub fn version_dir_prefix(version: &Version) -> String {
+    format!("update_{version}_")
+}
+
 /// Spawns a selected app update download request.
 pub fn spawn_download_update(senders: ServiceSenders, request: DownloadUpdateParam) {
     tokio::spawn(async move {

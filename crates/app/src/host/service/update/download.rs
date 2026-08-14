@@ -8,6 +8,7 @@ use thiserror::Error;
 use tokio::{fs, io::AsyncWriteExt};
 use uuid::Uuid;
 
+use super::version_dir_prefix;
 use crate::host::ui::update::{DownloadUpdateParam, DownloadedUpdate};
 
 const USER_AGENT: &str = "chipmunk";
@@ -60,11 +61,12 @@ fn unique_download_dir(request: &DownloadUpdateParam) -> Result<PathBuf, Downloa
         DownloadUpdateError::PrepareDirectory(std::io::Error::other(message))
     })?;
 
-    let download_dir = downloads_dir.join(format!(
-        "update_{}_{}",
-        request.latest_version,
+    let dir_name = format!(
+        "{}{}",
+        version_dir_prefix(&request.latest_version),
         Uuid::new_v4()
-    ));
+    );
+    let download_dir = downloads_dir.join(dir_name);
 
     Ok(download_dir)
 }

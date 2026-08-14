@@ -18,7 +18,6 @@ use stypes::{
 };
 
 use crate::{
-    common::app_info,
     host::{
         command::{
             DltStatisticsParam, ExportPresetsParam, HostCommand, ScanFavoriteFoldersParam,
@@ -58,6 +57,7 @@ use plugin::{PluginEvent, PluginService};
 use presets_io::{import_named_presets, serialize_named_presets};
 use storage::StorageService;
 
+mod cleanup;
 pub mod file;
 mod plugin;
 mod presets_io;
@@ -150,7 +150,7 @@ impl HostService {
                     plugins,
                 };
 
-                Self::spawn_startup_cleanup();
+                tokio::task::spawn_blocking(cleanup::cleanup_temp_files);
                 let previous_version = storage::app_version::sync_current_version();
                 update::spawn_check(
                     host.communication.senders.clone(),
@@ -164,17 +164,6 @@ impl HostService {
         handle_rx
             .recv()
             .expect("Receiving startup state should never fail")
-    }
-
-    fn spawn_startup_cleanup() {
-        tokio::task::spawn_blocking(move || {
-            let current_update = format!("update_{}_", app_info::current_version());
-            if let Err(errs) = session_core::unbound::cleanup_temp_files(Some(&current_update)) {
-                for err in errs {
-                    log::error!("Error while cleaning up temporary files. Error: {err:?}");
-                }
-            }
-        });
     }
 
     async fn run(mut self) {
