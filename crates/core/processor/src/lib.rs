@@ -11,7 +11,6 @@
 // is strictly forbidden unless prior written permission is obtained
 // from E.S.R.Labs.
 extern crate indexer_base;
-extern crate lazy_static;
 #[macro_use]
 extern crate log;
 

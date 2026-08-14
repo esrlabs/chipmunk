@@ -6,7 +6,7 @@ use std::{
     fmt::{self, Display},
     io::Write,
     path::PathBuf,
-    sync::Mutex,
+    sync::{LazyLock, Mutex},
 };
 
 use someip_messages::*;
@@ -17,7 +17,6 @@ use someip_payload::{
 };
 use stypes::SomeipFilterConfig;
 
-use lazy_static::lazy_static;
 use log::{debug, error};
 use regex::Regex;
 use serde::Serialize;
@@ -564,11 +563,11 @@ impl fmt::Debug for SomeipLogMessage {
 
 /// Merges the SOME/IP message columns to a single column with additional info.
 fn merge_columns(columns: &str) -> Cow<'_, str> {
-    lazy_static! {
-        static ref REGEX : Regex = Regex::new(
+    static REGEX: LazyLock<Regex> = LazyLock::new(|| {
+        Regex::new(
             &format!("(SD|RPC){COLUMN_SEP}(\\d+){COLUMN_SEP}(\\d+){COLUMN_SEP}(\\d+){COLUMN_SEP}(\\d+){COLUMN_SEP}(\\d+){COLUMN_SEP}(\\d+){COLUMN_SEP}(\\d+){COLUMN_SEP}(\\d+){COLUMN_SEP}(.*)")
-            ).unwrap();
-    }
+            ).expect("SOME/IP columns pattern is static and must compile")
+    });
     REGEX.replace(columns, "${1} SERV:${2} METH:${3} LENG:${4} CLID:${5} SEID:${6} IVER:${7} MSTP:${8} RETC:${9} ${10}")
 }
 

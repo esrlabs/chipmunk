@@ -24,7 +24,6 @@ futures.workspace = true
 grep-regex.workspace = true
 grep-searcher.workspace = true
 itertools.workspace = true
-lazy_static.workspace = true
 log.workspace = true
 memchr.workspace = true
 regex.workspace = true
