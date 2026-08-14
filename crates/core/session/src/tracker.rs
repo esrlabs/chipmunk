@@ -51,9 +51,12 @@ impl std::fmt::Display for TrackerCommand {
     }
 }
 
+/// Cancellation and data-exchange handles of one running operation.
 #[derive(Debug)]
-pub struct OperationTracker {
-    pub operations: HashMap<Uuid, (Option<SdeSender>, CancellationToken, CancellationToken)>,
+struct TrackedOperation {
+    sde_tx: Option<SdeSender>,
+    canceler: CancellationToken,
+    done: CancellationToken,
 }
 
 #[derive(Clone, Debug)]
@@ -133,23 +136,19 @@ pub async fn run(
     state: SessionStateAPI,
     mut rx_api: UnboundedReceiver<TrackerCommand>,
 ) -> Result<(), stypes::NativeError> {
-    let mut tracker = OperationTracker {
-        operations: HashMap::new(),
-    };
+    let mut operations: HashMap<Uuid, TrackedOperation> = HashMap::new();
     debug!("task is started");
     while let Some(msg) = rx_api.recv().await {
         match msg {
-            TrackerCommand::AddOperation((
-                uuid,
-                tx_sde,
-                cancalation_token,
-                done_token,
-                tx_response,
-            )) => {
+            TrackerCommand::AddOperation((uuid, sde_tx, canceler, done, tx_response)) => {
                 if tx_response
-                    .send(match tracker.operations.entry(uuid) {
+                    .send(match operations.entry(uuid) {
                         Entry::Vacant(entry) => {
-                            entry.insert((tx_sde, cancalation_token, done_token));
+                            entry.insert(TrackedOperation {
+                                sde_tx,
+                                canceler,
+                                done,
+                            });
                             true
                         }
                         _ => false,
@@ -166,7 +165,7 @@ pub async fn run(
                     error!("fail to notify state about canceled operation {uuid}; err: {err:?}");
                 }
                 if tx_response
-                    .send(tracker.operations.remove(&uuid).is_some())
+                    .send(operations.remove(&uuid).is_some())
                     .is_err()
                 {
                     return Err(stypes::NativeError::channel(
@@ -181,39 +180,33 @@ pub async fn run(
                     );
                 }
                 tx_response
-                    .send(
-                        if let Some((_tx_sde, operation_cancalation_token, done_token)) =
-                            tracker.operations.remove(&uuid)
-                        {
-                            if !done_token.is_cancelled() {
-                                operation_cancalation_token.cancel();
-                                debug!("Waiting for operation {uuid} would confirm done-state");
-                                done_token.cancelled().await;
-                            }
-                            if let Err(err) = state.canceled_operation(uuid).await {
-                                error!(
-                                    "Failed to notify state about canceled operation {uuid}; err: {err:?}"
-                                );
-                            }
-                            true
-                        } else {
-                            false
-                        },
-                    )
+                    .send(if let Some(operation) = operations.remove(&uuid) {
+                        if !operation.done.is_cancelled() {
+                            operation.canceler.cancel();
+                            debug!("Waiting for operation {uuid} would confirm done-state");
+                            operation.done.cancelled().await;
+                        }
+                        if let Err(err) = state.canceled_operation(uuid).await {
+                            error!(
+                                "Failed to notify state about canceled operation {uuid}; err: {err:?}"
+                            );
+                        }
+                        true
+                    } else {
+                        false
+                    })
                     .map_err(|_| {
                         stypes::NativeError::channel("Failed to respond to Api::CancelOperation")
                     })?;
             }
             TrackerCommand::CancelAll(tx_response) => {
-                for (uuid, (_tx_sde, operation_cancalation_token, done_token)) in
-                    &tracker.operations
-                {
-                    if !done_token.is_cancelled() {
-                        operation_cancalation_token.cancel();
+                for (uuid, operation) in &operations {
+                    if !operation.done.is_cancelled() {
+                        operation.canceler.cancel();
                         debug!("waiting for operation {uuid} would confirm done-state");
                         if timeout(
                             Duration::from_millis(CANCEL_OPERATION_TIMEOUT),
-                            done_token.cancelled(),
+                            operation.done.cancelled(),
                         )
                         .await
                         .is_err()
@@ -225,7 +218,7 @@ pub async fn run(
                         }
                     }
                 }
-                tracker.operations.clear();
+                operations.clear();
                 if tx_response.send(()).is_err() {
                     return Err(stypes::NativeError::channel(
                         "fail to response to Api::CloseSession",
@@ -234,13 +227,7 @@ pub async fn run(
             }
             TrackerCommand::GetSdeSender((uuid, tx_response)) => {
                 if tx_response
-                    .send(
-                        if let Some((tx_sde, _, _)) = tracker.operations.get(&uuid) {
-                            tx_sde.clone()
-                        } else {
-                            None
-                        },
-                    )
+                    .send(operations.get(&uuid).and_then(|op| op.sde_tx.clone()))
                     .is_err()
                 {
                     return Err(stypes::NativeError::channel(

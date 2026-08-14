@@ -17,7 +17,6 @@ Treat changes here as cross-crate API changes.
 ## If You Need X, Go to Y
 
 - Add or modify callback/result payloads: `crates/stypes/src/callback/`.
-- Change progress reporting types: `crates/stypes/src/progress/`.
 - Change plugin-facing metadata/config/result types: `crates/stypes/src/plugins/`.
 - Change observe/session source types: `crates/stypes/src/observe/`.
 - Change attachment types: `crates/stypes/src/attachment/`.
@@ -36,7 +35,7 @@ Treat changes here as cross-crate API changes.
 ## Technology Stack
 
 - `serde` for Rust serialization.
-- `uuid`, `dlt-core`, `walkdir`, and core Rust types for shared data models.
+- `uuid`, `dlt-core`, and core Rust types for shared data models.
 
 ## Validation
 
