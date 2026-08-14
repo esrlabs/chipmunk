@@ -113,8 +113,7 @@ pub async fn run_observe_session<P: Into<PathBuf>>(
 
     while let Some(feedback) = receiver.recv().await {
         match feedback {
-            stypes::CallbackEvent::FileRead | stypes::CallbackEvent::SessionDestroyed => break,
-            stypes::CallbackEvent::SessionError(err) => panic!("Received session error: {err:#?}"),
+            stypes::CallbackEvent::FileRead => break,
             stypes::CallbackEvent::OperationError { error, .. } => {
                 panic!("Received operation error: {error:#?}")
             }
