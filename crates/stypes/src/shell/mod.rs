@@ -1,3 +1,5 @@
+//! Shell types used to run process sources through a user shell.
+
 mod extending;
 
 use crate::*;
@@ -20,10 +22,3 @@ pub struct ShellProfile {
     /// Path to executable file of shell
     pub path: PathBuf,
 }
-
-/// Represents a list of serial ports.
-///
-/// This structure contains a vector of strings, where each string represents the name
-/// or identifier of a serial port available on the system.
-#[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct ProfileList(pub Vec<ShellProfile>);

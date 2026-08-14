@@ -18,7 +18,7 @@ On startup, the `PluginsManager` scans the designated plugins directory (`<HOME>
 
 To optimize startup performance, the `PluginsManager` employs a caching mechanism. After the initial scan, extracted plugin metadata, configurations, and a hash of the binary are saved to a cache file (located within the plugins directory). On subsequent runs, unchanged plugins are loaded directly from this cache, avoiding the need to recompile and re-extract their information from the binary. The cache can typically be invalidated or reloaded via a UI action.
 
-The `PluginsManager` keeps track of all loaded plugins, their current state, and configurations, making them available to the rest of the Chipmunk application, such as providing loaded plugins to the `UnboundSession` view in the UI.
+The `PluginsManager` keeps track of all loaded plugins, their current state, and configurations, making them available to the rest of the Chipmunk application. The host plugin service (`crates/app/src/host/service/plugin/`) owns the manager and publishes its data to the UI.
 
 ## Plugin Hosts (Parser and Byte-Source)
 

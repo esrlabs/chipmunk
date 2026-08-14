@@ -9,14 +9,13 @@ Treat changes here as cross-crate API changes.
 
 1. `crates/stypes/Cargo.toml`
 2. `crates/stypes/src/lib.rs`
-3. `crates/stypes/src/command/`
+3. `crates/stypes/src/observe/`
 4. `crates/stypes/src/callback/`
 5. `crates/stypes/src/plugins/`
 6. `crates/stypes/src/error/`
 
 ## If You Need X, Go to Y
 
-- Add or modify command/config types: `crates/stypes/src/command/`.
 - Add or modify callback/result payloads: `crates/stypes/src/callback/`.
 - Change progress reporting types: `crates/stypes/src/progress/`.
 - Change plugin-facing metadata/config/result types: `crates/stypes/src/plugins/`.
@@ -24,7 +23,7 @@ Treat changes here as cross-crate API changes.
 - Change attachment types: `crates/stypes/src/attachment/`.
 - Change operation identifiers or operation payloads: `crates/stypes/src/operations/`.
 - Change shared error types or formatting: `crates/stypes/src/error/`.
-- Change folder/profile utility command types: `crates/stypes/src/command/folders/`, `crates/stypes/src/command/profiles/`.
+- Change shell profile types: `crates/stypes/src/shell/`.
 
 ## Coding Guidelines
 
