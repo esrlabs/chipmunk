@@ -1,7 +1,7 @@
 //! Contains the functionality for adding and tracking all operations running in core
 //! including cancelling them as well.
 
-use crate::{operations::OperationStat, progress::ProgressProviderAPI, state::SessionStateAPI};
+use crate::{operations::OperationStat, state::SessionStateAPI};
 use log::{debug, error};
 use sources::sde::SdeSender;
 use std::collections::{HashMap, hash_map::Entry};
@@ -172,7 +172,6 @@ pub async fn run(
         stat: vec![],
         debug: false,
     };
-    let progress = ProgressProviderAPI::new()?;
     debug!("task is started");
     while let Some(msg) = rx_api.recv().await {
         match msg {
@@ -187,7 +186,7 @@ pub async fn run(
                 if tracker.debug {
                     tracker
                         .stat
-                        .push(OperationStat::new(uuid.to_string(), name.clone()));
+                        .push(OperationStat::new(uuid.to_string(), name));
                 }
                 if tx_response
                     .send(match tracker.operations.entry(uuid) {
@@ -202,8 +201,6 @@ pub async fn run(
                     return Err(stypes::NativeError::channel(
                         "fail to response to Api::AddOperation",
                     ));
-                } else {
-                    progress.started(&name, &uuid);
                 }
             }
             TrackerCommand::RemoveOperation((uuid, tx_response)) => {
@@ -218,7 +215,6 @@ pub async fn run(
                         error!("fail to find operation in stat: {str_uuid}");
                     }
                 }
-                progress.stopped(&uuid);
                 if tx_response
                     .send(tracker.operations.remove(&uuid).is_some())
                     .is_err()
@@ -243,7 +239,6 @@ pub async fn run(
                                 operation_cancalation_token.cancel();
                                 debug!("Waiting for operation {uuid} would confirm done-state");
                                 done_token.cancelled().await;
-                                progress.stopped(&uuid);
                             }
                             if let Err(err) = state.canceled_operation(uuid).await {
                                 error!(
@@ -278,7 +273,6 @@ pub async fn run(
                                 CANCEL_OPERATION_TIMEOUT / 1000
                             );
                         }
-                        progress.stopped(uuid);
                     }
                 }
                 tracker.operations.clear();

@@ -5362,7 +5362,6 @@ dependencies = [
  "futures",
  "indexer_base",
  "insta",
- "lazy_static",
  "log",
  "merging",
  "mime_guess",
