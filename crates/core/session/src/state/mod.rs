@@ -83,7 +83,6 @@ pub struct SessionState {
     pub cancelling_operations: HashMap<Uuid, bool>,
     pub status: Status,
     searcher_tx: mpsc::Sender<SearchRequest>,
-    pub debug: bool,
 }
 
 impl SessionState {
@@ -101,7 +100,6 @@ impl SessionState {
             status: Status::Open,
             cancelling_operations: HashMap::new(),
             searcher_tx,
-            debug: false,
         }
     }
 
@@ -963,14 +961,6 @@ async fn handle_api_msg(
                 ));
             }
         }
-        Api::SetDebugMode((debug, tx_response)) => {
-            state.debug = debug;
-            if tx_response.send(()).is_err() {
-                return Err(stypes::NativeError::channel(
-                    "fail to response to Api::SetDebugMode",
-                ));
-            }
-        }
         Api::NotifyCancelingOperation(uuid) => {
             state.cancelling_operations.insert(uuid, true);
         }
@@ -990,14 +980,6 @@ async fn handle_api_msg(
             state_cancellation_token.cancel();
             debug!("shutdown has been requested");
             return Ok(HanldeOutpt::Break);
-        }
-        Api::ShutdownWithError => {
-            debug!("shutdown state loop with error for testing");
-            return Err(stypes::NativeError {
-                severity: stypes::Severity::ERROR,
-                kind: stypes::NativeErrorKind::Io,
-                message: Some(String::from("Shutdown state loop with error for testing")),
-            });
         }
     }
 
