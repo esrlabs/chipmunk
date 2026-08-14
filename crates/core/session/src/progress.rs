@@ -70,7 +70,7 @@ impl ProgressProviderAPI {
 }
 
 /// The ProgressTrackerAPI enables safe access to the state of the progress of
-/// all ongoing operations (all unbound jobs and all operations in every session)
+/// all ongoing operations in every session
 #[derive(Clone, Debug)]
 pub struct ProgressTrackerAPI {
     tx_api: UnboundedSender<ProgressCommand>,

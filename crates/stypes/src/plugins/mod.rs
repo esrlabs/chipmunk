@@ -217,15 +217,3 @@ pub struct ColumnInfo {
     /// Width of column (-1) for unlimited.
     pub width: i16,
 }
-
-/// Represents a list of [`PluginEntity`].
-#[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct PluginsList(pub Vec<PluginEntity>);
-
-/// Represents a list of [`InvalidPluginEntity`].
-#[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct InvalidPluginsList(pub Vec<InvalidPluginEntity>);
-
-/// Represents a list of [`InvalidPluginEntity`].
-#[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct PluginsPathsList(pub Vec<String>);

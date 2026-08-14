@@ -6,7 +6,6 @@ pub mod session;
 pub mod state;
 pub mod tail;
 pub mod tracker;
-pub mod unbound;
 
 use std::sync::Mutex;
 use tokio::sync::mpsc;

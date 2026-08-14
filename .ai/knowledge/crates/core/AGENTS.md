@@ -15,7 +15,7 @@ The native app and CLI depend on these crates directly through Rust APIs.
 
 ## Crate Map
 
-- `session`: API boundary for live sessions, operations, observing, search, exports, attachments, and unbound utility commands.
+- `session`: API boundary for live sessions, operations, observing, search, exports, and attachments.
 - `processor`: ingestion/search pipeline; `MessageProducer` coordinates `ByteSource` and `Parser` implementations.
 - `sources`: byte ingestion from files, TCP, UDP, serial, processes, and pcap inputs.
 - `parsers`: DLT, SOME/IP, text, and plugin parser integration.
@@ -29,7 +29,7 @@ The native app and CLI depend on these crates directly through Rust APIs.
 ## If You Need X, Go to Y
 
 - Change app/backend coordination: `crates/core/session/src/`.
-- Add or modify session operations: `crates/core/session/src/handlers/`, `crates/core/session/src/unbound/commands/`, and `crates/stypes/src/operations/`.
+- Add or modify session operations: `crates/core/session/src/handlers/` and `crates/stypes/src/operations/`.
 - Add or modify ingestion sources: `crates/core/sources/src/` and `crates/core/processor/src/producer/`.
 - Add or modify parser formats: `crates/core/parsers/src/` and `crates/core/processor/src/`.
 - Change search/filter behavior: `crates/core/processor/src/search/` and `crates/core/session/src/state/searchers/`.
