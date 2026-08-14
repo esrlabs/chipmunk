@@ -192,13 +192,10 @@ pub enum Api {
     DropSearchValues(oneshot::Sender<bool>),
     GetIndexedRanges(oneshot::Sender<Vec<RangeInclusive<u64>>>),
     CloseSession(oneshot::Sender<()>),
-    SetDebugMode((bool, oneshot::Sender<()>)),
     NotifyCancelingOperation(Uuid),
     NotifyCanceledOperation(Uuid),
     AddAttachments(Vec<parsers::Attachment>),
     GetAttachments(oneshot::Sender<Vec<stypes::AttachmentInfo>>),
-    // Used for tests of error handeling
-    ShutdownWithError,
     Shutdown,
 }
 
@@ -247,13 +244,11 @@ impl Display for Api {
                 Self::DropSearchValues(_) => "DropSearchValues",
                 Self::GetIndexedRanges(_) => "GetIndexedRanges",
                 Self::CloseSession(_) => "CloseSession",
-                Self::SetDebugMode(_) => "SetDebugMode",
                 Self::NotifyCancelingOperation(_) => "NotifyCancelingOperation",
                 Self::NotifyCanceledOperation(_) => "NotifyCanceledOperation",
                 Self::AddAttachments(_) => "AddAttachments",
                 Self::GetAttachments(_) => "GetAttachments",
                 Self::Shutdown => "Shutdown",
-                Self::ShutdownWithError => "ShutdownWithError",
             }
         )
     }
@@ -666,23 +661,9 @@ impl SessionStateAPI {
         self.exec_operation(Api::CloseSession(tx), rx).await
     }
 
-    pub async fn set_debug(&self, debug: bool) -> Result<(), stypes::NativeError> {
-        let (tx, rx) = oneshot::channel();
-        self.exec_operation(Api::SetDebugMode((debug, tx)), rx)
-            .await
-    }
-
     pub fn shutdown(&self) -> Result<(), stypes::NativeError> {
         self.tx_api.send(Api::Shutdown).map_err(|e| {
             stypes::NativeError::channel(&format!("fail to send to Api::Shutdown; error: {e}",))
-        })
-    }
-
-    pub fn shutdown_with_error(&self) -> Result<(), stypes::NativeError> {
-        self.tx_api.send(Api::ShutdownWithError).map_err(|e| {
-            stypes::NativeError::channel(&format!(
-                "fail to send to Api::ShutdownWithError; error: {e}",
-            ))
         })
     }
 

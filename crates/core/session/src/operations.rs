@@ -7,11 +7,7 @@ use merging::merger::FileMergeOptions;
 use processor::search::filter::SearchFilter;
 use serde::Serialize;
 use sources::sde::{SdeReceiver, SdeSender};
-use std::{
-    ops::RangeInclusive,
-    path::PathBuf,
-    time::{SystemTime, UNIX_EPOCH},
-};
+use std::{ops::RangeInclusive, path::PathBuf};
 
 use tokio::{
     sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel},
@@ -19,46 +15,6 @@ use tokio::{
 };
 use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
-
-#[derive(Debug, Clone, Serialize)]
-pub struct OperationStat {
-    pub uuid: String,
-    pub name: String,
-    pub duration: u64,
-    pub started: u64,
-}
-
-impl OperationStat {
-    pub fn new(uuid: String, name: String) -> Self {
-        let start = SystemTime::now();
-        let timestamp = match start.duration_since(UNIX_EPOCH) {
-            Ok(timestamp) => timestamp.as_micros() as u64,
-            Err(err) => {
-                error!("Failed to get timestamp: {err}");
-                0
-            }
-        };
-        OperationStat {
-            uuid,
-            name,
-            started: timestamp,
-            duration: 0,
-        }
-    }
-    pub fn done(&mut self) {
-        let start = SystemTime::now();
-        let timestamp = match start.duration_since(UNIX_EPOCH) {
-            Ok(timestamp) => timestamp.as_micros() as u64,
-            Err(err) => {
-                error!("Failed to get timestamp: {err}");
-                0
-            }
-        };
-        if timestamp > self.started {
-            self.duration = timestamp - self.started;
-        }
-    }
-}
 
 #[derive(Debug)]
 pub struct Operation {
@@ -133,7 +89,6 @@ pub enum OperationKind {
     Cancel {
         target: Uuid,
     },
-    Sleep(u64, bool),
     End,
 }
 
@@ -152,7 +107,6 @@ impl std::fmt::Display for OperationKind {
                 OperationKind::Map { .. } => "Mapping",
                 OperationKind::Values { .. } => "Values",
                 OperationKind::Merge { .. } => "Merging",
-                OperationKind::Sleep(_, _) => "Sleeping",
                 OperationKind::Cancel { .. } => "Canceling",
                 OperationKind::End => "End",
             }
@@ -283,7 +237,6 @@ impl OperationAPI {
             .tracker_api
             .add_operation(
                 self.id(),
-                operation.kind.to_string(),
                 tx_sde,
                 self.cancellation_token(),
                 self.done_token(),
@@ -427,13 +380,6 @@ impl OperationAPI {
                     source_id: _,
                 } => {
                     unimplemented!("merging not yet supported");
-                }
-                OperationKind::Sleep(ms, ignore_cancellation) => {
-                    api.finish(
-                        handlers::sleep::handle(&api, ms, ignore_cancellation).await,
-                        operation_str,
-                    )
-                    .await;
                 }
                 OperationKind::Cancel { target } => match tracker.cancel_operation(target).await {
                     Ok(canceled) => {

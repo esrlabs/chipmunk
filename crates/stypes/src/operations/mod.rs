@@ -38,9 +38,3 @@ pub struct ResultU64(pub u64);
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ResultBool(pub bool);
-
-/// Used only for debug session lifecycle
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ResultSleep {
-    pub sleep_well: bool,
-}

@@ -532,35 +532,6 @@ impl Session {
             .map(|v| v.into())
             .map_err(stypes::ComputationError::NativeError)
     }
-
-    /// Used for debug goals
-    pub fn sleep(
-        &self,
-        operation_id: Uuid,
-        ms: u64,
-        ignore_cancellation: bool,
-    ) -> Result<(), stypes::ComputationError> {
-        self.tx_operations
-            .send(Operation::new(
-                operation_id,
-                operations::OperationKind::Sleep(ms, ignore_cancellation),
-            ))
-            .map_err(|e| stypes::ComputationError::Communication(e.to_string()))
-    }
-
-    /// Used for debug goals
-    pub async fn trigger_state_error(&self) -> Result<(), stypes::ComputationError> {
-        self.state
-            .shutdown_with_error()
-            .map_err(stypes::ComputationError::NativeError)
-    }
-
-    /// Used for debug goals
-    pub async fn trigger_tracker_error(&self) -> Result<(), stypes::ComputationError> {
-        self.tracker
-            .shutdown_with_error()
-            .map_err(stypes::ComputationError::NativeError)
-    }
 }
 
 impl Drop for Session {

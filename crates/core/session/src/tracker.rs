@@ -1,7 +1,7 @@
 //! Contains the functionality for adding and tracking all operations running in core
 //! including cancelling them as well.
 
-use crate::{operations::OperationStat, state::SessionStateAPI};
+use crate::state::SessionStateAPI;
 use log::{debug, error};
 use sources::sde::SdeSender;
 use std::collections::{HashMap, hash_map::Entry};
@@ -21,7 +21,6 @@ pub enum TrackerCommand {
     AddOperation(
         (
             Uuid,
-            String,
             Option<SdeSender>,
             CancellationToken,
             CancellationToken,
@@ -30,13 +29,9 @@ pub enum TrackerCommand {
     ),
     RemoveOperation((Uuid, oneshot::Sender<bool>)),
     CancelOperation((Uuid, oneshot::Sender<bool>)),
-    SetDebugMode((bool, oneshot::Sender<()>)),
-    GetOperationsStat(oneshot::Sender<Result<String, stypes::NativeError>>),
     GetSdeSender((Uuid, oneshot::Sender<Option<SdeSender>>)),
     CancelAll(oneshot::Sender<()>),
     Shutdown,
-    // Used for tests of error handeling
-    ShutdownWithError,
 }
 
 impl std::fmt::Display for TrackerCommand {
@@ -48,12 +43,9 @@ impl std::fmt::Display for TrackerCommand {
                 Self::AddOperation(_) => "AddOperation",
                 Self::RemoveOperation(_) => "RemoveOperation",
                 Self::CancelOperation(_) => "CancelOperation",
-                Self::SetDebugMode(_) => "SetDebugMode",
-                Self::GetOperationsStat(_) => "GetOperationsStat",
                 Self::GetSdeSender(_) => "GetSdeSender",
                 Self::CancelAll(_) => "CancelAll",
                 Self::Shutdown => "Shutdown",
-                Self::ShutdownWithError => "ShutdownWithError",
             }
         )
     }
@@ -62,8 +54,6 @@ impl std::fmt::Display for TrackerCommand {
 #[derive(Debug)]
 pub struct OperationTracker {
     pub operations: HashMap<Uuid, (Option<SdeSender>, CancellationToken, CancellationToken)>,
-    pub stat: Vec<OperationStat>,
-    pub debug: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -94,14 +84,13 @@ impl OperationTrackerAPI {
     pub async fn add_operation(
         &self,
         uuid: Uuid,
-        name: String,
         tx_sde: Option<SdeSender>,
         canceler: CancellationToken,
         done: CancellationToken,
     ) -> Result<bool, stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(
-            TrackerCommand::AddOperation((uuid, name, tx_sde, canceler, done, tx)),
+            TrackerCommand::AddOperation((uuid, tx_sde, canceler, done, tx)),
             rx,
         )
         .await
@@ -124,19 +113,6 @@ impl OperationTrackerAPI {
         self.exec_operation(TrackerCommand::CancelAll(tx), rx).await
     }
 
-    pub async fn set_debug(&self, debug: bool) -> Result<(), stypes::NativeError> {
-        let (tx, rx) = oneshot::channel();
-        self.exec_operation(TrackerCommand::SetDebugMode((debug, tx)), rx)
-            .await?;
-        Ok(())
-    }
-
-    pub async fn get_operations_stat(&self) -> Result<String, stypes::NativeError> {
-        let (tx, rx) = oneshot::channel();
-        self.exec_operation(TrackerCommand::GetOperationsStat(tx), rx)
-            .await?
-    }
-
     pub async fn get_sde_sender(
         &self,
         uuid: Uuid,
@@ -151,16 +127,6 @@ impl OperationTrackerAPI {
             stypes::NativeError::channel(&format!("fail to send to Api::Shutdown; error: {e}",))
         })
     }
-
-    pub fn shutdown_with_error(&self) -> Result<(), stypes::NativeError> {
-        self.tx_api
-            .send(TrackerCommand::ShutdownWithError)
-            .map_err(|e| {
-                stypes::NativeError::channel(&format!(
-                    "fail to send to Api::ShutdownWithError; error: {e}",
-                ))
-            })
-    }
 }
 
 pub async fn run(
@@ -169,25 +135,17 @@ pub async fn run(
 ) -> Result<(), stypes::NativeError> {
     let mut tracker = OperationTracker {
         operations: HashMap::new(),
-        stat: vec![],
-        debug: false,
     };
     debug!("task is started");
     while let Some(msg) = rx_api.recv().await {
         match msg {
             TrackerCommand::AddOperation((
                 uuid,
-                name,
                 tx_sde,
                 cancalation_token,
                 done_token,
                 tx_response,
             )) => {
-                if tracker.debug {
-                    tracker
-                        .stat
-                        .push(OperationStat::new(uuid.to_string(), name));
-                }
                 if tx_response
                     .send(match tracker.operations.entry(uuid) {
                         Entry::Vacant(entry) => {
@@ -206,14 +164,6 @@ pub async fn run(
             TrackerCommand::RemoveOperation((uuid, tx_response)) => {
                 if let Err(err) = state.canceled_operation(uuid).await {
                     error!("fail to notify state about canceled operation {uuid}; err: {err:?}");
-                }
-                if tracker.debug {
-                    let str_uuid = uuid.to_string();
-                    if let Some(index) = tracker.stat.iter().position(|op| op.uuid == str_uuid) {
-                        tracker.stat[index].done();
-                    } else {
-                        error!("fail to find operation in stat: {str_uuid}");
-                    }
                 }
                 if tx_response
                     .send(tracker.operations.remove(&uuid).is_some())
@@ -282,31 +232,6 @@ pub async fn run(
                     ));
                 }
             }
-            TrackerCommand::SetDebugMode((debug, tx_response)) => {
-                tracker.debug = debug;
-                if tx_response.send(()).is_err() {
-                    return Err(stypes::NativeError::channel(
-                        "fail to response to Api::SetDebugMode",
-                    ));
-                }
-            }
-            TrackerCommand::GetOperationsStat(tx_response) => {
-                if tx_response
-                    .send(match serde_json::to_string(&tracker.stat) {
-                        Ok(serialized) => Ok(serialized),
-                        Err(err) => Err(stypes::NativeError {
-                            severity: stypes::Severity::ERROR,
-                            kind: stypes::NativeErrorKind::ComputationFailed,
-                            message: Some(format!("{err}")),
-                        }),
-                    })
-                    .is_err()
-                {
-                    return Err(stypes::NativeError::channel(
-                        "fail to response to Api::GetOperationsStat",
-                    ));
-                }
-            }
             TrackerCommand::GetSdeSender((uuid, tx_response)) => {
                 if tx_response
                     .send(
@@ -326,14 +251,6 @@ pub async fn run(
             TrackerCommand::Shutdown => {
                 debug!("shutdown has been requested");
                 break;
-            }
-            TrackerCommand::ShutdownWithError => {
-                debug!("shutdown tracker loop with error for testing");
-                return Err(stypes::NativeError {
-                    severity: stypes::Severity::ERROR,
-                    kind: stypes::NativeErrorKind::Io,
-                    message: Some(String::from("Shutdown tracker loop with error for testing")),
-                });
             }
         }
     }
