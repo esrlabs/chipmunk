@@ -8,6 +8,7 @@ Type=Application
 Categories=Utility;Development;
 Actions=new-empty-window;
 Keywords=chipmunk;log;viewer;trace;dlt;
+MimeType=text/plain;text/x-log;application/vnd.tcpdump.pcap;application/x-pcapng;application/x-dlt;
 
 [Desktop Action new-empty-window]
 Name=New Empty Window
