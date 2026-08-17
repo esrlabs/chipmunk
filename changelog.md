@@ -1,3 +1,29 @@
+# 4.2.0 (18.08.2026)
+
+## Features
+- Added "Find in Search Results" to find matches within the current search results, with the shortcut `Ctrl/Cmd+Shift+F`.
+- Added a "Jump to Log" overlay to jump directly to a log line number, with the shortcut `Ctrl/Cmd+G`.
+- Added copying selected rows to the clipboard, via context menu or `Ctrl/Cmd+Shift+C`.
+- Added a copy action to the log details view.
+- Added copy buttons to text and image attachment previews.
+- Added copy commands to session tab context menus for file path, process command, and stream address.
+- Added applying sidebar filters and chart values as a temporary search by double-clicking them.
+- Added support for OS "Open with" calls on Windows and Linux, and passing file paths directly to the CLI.
+
+## Changes
+- Temporary search now overrides persistent filters while the search is active.
+- Improved manual selection for logs in logs and search tables.
+- Transient notifications are shown for actions like copying, without adding entries to the notifications history.
+- Attachments are now delivered to the UI in batches, reducing update overhead.
+- Changed the Edit menu to a Session menu, enabled on session tabs only.
+- Removed unused session APIs, events, and dependencies left over from the previous Electron-based version.
+- Command palette now hides session-only commands on non-session tabs and includes the "Find in Search Results" and "Jump to Log" commands.
+- Moved the filters shortcut to `Ctrl/Cmd+Shift+S`.
+
+## Fixes
+- Fixed memory growth in long-running sessions caused by unused progress tracking messages piling up.
+- Fixed jumping to the nearest row when search results and bookmarks are both present.
+
 # 4.1.0 (14.07.2026)
 
 ## Features
