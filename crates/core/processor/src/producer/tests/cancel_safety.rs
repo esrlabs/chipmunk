@@ -632,3 +632,77 @@ async fn cancel_safe_timeout() {
 
     assert!(timeout_received > 50);
 }
+
+/// Cancel safety test for the bare loading step of the producer, which is the only awaiting
+/// step and therefore the only one that a `select!` can ever cancel.
+#[tokio::test(start_paused = true)]
+async fn cancel_safe_fetch() {
+    const LOAD_SEEDS: [usize; 3] = [5, 4, 6];
+
+    let parser = MockParser::new([]);
+    let source = MockByteSource::new(
+        0,
+        [
+            Ok(Some(
+                MockReloadSeed::new(LOAD_SEEDS[0], 0).sleep_duration(SOURCE_SLEEP_DURATION),
+            )),
+            Ok(Some(
+                MockReloadSeed::new(LOAD_SEEDS[1], 0).sleep_duration(SOURCE_SLEEP_DURATION),
+            )),
+            Ok(Some(
+                MockReloadSeed::new(LOAD_SEEDS[2], 0).sleep_duration(SOURCE_SLEEP_DURATION),
+            )),
+            Ok(None),
+        ],
+    );
+
+    let mut producer = MessageProducer::new(parser, source);
+    let (cancel_tx, mut cancel_rx) = tokio::sync::mpsc::channel(32);
+
+    let cancel_handle = tokio::spawn(async move {
+        let mut count = 0;
+        while cancel_tx.send(()).await.is_ok() {
+            sleep(Duration::from_millis(2)).await;
+            count += 1;
+        }
+
+        assert!(count > 50);
+    });
+
+    let mut cancel_received = 0;
+    let mut fetch_idx = 0;
+    loop {
+        tokio::select! {
+            _ = cancel_rx.recv() => {
+                cancel_received += 1;
+            }
+            res = producer.fetch() => {
+                let info = res.unwrap();
+                match LOAD_SEEDS.get(fetch_idx) {
+                    // Every seeded load must be observed exactly once, despite the
+                    // constant cancelling of the fetch future.
+                    Some(&loaded) => {
+                        assert_eq!(info.newly_loaded_bytes, loaded);
+                        assert_eq!(info.skipped_bytes, 0);
+                    }
+                    None => {
+                        assert_eq!(info.newly_loaded_bytes, 0);
+                        break;
+                    }
+                }
+                fetch_idx += 1;
+            }
+        };
+    }
+    drop(cancel_rx);
+
+    assert_eq!(fetch_idx, LOAD_SEEDS.len());
+    assert_eq!(
+        producer.total_loaded_bytes(),
+        LOAD_SEEDS.iter().sum::<usize>()
+    );
+
+    assert!(cancel_received > 50);
+
+    assert!(cancel_handle.await.is_ok());
+}

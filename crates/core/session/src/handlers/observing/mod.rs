@@ -13,7 +13,7 @@ use parsers::{
     text::StringTokenizer,
 };
 use plugins_host::PluginsParser;
-use processor::producer::{MessageProducer, ProduceError, ProduceSummary};
+use processor::producer::{FetchInfo, MessageProducer, ProcessError, ProcessOutcome};
 use sources::{
     ByteSource,
     sde::{SdeMsg, SdeReceiver},
@@ -21,7 +21,7 @@ use sources::{
 use tokio::{
     select,
     sync::mpsc::Receiver,
-    time::{Duration, timeout},
+    time::{Duration, Instant, sleep_until},
 };
 
 pub mod concat;
@@ -29,22 +29,80 @@ pub mod file;
 mod logs_writer;
 pub mod stream;
 
-pub const FLUSH_TIMEOUT_IN_MS: u128 = 500;
+/// Interval at which the items produced so far are flushed to the UI.
+pub const FLUSH_TIMEOUT_IN_MS: u64 = 500;
 
-/// Represents the possible steps while running the processing loop for a source.
+/// Schedules the flushes which deliver the produced items to the UI.
+///
+/// The next flush is kept as an absolute deadline so that the schedule survives any number of
+/// fetch and process rounds: a timeout wrapped around fetching alone would be renewed by every
+/// fetch, and a source dribbling bytes could starve flushing for an unbounded time.
+struct FlushSchedule {
+    interval: Duration,
+    deadline: Instant,
+}
+
+impl FlushSchedule {
+    fn new(interval: Duration) -> Self {
+        Self {
+            interval,
+            deadline: Instant::now() + interval,
+        }
+    }
+
+    /// The instant at which the next flush is due.
+    fn deadline(&self) -> Instant {
+        self.deadline
+    }
+
+    /// Advances the deadline to the next flush interval.
+    ///
+    /// Must be called whenever the current deadline is consumed, independent of whether an
+    /// actual flush happens: otherwise `sleep_until(deadline)` stays ready forever and the loop
+    /// busy-spins instead of waiting for the next interval.
+    fn reschedule(&mut self) {
+        self.deadline = Instant::now() + self.interval;
+    }
+
+    /// Flushes everything written to the session file so far and schedules the next flush.
+    async fn flush(&mut self, state: &SessionStateAPI) -> Result<(), stypes::NativeError> {
+        state.flush_session_file().await?;
+        self.reschedule();
+
+        Ok(())
+    }
+}
+
+/// The event which the processing loop of a source observed in the current iteration.
 /// This is for internal representation only.
-enum Next {
-    /// Items has been produced and needed to be sent.
-    ItemsProduced,
-    /// Producer is done. No loading or parsing is possible.
-    ProducerDone,
+enum LoopEvent {
+    /// Bytes have been fetched from the byte-source and still need to be processed
+    /// outside of the `select!` macro.
+    Fetched(FetchInfo),
     /// Flush timeout while waiting for next items has expired.
     Timeout,
-    /// Wait for source to have more bytes as it doesn't have more bytes currently.
-    /// (Enter tail mode for files)
-    Waiting,
     /// Source data exchange was sent and needed to be passed to byte-source.
     Sde(SdeMsg),
+}
+
+/// Represents the work the processing loop has to do once parsing has run.
+/// This is for internal representation only.
+enum LoopAction {
+    /// Write the items which have been produced to the session file.
+    WriteItems,
+    /// Finish the session as the producer can't load or parse anymore.
+    Finish,
+    /// Nothing to do currently. Go back to fetching more bytes.
+    Continue,
+    /// Flush the items which have been produced so far to the UI.
+    Flush,
+    /// Wait for the source to have more bytes as it doesn't have more bytes currently.
+    /// (Enter tail mode for files)
+    Wait,
+    /// Pass the sent source data exchange to the byte-source.
+    Sde(SdeMsg),
+    /// Terminate the session.
+    Stop,
 }
 
 pub async fn run_source<S: ByteSource>(
@@ -141,7 +199,6 @@ async fn run_producer<P: Parser, S: ByteSource>(
     mut rx_tail: Option<Receiver<Result<(), tail::Error>>>,
     mut rx_sde: Option<SdeReceiver>,
 ) -> OperationResult<()> {
-    use log::debug;
     state.set_session_file(None).await?;
     operation_api.processing();
     let mut logs_writer = LogsWriter::new(state.clone(), source_id);
@@ -150,96 +207,139 @@ async fn run_producer<P: Parser, S: ByteSource>(
 
     // We need to show the users some logs quick as possible by starting of the session.
     let mut first_run = true;
-    while let Some(next) = select! {
-        next_from_stream = async {
-            match timeout(Duration::from_millis(FLUSH_TIMEOUT_IN_MS as u64), producer.produce_next(&mut logs_writer)).await {
-                Ok(Ok(summary)) => {
-                match summary {
-                    ProduceSummary::Processed {
-                        bytes_consumed,
-                        messages_count,
-                        skipped_bytes,
-                    } => {
-                        log::trace!(
-                            "{bytes_consumed} Bytes consumed to produce {messages_count} items,\
+
+    let mut flush_schedule = FlushSchedule::new(Duration::from_millis(FLUSH_TIMEOUT_IN_MS));
+
+    loop {
+        // *** Cancel Safety ***:
+        // Every future here must be cancel safe. Parsing is done on `producer.process()`
+        // below, outside of this macro, because it isn't cancel safe.
+        let next_event = select! {
+            fetch_result = producer.fetch() => {
+                match fetch_result {
+                    Ok(fetch_info) => Some(LoopEvent::Fetched(fetch_info)),
+                    Err(source_err) => {
+                        //TODO: Deliver errors to UI.
+                        log::error!("Producer Error: {source_err}");
+                        // We need to print stopping errors for now as we don't have a solution
+                        // to show them to user.
+                        eprintln!("Unrecoverable error during producer session: {source_err}");
+
+                        None
+                    }
+                }
+            },
+
+            _ = sleep_until(flush_schedule.deadline()) => Some(LoopEvent::Timeout),
+
+            Some(sde_msg) = async {
+                if let Some(rx_sde) = rx_sde.as_mut() {
+                    rx_sde.recv().await
+                } else {
+                    None
+                }
+            } => Some(LoopEvent::Sde(sde_msg)),
+
+            _ = cancel.cancelled() => None,
+        };
+
+        let Some(next) = next_event else {
+            break;
+        };
+
+        let action = match next {
+            // Parsing happens here only: outside of the `select!` macro, where it can't be
+            // cancelled halfway through.
+            LoopEvent::Fetched(fetch_info) => {
+                match producer.process(fetch_info, &mut logs_writer) {
+                    Ok(outcome) => match outcome {
+                        ProcessOutcome::Parsed {
+                            bytes_consumed,
+                            messages_count,
+                            skipped_bytes,
+                        } => {
+                            log::trace!(
+                                "{bytes_consumed} Bytes consumed to produce {messages_count} items,\
                             with {skipped_bytes} bytes skipped."
-                        );
-                        Some(Next::ItemsProduced)
-                    }
-                    ProduceSummary::Done {
-                        loaded_bytes,
-                        skipped_bytes,
-                        produced_messages,
-                    } => {
-                        log::debug!(
-                            "Producer done: Total Messages: {produced_messages}. Total bytes:\
-                            {loaded_bytes}. Total skipped bytes {skipped_bytes}."
-                        );
+                            );
 
-                        Some(Next::ProducerDone)
-                    }
-                    ProduceSummary::NoBytesAvailable {skipped_bytes} => {
-                        log::trace!("No more bytes avaialbe with skipped {skipped_bytes} bytes. Going into tail");
+                            LoopAction::WriteItems
+                        }
+                        ProcessOutcome::NeedMoreBytes => LoopAction::Continue,
+                        ProcessOutcome::NoData => {
+                            log::trace!(
+                                "No more bytes available with {} bytes skipped in total. Going into tail",
+                                producer.total_skipped_bytes()
+                            );
 
-                        Some(Next::Waiting)
+                            LoopAction::Wait
+                        }
+                        ProcessOutcome::Done => {
+                            log::debug!(
+                                "Producer done: Total Messages: {}. Total bytes: {}. Total skipped bytes {}.",
+                                producer.total_produced_items(),
+                                producer.total_loaded_bytes(),
+                                producer.total_skipped_bytes()
+                            );
+
+                            LoopAction::Finish
+                        }
+                    },
+                    Err(process_err) => {
+                        //TODO: Deliver errors to UI.
+                        log::error!("Producer Error: {process_err}");
+                        match process_err {
+                            // Break directly on unrecoverable errors.
+                            ProcessError::Unrecoverable(_) => {
+                                // We need to print stopping errors for now as we don't have a
+                                // solution to show them to user.
+                                eprintln!(
+                                    "Unrecoverable error during producer session: {process_err}"
+                                );
+
+                                LoopAction::Stop
+                            }
+                            // Go into tailing mode on parse error since they are delivered only
+                            // where there is no more bytes in the source.
+                            ProcessError::Parse(_) => LoopAction::Wait,
+                        }
                     }
                 }
-                },
-                Ok(Err(producer_err)) => {
-                    //TODO: Deliver errors to UI.
-                    log::error!("Producer Error: {producer_err}");
-                    match producer_err {
-                        // Break directly on unrecoverable and byte source errors.
-                        ProduceError::Unrecoverable(_) | ProduceError::SourceError(_)  => {
-                            // We need to print stopping errors for now as we don't have a solution
-                            // to show them to user.
-                            eprintln!("Unrecoverable error during producer session: {producer_err}");
-                            None
-                        },
-                        // Go into tailing mode on parse error since they are delivered only
-                        // where there is no more bytes in the source.
-                        ProduceError::Parse(_) => Some(Next::Waiting),
-                    }
-                }
-                Err(_) => Some(Next::Timeout),
             }
-        } => next_from_stream,
+            LoopEvent::Timeout => {
+                flush_schedule.reschedule();
 
-        Some(sde_msg) = async {
-            if let Some(rx_sde) = rx_sde.as_mut() {
-                rx_sde.recv().await
-            } else {
-                None
+                LoopAction::Flush
             }
-        } => Some(Next::Sde(sde_msg)),
+            LoopEvent::Sde(sde_msg) => LoopAction::Sde(sde_msg),
+        };
 
-        _ = cancel.cancelled() => None,
-    } {
-        match next {
-            Next::ItemsProduced => {
+        match action {
+            LoopAction::WriteItems => {
                 logs_writer.write_to_session().await?;
                 if first_run {
                     first_run = false;
-                    state.flush_session_file().await?;
+                    flush_schedule.flush(&state).await?;
                 }
             }
-            Next::ProducerDone => {
+            LoopAction::Finish => {
                 logs_writer.write_to_session().await?;
 
-                state.flush_session_file().await?;
+                flush_schedule.flush(&state).await?;
                 state.file_read().await?;
                 break;
             }
-            Next::Timeout => {
+            LoopAction::Continue => {}
+            LoopAction::Flush => {
                 logs_writer.write_to_session().await?;
                 if !state.is_closing() {
-                    state.flush_session_file().await?;
+                    flush_schedule.flush(&state).await?;
                 }
             }
-            Next::Waiting => {
+            LoopAction::Wait => {
                 logs_writer.write_to_session().await?;
                 if !state.is_closing() {
-                    state.flush_session_file().await?;
+                    flush_schedule.flush(&state).await?;
                     state.file_read().await?;
                 }
                 if let Some(rx_tail) = rx_tail.as_mut() {
@@ -259,14 +359,15 @@ async fn run_producer<P: Parser, S: ByteSource>(
                     break;
                 }
             }
-            Next::Sde((msg, tx_response)) => {
+            LoopAction::Sde((msg, tx_response)) => {
                 let sde_res = producer.sde_income(msg).await.map_err(|e| e.to_string());
                 if tx_response.send(sde_res).is_err() {
                     log::warn!("Fail to send back message from source");
                 }
             }
+            LoopAction::Stop => break,
         }
     }
-    debug!("listen done");
+    log::debug!("listen done");
     Ok(None)
 }
