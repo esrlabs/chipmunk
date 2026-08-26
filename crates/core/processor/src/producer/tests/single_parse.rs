@@ -402,6 +402,9 @@ async fn success_parse_err_success() {
     // then load will be called providing 10 bytes which will be consumed by next parser call.
 
     // Second Message with content should be yielded consuming 10 the bytes.
+    // The three dropped bytes are counted on the `process()` call that dropped them, which
+    // ended in `NeedMoreBytes` and therefore doesn't report them here. They are still part of
+    // the producer totals.
     let summary = producer.produce_next(&mut collector).await.unwrap();
     match summary {
         ProduceSummary::Processed {
@@ -411,7 +414,7 @@ async fn success_parse_err_success() {
         } => {
             assert_eq!(messages_count, 1);
             assert_eq!(bytes_consumed, 10);
-            assert_eq!(skipped_bytes, 3);
+            assert_eq!(skipped_bytes, 0);
         }
         ProduceSummary::NoBytesAvailable { .. } | ProduceSummary::Done { .. } => {
             panic!("Summary should be Processed but got {summary:?}");
@@ -429,6 +432,9 @@ async fn success_parse_err_success() {
 
     // Internal byte source must be empty
     assert_eq!(producer.byte_source.len(), 0);
+
+    // The bytes dropped while resyncing are part of the producer totals.
+    assert_eq!(producer.total_skipped_bytes(), 3);
 
     // NoBytesAvailable message should be sent
     let summary = producer.produce_next(&mut collector).await.unwrap();

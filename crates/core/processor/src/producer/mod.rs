@@ -1,3 +1,5 @@
+//! Connects a [`ByteSource`] with a [`Parser`], driving the ingestion pipeline of a session.
+
 #[cfg(test)]
 mod tests;
 
@@ -11,6 +13,9 @@ pub use logs_collector::{GeneralLogCollector, LogRecordsCollector};
 
 /// Number of bytes to skip on initial parse errors before terminating the session.
 const INITIAL_PARSE_ERROR_LIMIT: usize = 1024;
+
+/// Number of bytes dropped on each resync attempt after the parser rejected the current bytes.
+const DROP_STEP: usize = 1;
 
 /// Represents the producer state and processing infos after calling `produce_next()`
 /// on messages producer.
@@ -55,6 +60,78 @@ pub enum ProduceError {
     Parse(String),
 }
 
+/// Info about the bytes that a [`MessageProducer::fetch()`] call made available.
+///
+/// Deliberately not `Clone`, `Copy` or constructible outside this module: the only way to get
+/// one is [`MessageProducer::fetch()`], and [`MessageProducer::process()`] consumes it by value.
+/// That makes "process bytes only after fetching them, at most once per fetch" a fact the
+/// compiler checks rather than a convention documented on the two methods.
+#[derive(Debug)]
+pub struct FetchInfo {
+    /// Bytes newly loaded into the source buffer by this call.
+    newly_loaded_bytes: usize,
+    /// Bytes the source had to skip to reach usable data.
+    skipped_bytes: usize,
+}
+
+/// Result of a [`MessageProducer::process()`] call.
+#[derive(Debug)]
+pub enum ProcessOutcome {
+    /// Bytes were parsed and the items appended to the collector.
+    Parsed {
+        /// Total number of bytes consumed from the input buffer.
+        bytes_consumed: usize,
+        /// Number of messages that were parsed and appended to logs collector.
+        messages_count: usize,
+        /// Bytes skipped by the parser or dropped while resyncing.
+        skipped_bytes: usize,
+    },
+    /// The parser needs more bytes. Call [`MessageProducer::fetch()`] again, then
+    /// [`MessageProducer::process()`] again.
+    NeedMoreBytes,
+    /// No bytes are available in the source right now. The caller decides whether that
+    /// means "wait for more" (tailing) or "stop".
+    NoData,
+    /// The parser signalled end of data. The producer is finished and will stay finished.
+    Done,
+}
+
+/// Represents Error types which could occur during [`MessageProducer::process()`] call.
+#[derive(Debug, thiserror::Error)]
+pub enum ProcessError {
+    /// Unrecoverable error. Producer can't be used anymore.
+    #[error("Unrecoverable Producer Error: {0}")]
+    Unrecoverable(String),
+    /// Parsing error (Recoverable) from the underlying parser.
+    #[error("Parsing Error: {0}")]
+    Parse(String),
+}
+
+impl From<ProcessError> for ProduceError {
+    fn from(value: ProcessError) -> Self {
+        match value {
+            ProcessError::Unrecoverable(msg) => ProduceError::Unrecoverable(msg),
+            ProcessError::Parse(msg) => ProduceError::Parse(msg),
+        }
+    }
+}
+
+/// The producer's current status: exactly one of running, resyncing after a rejected parse, or
+/// finished.
+#[derive(Debug, Default)]
+enum ProducerStatus {
+    /// Parsing normally.
+    #[default]
+    Running,
+    /// The parser rejected the current bytes; kept so it can be delivered once the byte source
+    /// proves it has nothing more to give.
+    ParserErrored { msg: String },
+    /// End of data or an unrecoverable error. No more loading or parsing will happen.
+    Done,
+}
+
+/// Produces parsed log items by feeding the bytes of a [`ByteSource`] into a [`Parser`],
+/// keeping track of the totals of the running session.
 #[derive(Debug)]
 pub struct MessageProducer<P, D>
 where
@@ -68,11 +145,14 @@ where
     total_loaded: usize,
     total_skipped: usize,
     total_messages: usize,
-    done: bool,
+    /// Bytes dropped while resyncing the parser, which is the budget the
+    /// [`INITIAL_PARSE_ERROR_LIMIT`] guard spends.
+    total_dropped: usize,
+    status: ProducerStatus,
 }
 
 impl<P: Parser, D: ByteSource> MessageProducer<P, D> {
-    /// create a new producer by plugging into a byte source
+    /// Creates a new producer by plugging the given parser into the given byte source.
     pub fn new(parser: P, source: D) -> Self {
         MessageProducer {
             byte_source: source,
@@ -82,153 +162,39 @@ impl<P: Parser, D: ByteSource> MessageProducer<P, D> {
             total_loaded: 0,
             total_skipped: 0,
             total_messages: 0,
-            done: false,
+            total_dropped: 0,
+            status: ProducerStatus::default(),
         }
     }
 
-    /// Loads the next segment of bytes, parses them, and append them to the provided
-    /// [`LogRecordsCollector`].
+    /// Whether the producer is finished: no more loading or parsing will happen.
+    #[inline]
+    fn is_done(&self) -> bool {
+        matches!(self.status, ProducerStatus::Done)
+    }
+
+    /// Loads the next segment of bytes from the byte source into its internal buffer.
+    ///
+    /// This is the loading half of the producer. It never parses and never touches the logs
+    /// collector: use [`Self::process()`] for that.
     ///
     /// # Cancel Safety:
-    /// This function is cancel safe as long [`ByteSource::load()`] method on used byte source is
-    /// safe as well.
+    /// This is the only awaiting step of the producer and it is cancel safe as long as
+    /// [`ByteSource::load()`] is (the trait requires it). Dropping this future loses no bytes:
+    /// everything loaded lives in the source's internal buffer.
     ///
     /// # Return:
-    /// Summary of producer state with infos about consumed, skipped bytes and produced log
-    /// messages, otherwise it'll return a producer error.
-    pub async fn produce_next<C: LogRecordsCollector<P::Output>>(
-        &mut self,
-        collector: &mut C,
-    ) -> Result<ProduceSummary, ProduceError> {
-        // ### Cancel Safety ###:
-        // This function is cancel safe because:
-        // * there is no await calls or any function causing yielding between filling the internal
-        //   buffer and returning it.
-        // * Byte source will keep the loaded data in its internal buffer ensuring there
-        //   is no data loss when cancelling happen between load calls.
-
-        if self.done {
-            debug!("done...no next segment");
-            return Ok(self.final_report());
+    /// Infos about the bytes this call made available, or the error of the underlying byte
+    /// source on fail.
+    pub async fn fetch(&mut self) -> Result<FetchInfo, sources::Error> {
+        // A finished producer must stay finished and must never touch the source again.
+        if self.is_done() {
+            return Ok(FetchInfo {
+                newly_loaded_bytes: 0,
+                skipped_bytes: 0,
+            });
         }
-        let (_newly_loaded, mut skipped_bytes) = self.load().await?;
 
-        loop {
-            let current_slice = self.byte_source.current_slice();
-            debug!(
-                "current slice: (len: {}) (total {})",
-                current_slice.len(),
-                self.total_loaded
-            );
-
-            let mut available = current_slice.len();
-            if available == 0 {
-                trace!("No more bytes available from source");
-
-                return Ok(ProduceSummary::NoBytesAvailable { skipped_bytes });
-            }
-
-            let mut bytes_consumed = 0;
-            let mut messages_count = 0;
-
-            match self
-                .parser
-                .parse(self.byte_source.current_slice(), self.last_seen_ts)
-                .map(|iter| {
-                    iter.for_each(|item| match item {
-                        ParseOutput{consumed, message: Some(m)} => {
-                            let total_used_bytes = consumed + skipped_bytes;
-                            debug!(
-                            "Extracted a valid message, consumed {consumed} bytes (total used {total_used_bytes} bytes)"
-                            );
-                            bytes_consumed += consumed;
-                            messages_count += 1;
-                            collector.append(m);
-                        }
-                        ParseOutput{consumed: skipped, message: None} => {
-                            bytes_consumed += skipped;
-                            skipped_bytes += skipped;
-                            trace!("None, consumed {skipped} bytes");
-                        }
-                    })
-                }) {
-                Ok(()) => {
-                    self.byte_source.consume(bytes_consumed);
-                    self.total_messages += messages_count;
-
-                    return Ok(ProduceSummary::Processed { bytes_consumed, messages_count, skipped_bytes });
-                }
-                Err(ParserError::Incomplete) => {
-                    trace!("not enough bytes to parse a message. Load more data");
-                    let (newly_loaded, skipped) = self.load().await?;
-
-                    if newly_loaded > 0 {
-                        trace!("New bytes has been loaded, trying parsing again.");
-                        skipped_bytes += skipped;
-                    } else {
-                        trace!("No bytes has been loaded, drop one byte if available or load");
-
-                        if !self.drop_and_load(&mut available, &mut skipped_bytes).await? {
-                            trace!(
-                                "No available bytes after drop and load"
-                            );
-
-                            return Ok(ProduceSummary::NoBytesAvailable { skipped_bytes });
-                        }
-                    }
-                }
-                Err(ParserError::Eof) => {
-                    trace!("EOF reached...no more messages (skipped_bytes={skipped_bytes})");
-                    self.done = true;
-
-                    return Ok(self.final_report());
-                }
-                Err(ParserError::Parse(s)) => {
-                    // TODO: This is temporary solution. We need to inform the user each time we
-                    // hit the `INITIAL_PARSE_ERROR_LIMIT` and not break the session.
-                    // We may need the new item `MessageStreamItem::Skipped(bytes_count)`
-                    //
-                    // Return early when initial parse calls fail after consuming one megabyte.
-                    // This can happen when provided bytes aren't suitable for the select parser.
-                    // In such case we close the session directly to avoid having unresponsive
-                    // state while parse is calling on each skipped byte in the source.
-                    if !self.did_produce_items() && skipped_bytes > INITIAL_PARSE_ERROR_LIMIT {
-                        let err_msg = format!("Aborting session due to failing initial parse call with the error: {s}");
-                        warn!("{err_msg}");
-
-                        self.done = true;
-
-                        return Err(ProduceError::Unrecoverable(err_msg));
-                    }
-
-                    trace!("No parse possible, skip one byte and retry. Error: {s}");
-                    if self.drop_and_load(&mut available, &mut skipped_bytes).await? {
-                        continue;
-                    } else {
-                        trace!(
-                            "Return the last error parse as no available bytes after drop and load"
-                        );
-
-                        return Err(ProduceError::Parse(s));
-                    }
-                }
-                Err(ParserError::Unrecoverable(err)) => {
-                    error!("Parsing failed: Error {err}");
-                    self.done = true;
-
-                    return Err(ProduceError::Unrecoverable(err));
-                }
-            }
-        }
-    }
-
-    /// Calls load on the underline byte source filling it with more bytes.
-    /// Returning information about the state of the byte counts on success, or the
-    /// corresponding source error on fail.
-    ///
-    /// # Return:
-    /// Result<(newly_loaded_bytes, skipped_bytes), sources::Error>
-    async fn load(&mut self) -> Result<(usize, usize), sources::Error> {
         match self.byte_source.load(self.filter.as_ref()).await? {
             Some(ReloadInfo {
                 newly_loaded_bytes,
@@ -241,54 +207,263 @@ impl<P: Parser, D: ByteSource> MessageProducer<P, D> {
                 if let Some(ts) = last_known_ts {
                     self.last_seen_ts = Some(ts);
                 }
+
                 trace!(
-                    "did a do_reload, skipped {} bytes, loaded {} more bytes (total loaded and skipped: {})",
-                    skipped_bytes,
-                    newly_loaded_bytes,
+                    "did a do_reload, skipped {skipped_bytes} bytes, loaded {newly_loaded_bytes} more bytes (total loaded and skipped: {})",
                     self.total_loaded + self.total_skipped
                 );
-                Ok((newly_loaded_bytes, skipped_bytes))
+
+                let info = FetchInfo {
+                    newly_loaded_bytes,
+                    skipped_bytes,
+                };
+
+                Ok(info)
             }
             None => {
                 trace!("byte_source.reload result was None");
-                Ok((0, 0))
+
+                let info = FetchInfo {
+                    newly_loaded_bytes: 0,
+                    skipped_bytes: 0,
+                };
+
+                Ok(info)
             }
         }
     }
 
-    /// Drops one byte from the available bytes and loads more bytes if no more bytes are
-    /// available.
+    /// Parses the bytes currently held by the byte source and appends the produced items to the
+    /// given `collector`.
     ///
-    /// # Note:
-    /// This function is intended for internal use in producer loop only.
+    /// This is the parsing half of the producer. It never loads: when it needs more bytes it
+    /// says so with [`ProcessOutcome::NeedMoreBytes`] and the caller must run [`Self::fetch()`]
+    /// again to obtain a new `fetch_info` before calling this method again.
     ///
     /// # Return:
-    /// `true` when there are available bytes to be parsed, otherwise it'll return `false`
-    /// indicating that the session should be terminated.
-    async fn drop_and_load(
+    /// The outcome of the parse attempt, or a producer error.
+    pub fn process<C: LogRecordsCollector<P::Output>>(
         &mut self,
-        available: &mut usize,
-        skipped_bytes: &mut usize,
-    ) -> Result<bool, sources::Error> {
-        if *available > 0 {
-            trace!("Dropping one byte from loaded ones.");
-            const DROP_STEP: usize = 1;
-            *available -= DROP_STEP;
-            *skipped_bytes += DROP_STEP;
-            self.byte_source.consume(DROP_STEP);
+        fetch_info: FetchInfo,
+        collector: &mut C,
+    ) -> Result<ProcessOutcome, ProcessError> {
+        if self.is_done() {
+            debug!("done...no next segment");
 
-            // we still have bytes -> call parse on the remaining bytes without loading.
-            if *available > 0 {
-                return Ok(true);
-            }
+            return Ok(ProcessOutcome::Done);
         }
 
-        // Load more bytes.
-        trace!("No more bytes are available. Loading more bytes");
-        let (newly_loaded, skipped) = self.load().await?;
-        *available = self.byte_source.len();
-        *skipped_bytes += skipped;
-        Ok(newly_loaded > 0)
+        // Bytes skipped within this call: reported by the parser plus the ones dropped while
+        // resyncing after a parse error.
+        let mut skipped_bytes = 0;
+
+        loop {
+            let available = self.byte_source.current_slice().len();
+            debug!(
+                "current slice: (len: {available}) (total {})",
+                self.total_loaded
+            );
+
+            if available == 0 {
+                // The buffer is dry, either on entry or because resyncing dropped its last byte.
+                return self.on_empty_buffer(fetch_info.newly_loaded_bytes);
+            }
+
+            let mut bytes_consumed = 0;
+            let mut messages_count = 0;
+            let mut parser_skipped = 0;
+
+            match self
+                .parser
+                .parse(self.byte_source.current_slice(), self.last_seen_ts)
+                .map(|iter| {
+                    iter.for_each(|item| match item {
+                        ParseOutput {
+                            consumed,
+                            message: Some(m),
+                        } => {
+                            debug!("Extracted a valid message, consumed {consumed} bytes");
+                            bytes_consumed += consumed;
+                            messages_count += 1;
+                            collector.append(m);
+                        }
+                        ParseOutput {
+                            consumed: skipped,
+                            message: None,
+                        } => {
+                            bytes_consumed += skipped;
+                            parser_skipped += skipped;
+                            trace!("None, consumed {skipped} bytes");
+                        }
+                    })
+                }) {
+                Ok(()) => {
+                    self.byte_source.consume(bytes_consumed);
+                    self.total_messages += messages_count;
+                    self.total_skipped += parser_skipped;
+                    skipped_bytes += parser_skipped;
+                    self.status = ProducerStatus::Running;
+
+                    let parsed = ProcessOutcome::Parsed {
+                        bytes_consumed,
+                        messages_count,
+                        skipped_bytes,
+                    };
+
+                    return Ok(parsed);
+                }
+                Err(ParserError::Incomplete) => {
+                    // The parser is asking for more bytes rather than rejecting them, so any
+                    // remembered parse error is stale and must not be delivered later on.
+                    self.status = ProducerStatus::Running;
+
+                    // The last fetch delivered bytes and the parser still needs more of them:
+                    // let the caller load again instead of destroying data by dropping bytes.
+                    if fetch_info.newly_loaded_bytes > 0 {
+                        trace!("not enough bytes to parse a message. More data must be loaded");
+
+                        return Ok(ProcessOutcome::NeedMoreBytes);
+                    }
+
+                    trace!("No bytes has been loaded on last fetch, dropping one byte");
+                    self.drop_one_byte();
+                    skipped_bytes += DROP_STEP;
+                }
+                Err(ParserError::Eof) => {
+                    trace!("EOF reached...no more messages (skipped_bytes={skipped_bytes})");
+                    self.status = ProducerStatus::Done;
+
+                    return Ok(ProcessOutcome::Done);
+                }
+                Err(ParserError::Parse(err_msg)) => {
+                    // TODO: This is temporary solution. We need to inform the user each time we
+                    // hit the `INITIAL_PARSE_ERROR_LIMIT` and not break the session.
+                    // We may need the new item `MessageStreamItem::Skipped(bytes_count)`
+                    //
+                    // Return early when initial parse calls fail after dropping one megabyte.
+                    // This can happen when provided bytes aren't suitable for the select parser.
+                    // In such case we close the session directly to avoid having unresponsive
+                    // state while parse is calling on each dropped byte in the source.
+                    if !self.did_produce_items() && self.total_dropped > INITIAL_PARSE_ERROR_LIMIT {
+                        let abort_msg = format!(
+                            "Aborting session due to failing initial parse call with the error: {err_msg}"
+                        );
+                        warn!("{abort_msg}");
+
+                        self.status = ProducerStatus::Done;
+
+                        return Err(ProcessError::Unrecoverable(abort_msg));
+                    }
+
+                    trace!("No parse possible, skip one byte and retry. Error: {err_msg}");
+                    // Remember the error: it must be delivered when the source runs dry.
+                    self.status = ProducerStatus::ParserErrored { msg: err_msg };
+                    self.drop_one_byte();
+                    skipped_bytes += DROP_STEP;
+                }
+                Err(ParserError::Unrecoverable(err)) => {
+                    error!("Parsing failed: Error {err}");
+                    self.status = ProducerStatus::Done;
+
+                    return Err(ProcessError::Unrecoverable(err));
+                }
+            }
+        }
+    }
+
+    /// Resolves the outcome of [`Self::process()`] when the byte source holds no bytes,
+    /// delivering a parse error that couldn't be surfaced while resyncing, if any.
+    ///
+    /// `newly_loaded_bytes` is the count from the [`FetchInfo`] that preceded this call.
+    fn on_empty_buffer(
+        &mut self,
+        newly_loaded_bytes: usize,
+    ) -> Result<ProcessOutcome, ProcessError> {
+        trace!("No more bytes available from source");
+
+        match std::mem::take(&mut self.status) {
+            ProducerStatus::Running => Ok(ProcessOutcome::NoData),
+            ProducerStatus::ParserErrored { msg } if newly_loaded_bytes > 0 => {
+                // The source is still delivering: keep the error pending and give resyncing
+                // another chance with freshly loaded bytes.
+                self.status = ProducerStatus::ParserErrored { msg };
+
+                Ok(ProcessOutcome::NeedMoreBytes)
+            }
+            ProducerStatus::ParserErrored { msg } => {
+                trace!("Return the last parse error as no bytes are available anymore");
+
+                Err(ProcessError::Parse(msg))
+            }
+            ProducerStatus::Done => {
+                unreachable!("process() returns before reaching an empty buffer while done")
+            }
+        }
+    }
+
+    /// Drops [`DROP_STEP`] bytes from the bytes available in the byte source, counting them as
+    /// skipped, in order to resync the parser on the remaining bytes.
+    fn drop_one_byte(&mut self) {
+        self.byte_source.consume(DROP_STEP);
+        self.total_skipped += DROP_STEP;
+        self.total_dropped += DROP_STEP;
+
+        trace!(
+            "Dropped {DROP_STEP} byte while resyncing, {} bytes remaining",
+            self.byte_source.len()
+        );
+    }
+
+    /// Loads the next segment of bytes, parses them, and append them to the provided
+    /// [`LogRecordsCollector`].
+    ///
+    /// This is a convenience wrapper around [`Self::fetch()`] and [`Self::process()`] for
+    /// callers that don't need to interleave other work between the two steps.
+    ///
+    /// # Cancel Safety:
+    /// Cancel safe by construction: the only await points are [`Self::fetch()`] calls, and
+    /// every effect of a [`Self::process()`] call is committed to the producer, the byte source
+    /// and the collector before the next await.
+    ///
+    /// # Return:
+    /// Summary of producer state with infos about consumed, skipped bytes and produced log
+    /// messages, otherwise it'll return a producer error.
+    pub async fn produce_next<C: LogRecordsCollector<P::Output>>(
+        &mut self,
+        collector: &mut C,
+    ) -> Result<ProduceSummary, ProduceError> {
+        if self.is_done() {
+            debug!("done...no next segment");
+
+            return Ok(self.final_report());
+        }
+
+        let mut skipped_bytes = 0;
+
+        loop {
+            let fetch_info = self.fetch().await?;
+            skipped_bytes += fetch_info.skipped_bytes;
+
+            match self.process(fetch_info, collector)? {
+                ProcessOutcome::Parsed {
+                    bytes_consumed,
+                    messages_count,
+                    skipped_bytes: parse_skipped,
+                } => {
+                    let summary = ProduceSummary::Processed {
+                        bytes_consumed,
+                        messages_count,
+                        skipped_bytes: skipped_bytes + parse_skipped,
+                    };
+                    return Ok(summary);
+                }
+                ProcessOutcome::NeedMoreBytes => continue,
+                ProcessOutcome::NoData => {
+                    return Ok(ProduceSummary::NoBytesAvailable { skipped_bytes });
+                }
+                ProcessOutcome::Done => return Ok(self.final_report()),
+            }
+        }
     }
 
     /// Checks if the producer have already produced any parsed items in the current session.
@@ -297,7 +472,7 @@ impl<P: Parser, D: ByteSource> MessageProducer<P, D> {
         self.total_messages > 0
     }
 
-    /// Returns [`ProduceStatus::Done`] with summary for producer session.
+    /// Returns [`ProduceSummary::Done`] with summary for producer session.
     fn final_report(&self) -> ProduceSummary {
         ProduceSummary::Done {
             loaded_bytes: self.total_loaded,
