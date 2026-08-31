@@ -77,7 +77,6 @@ pub struct SerialSource {
     write_stream: SplitSink<Framed<SerialStream, LineCodec>, Vec<u8>>,
     read_stream: SplitStream<Framed<SerialStream, LineCodec>>,
     buffer: DeqBuffer,
-    amount: usize,
     send_data_delay: u8,
 }
 
@@ -113,7 +112,6 @@ impl SerialSource {
                     write_stream,
                     read_stream,
                     buffer: DeqBuffer::new(8192),
-                    amount: 0,
                     send_data_delay: config.send_data_delay,
                 })
             }
@@ -131,28 +129,28 @@ impl ByteSource for SerialSource {
         _filter: Option<&SourceFilter>,
     ) -> Result<Option<ReloadInfo>, SourceError> {
         // Implementation is cancel-safe here because there is one await call on a stream only.
-        match self.read_stream.next().await {
-            Some(result) => match result {
-                Ok(received) => {
-                    self.amount = received.len();
-                    if self.amount == 0 {
-                        return Ok(None);
-                    }
-                    self.buffer.write_from(received.as_bytes());
+        let written = match self.read_stream.next().await {
+            Some(Ok(received)) => {
+                if received.is_empty() {
+                    return Ok(None);
                 }
-                Err(err) => {
-                    return Err(SourceError::Setup(format!("Failed to read stream: {err}")));
-                }
-            },
+                // Report what the buffer actually took: `write_from` truncates silently when the
+                // buffer is full, and a short write means a full buffer, not end of stream, so it
+                // must not turn into `Ok(None)`.
+                self.buffer.write_from(received.as_bytes())
+            }
+            Some(Err(err)) => {
+                return Err(SourceError::Setup(format!("Failed to read stream: {err}")));
+            }
             None => {
                 return Err(SourceError::Setup(
                     "Error awaiting future in reading (RX) stream".to_string(),
                 ));
             }
-        }
+        };
 
         let available_bytes = self.buffer.read_available();
-        Ok(Some(ReloadInfo::new(self.amount, available_bytes, 0, None)))
+        Ok(Some(ReloadInfo::new(written, available_bytes, 0, None)))
     }
 
     fn current_slice(&self) -> &[u8] {

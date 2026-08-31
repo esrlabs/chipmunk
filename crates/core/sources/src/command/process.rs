@@ -158,11 +158,19 @@ impl ByteSource for ProcessSource {
             }
         }
         if let Some(Ok(line)) = output {
-            let stored = line.len() + 1;
-            self.buffer.write_from(line.as_bytes());
-            self.buffer.write_from(b"\n");
+            // `write_from` truncates silently when the buffer is full, so its return value is the
+            // only honest `newly_loaded_bytes`: reporting the line length would tell the producer
+            // that bytes arrived which never did, and it would keep asking for more of them
+            // forever.
+            let written_line = self.buffer.write_from(line.as_bytes());
+            let written_break = self.buffer.write_from(b"\n");
             let available_bytes = self.buffer.read_available();
-            Ok(Some(ReloadInfo::new(stored, available_bytes, 0, None)))
+            Ok(Some(ReloadInfo::new(
+                written_line + written_break,
+                available_bytes,
+                0,
+                None,
+            )))
         } else if let Some(Err(err)) = output {
             Err(SourceError::Unrecoverable(format!("{err}")))
         } else {
@@ -247,5 +255,28 @@ mod tests {
                 .unwrap();
 
         general_source_reload_test(&mut process_source).await;
+    }
+
+    /// A line longer than the 8192-byte buffer cannot be stored in full. `ReloadInfo` must report
+    /// what was actually buffered: reporting the line length makes the producer believe it made
+    /// progress and ask for more bytes forever.
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn long_line_reports_only_buffered_bytes() {
+        // POSIX `printf` width: 20000 spaces followed by a newline, so `LinesCodec` yields one
+        // line far larger than the 8192-byte buffer.
+        let mut source = ProcessSource::new(
+            "printf '%20000s\\n' ''".to_string(),
+            std::env::current_dir().unwrap(),
+            None,
+        )
+        .await
+        .unwrap();
+
+        let info = source.load(None).await.unwrap().unwrap();
+
+        assert_eq!(info.newly_loaded_bytes, info.available_bytes);
+        assert_eq!(info.newly_loaded_bytes, source.current_slice().len());
+        assert!(info.newly_loaded_bytes <= 8192);
     }
 }
