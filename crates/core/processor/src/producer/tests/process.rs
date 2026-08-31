@@ -10,11 +10,13 @@
 //! pass in, so they use [`empty_fetch_info()`], built directly from a sibling module: unlike
 //! external callers, tests are free to construct one without going through a real `fetch()`.
 
+use std::assert_matches;
+
 use super::mock_byte_source::*;
 use super::mock_parser::*;
 use super::*;
 
-use parsers::{Error as ParseError, ParseYield};
+use parsers::{Error as ParseError, ParseYield, RemainderError};
 
 /// Synthesizes a [`FetchInfo`] as if nothing had been fetched, for decision-table cases whose
 /// outcome does not depend on the preceding fetch.
@@ -131,27 +133,226 @@ async fn incomplete_after_productive_fetch_asks_for_more_bytes() {
 }
 
 #[test]
-fn incomplete_without_fetched_bytes_drops_bytes_until_dry() {
-    let parser = MockParser::new([
-        Err(ParseError::Incomplete),
-        Err(ParseError::Incomplete),
-        Err(ParseError::Incomplete),
-    ]);
+fn incomplete_without_new_bytes_keeps_remainder() {
+    let parser = MockParser::new([Err(ParseError::Incomplete)]);
     let source = MockByteSource::new(3, []);
 
     let mut producer = MessageProducer::new(parser, source);
     let mut collector = GeneralLogCollector::default();
 
-    // Nothing was fetched, so the parser can only be satisfied by resyncing: one byte is
-    // dropped per parse call until the buffer is empty.
+    // The source is only paused: the bytes are the start of an item and must survive until it
+    // either delivers the rest or the caller declares the source finished.
     let outcome = producer
         .process(empty_fetch_info(), &mut collector)
         .unwrap();
-    assert!(matches!(outcome, ProcessOutcome::NoData));
+    assert_matches!(outcome, ProcessOutcome::PendingRemainder);
+
+    assert_eq!(producer.byte_source.len(), 3);
+    assert_eq!(producer.total_skipped_bytes(), 0);
+    assert!(collector.get_records().is_empty());
+}
+
+#[test]
+fn full_source_emits_remainder() {
+    let parser = MockParser::new([Err(ParseError::Incomplete)])
+        .with_remainder_seeds([Ok(Some(ParseYield::Message(MockMessage::from(1))))]);
+    let source = MockByteSource::new(3, []).buffer_full();
+
+    let mut producer = MessageProducer::new(parser, source);
+    let mut collector = GeneralLogCollector::default();
+
+    // Waiting for bytes that a full buffer can't take would stall forever, so the parser gets
+    // to close the item now. It covers the whole buffer by definition.
+    let outcome = producer
+        .process(empty_fetch_info(), &mut collector)
+        .unwrap();
+    match outcome {
+        ProcessOutcome::Parsed {
+            bytes_consumed,
+            messages_count,
+            skipped_bytes,
+        } => {
+            assert_eq!(bytes_consumed, 3);
+            assert_eq!(messages_count, 1);
+            assert_eq!(skipped_bytes, 0);
+        }
+        invalid => panic!("Outcome should be Parsed but got {invalid:?}"),
+    }
+
+    assert_eq!(collector.get_records().len(), 1);
+    assert_eq!(producer.byte_source.len(), 0);
+    assert_eq!(producer.total_produced_items(), 1);
+}
+
+#[test]
+fn full_source_drops_bytes_without_remainder() {
+    let parser = MockParser::new([
+        Err(ParseError::Incomplete),
+        Err(ParseError::Incomplete),
+        Err(ParseError::Incomplete),
+    ])
+    .with_remainder_seeds([Ok(None), Ok(None), Ok(None)]);
+    let source = MockByteSource::new(3, []).buffer_full();
+
+    let mut producer = MessageProducer::new(parser, source);
+    let mut collector = GeneralLogCollector::default();
+
+    // A parser which can't complete a partial item leaves the producer with the resync it had
+    // before: one byte dropped per parse call until the buffer is empty.
+    let outcome = producer
+        .process(empty_fetch_info(), &mut collector)
+        .unwrap();
+    assert_matches!(outcome, ProcessOutcome::NoData);
 
     assert_eq!(producer.byte_source.len(), 0);
     assert_eq!(producer.total_skipped_bytes(), 3);
     assert!(collector.get_records().is_empty());
+}
+
+#[test]
+fn full_source_parse_error_resyncs_then_reports() {
+    let parser = MockParser::new([Err(ParseError::Incomplete), Err(ParseError::Incomplete)])
+        .with_remainder_seeds([
+            Err(RemainderError::Parse(String::from("broken"))),
+            Err(RemainderError::Parse(String::from("broken"))),
+        ]);
+    let source = MockByteSource::new(2, []).buffer_full();
+
+    let mut producer = MessageProducer::new(parser, source);
+    let mut collector = GeneralLogCollector::default();
+
+    // Rejecting the remainder funnels into the resync path: bytes are dropped and the message
+    // is delivered once the buffer ran dry.
+    let err = producer
+        .process(empty_fetch_info(), &mut collector)
+        .unwrap_err();
+    assert_matches!(err, ProcessError::Parse(_));
+
+    assert_eq!(producer.byte_source.len(), 0);
+    assert_eq!(producer.total_skipped_bytes(), 2);
+}
+
+#[test]
+fn full_source_unrecoverable_ends_producer() {
+    let parser = MockParser::new([Err(ParseError::Incomplete)])
+        .with_remainder_seeds([Err(RemainderError::Unrecoverable(String::from("fatal")))]);
+    let source = MockByteSource::new(3, []).buffer_full();
+
+    let mut producer = MessageProducer::new(parser, source);
+    let mut collector = GeneralLogCollector::default();
+
+    let err = producer
+        .process(empty_fetch_info(), &mut collector)
+        .unwrap_err();
+    assert_matches!(err, ProcessError::Unrecoverable(_));
+
+    let outcome = producer
+        .process(empty_fetch_info(), &mut collector)
+        .unwrap();
+    assert_matches!(outcome, ProcessOutcome::Done);
+}
+
+#[test]
+fn process_remaining_emits_item() {
+    let parser = MockParser::new([])
+        .with_remainder_seeds([Ok(Some(ParseYield::Message(MockMessage::from(1))))]);
+    let source = MockByteSource::new(4, []);
+
+    let mut producer = MessageProducer::new(parser, source);
+    let mut collector = GeneralLogCollector::default();
+
+    assert_eq!(producer.process_remaining(&mut collector).unwrap(), 1);
+
+    assert_eq!(collector.get_records().len(), 1);
+    assert_eq!(producer.byte_source.len(), 0);
+    assert_eq!(producer.total_produced_items(), 1);
+}
+
+#[test]
+fn process_remaining_keeps_bytes_without_item() {
+    let parser = MockParser::new([]).with_remainder_seeds([Ok(None)]);
+    let source = MockByteSource::new(4, []);
+
+    let mut producer = MessageProducer::new(parser, source);
+    let mut collector = GeneralLogCollector::default();
+
+    // A stalled source is not a finished one: discarding here would make a parser waiting for
+    // the rest of a message resume in the middle of it.
+    assert_eq!(producer.process_remaining(&mut collector).unwrap(), 0);
+
+    assert_eq!(producer.byte_source.len(), 4);
+    assert_eq!(producer.total_skipped_bytes(), 0);
+    assert!(collector.get_records().is_empty());
+}
+
+#[test]
+fn process_remaining_reports_parse_error_without_consuming() {
+    let parser = MockParser::new([])
+        .with_remainder_seeds([Err(RemainderError::Parse(String::from("broken")))]);
+    let source = MockByteSource::new(4, []);
+
+    let mut producer = MessageProducer::new(parser, source);
+    let mut collector = GeneralLogCollector::default();
+
+    let err = producer.process_remaining(&mut collector).unwrap_err();
+    assert_matches!(err, ProcessError::Parse(_));
+
+    assert_eq!(producer.byte_source.len(), 4);
+}
+
+#[test]
+fn process_remaining_is_idempotent() {
+    let parser = MockParser::new([])
+        .with_remainder_seeds([Ok(Some(ParseYield::Message(MockMessage::from(1))))]);
+    let source = MockByteSource::new(4, []);
+
+    let mut producer = MessageProducer::new(parser, source);
+    let mut collector = GeneralLogCollector::default();
+
+    assert_eq!(producer.process_remaining(&mut collector).unwrap(), 1);
+
+    // Consuming the remainder is what makes the second call a no-op: no seed is left, so the
+    // parser would panic if it were called again.
+    assert_eq!(producer.process_remaining(&mut collector).unwrap(), 0);
+    assert_eq!(collector.get_records().len(), 1);
+}
+
+#[tokio::test]
+async fn remainder_survives_empty_result_and_completes_later() {
+    let parser = MockParser::new([
+        Err(ParseError::Incomplete),
+        Ok(vec![MockParseSeed::new(
+            7,
+            Some(ParseYield::Message(MockMessage::from(1))),
+        )]),
+    ])
+    .with_remainder_seeds([Ok(None)]);
+    let source = MockByteSource::new(4, [Ok(Some(MockReloadSeed::new(3, 0)))]);
+
+    let mut producer = MessageProducer::new(parser, source);
+    let mut collector = GeneralLogCollector::default();
+
+    // The source went quiet mid-item and the parser can't complete it yet.
+    let outcome = producer
+        .process(empty_fetch_info(), &mut collector)
+        .unwrap();
+    assert_matches!(outcome, ProcessOutcome::PendingRemainder);
+    assert_eq!(producer.process_remaining(&mut collector).unwrap(), 0);
+
+    // The kept bytes are the head of the item, so it parses whole once the source resumes.
+    let fetch_info = producer.fetch().await.unwrap();
+    let outcome = producer.process(fetch_info, &mut collector).unwrap();
+    match outcome {
+        ProcessOutcome::Parsed {
+            bytes_consumed,
+            messages_count,
+            ..
+        } => {
+            assert_eq!(bytes_consumed, 7);
+            assert_eq!(messages_count, 1);
+        }
+        invalid => panic!("Outcome should be Parsed but got {invalid:?}"),
+    }
 }
 
 #[test]
@@ -250,8 +451,6 @@ async fn stale_parse_error_isnt_reported() {
         Err(ParseError::Parse(String::from("stale"))),
         Err(ParseError::Incomplete),
         Err(ParseError::Incomplete),
-        Err(ParseError::Incomplete),
-        Err(ParseError::Incomplete),
     ]);
     let source = MockByteSource::new(
         0,
@@ -276,11 +475,11 @@ async fn stale_parse_error_isnt_reported() {
     let outcome = producer.process(fetch_info, &mut collector).unwrap();
     assert!(matches!(outcome, ProcessOutcome::NeedMoreBytes));
 
-    // The source is dry now: the remaining bytes get dropped and the run ends without items,
-    // not with the parse error from the very first call.
+    // The source is dry now: the pending bytes are kept for the caller to resolve, and no
+    // error is reported, least of all the one from the very first call.
     let fetch_info = producer.fetch().await.unwrap();
     let outcome = producer.process(fetch_info, &mut collector).unwrap();
-    assert!(matches!(outcome, ProcessOutcome::NoData));
+    assert_matches!(outcome, ProcessOutcome::PendingRemainder);
 
     assert!(collector.get_records().is_empty());
 }

@@ -1,4 +1,4 @@
-use crate::{Error, LogMessage, ParseOutput, ParseYield, SingleParser};
+use crate::{Error, LogMessage, ParseOutput, ParseYield, RemainderError, SingleParser};
 use serde::Serialize;
 use std::{fmt, io::Write};
 
@@ -36,28 +36,41 @@ impl SingleParser for StringTokenizer {
         if input.is_empty() {
             return Ok(ParseOutput::new(input.len(), None));
         }
-        let item = if let Some(msg_size) = memchr(b'\n', input) {
-            let content = String::from_utf8_lossy(&input[..msg_size]);
-            let string_msg = StringMessage {
-                content: content.to_string(),
-            };
-            ParseOutput::new(msg_size + 1, Some(string_msg.into()))
-        } else {
-            let content = String::from_utf8_lossy(input);
-            ParseOutput::new(
-                input.len(),
-                Some(ParseYield::from(StringMessage {
-                    content: content.to_string(),
-                })),
-            )
+        // Without a line break the input is the start of a line and not a line: reporting it as
+        // one would split every line that straddles a source buffer boundary.
+        let Some(msg_size) = memchr(b'\n', input) else {
+            return Err(Error::Incomplete);
         };
 
-        Ok(item)
+        let content = String::from_utf8_lossy(&input[..msg_size]);
+        let string_msg = StringMessage {
+            content: content.into_owned(),
+        };
+
+        let output = ParseOutput::new(msg_size + 1, Some(string_msg.into()));
+
+        Ok(output)
+    }
+
+    fn parse_remaining(
+        &mut self,
+        input: &[u8],
+        _timestamp: Option<u64>,
+    ) -> Result<Option<ParseYield<StringMessage>>, RemainderError> {
+        // No more bytes are coming, so the unterminated line is the last line.
+        let content = String::from_utf8_lossy(input);
+        let string_msg = StringMessage {
+            content: content.into_owned(),
+        };
+
+        Ok(Some(string_msg.into()))
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
+
     use crate::Parser;
 
     use super::*;
@@ -107,17 +120,26 @@ mod tests {
     }
 
     #[test]
-    fn trailing_line_without_newline() {
+    fn line_without_newline_is_incomplete() {
         let mut parser = StringTokenizer {};
         let content = b"{\"key\":\"value\"}";
 
-        let out = parser.parse_item(content, None).unwrap();
+        let err = parser.parse_item(content, None).unwrap_err();
 
-        match out.message {
+        assert_matches!(err, Error::Incomplete);
+    }
+
+    #[test]
+    fn remainder_becomes_the_last_line() {
+        let mut parser = StringTokenizer {};
+
+        // Both traits are in scope in this module, so the call needs disambiguating.
+        let item = Parser::parse_remaining(&mut parser, b"{\"key\":\"value\"}", None).unwrap();
+
+        match item {
             Some(ParseYield::Message(StringMessage { content }))
                 if content.eq("{\"key\":\"value\"}") => {}
-            _ => panic!("Trailing line did not match"),
+            invalid => panic!("Remainder did not match: {invalid:?}"),
         }
-        assert_eq!(out.consumed, content.len());
     }
 }

@@ -108,25 +108,30 @@ where
                 }
             }
             res = producer.produce_next(&mut collector) => {
-                let summary = res?;
+                // No tailing support for streams, so a stalled source is the end of the input.
+                let last_round = match res? {
+                    ProduceSummary::Processed {..} => false,
+                    ProduceSummary::PendingRemainder {..} => {
+                        // Let the parser close the item it is still holding.
+                        producer.process_remaining(&mut collector)?;
+                        true
+                    },
+                    ProduceSummary::NoBytesAvailable {..} | ProduceSummary::Done {..} => true,
+                };
 
-                match summary {
-                    ProduceSummary::Processed {..} => {
-                        for record in collector.get_records() {
-                           let msg =  match record {
-                                ParseYield::Message(msg) => msg,
-                                ParseYield::Attachment(..) => continue,
-                                ParseYield::MessageAndAttachment((msg, _att)) => msg,
-                            };
-                            msg_formatter.write_msg(&mut file_writer, msg)?;
-                            msg_since_last_flush += 1;
-                        }
-                    },
-                    // No tailing support for streams.
-                    ProduceSummary::NoBytesAvailable {..} | ProduceSummary::Done {..} => {
-                        write_sum(&mut producer);
-                        return Ok(());
-                    },
+                for record in collector.get_records().drain(..) {
+                   let msg =  match record {
+                        ParseYield::Message(msg) => msg,
+                        ParseYield::Attachment(..) => continue,
+                        ParseYield::MessageAndAttachment((msg, _att)) => msg,
+                    };
+                    msg_formatter.write_msg(&mut file_writer, &msg)?;
+                    msg_since_last_flush += 1;
+                }
+
+                if last_round {
+                    write_sum(&mut producer);
+                    return Ok(());
                 }
             }
         };

@@ -2,8 +2,8 @@ pub mod attachment;
 pub mod fmt;
 
 use crate::{
-    Error, LogMessage, ParseOutput, ParseYield, SingleParser, dlt::fmt::FormattableMessage,
-    someip::FibexMetadata as FibexSomeipMetadata,
+    Error, LogMessage, ParseOutput, ParseYield, RemainderError, SingleParser,
+    dlt::fmt::FormattableMessage, someip::FibexMetadata as FibexSomeipMetadata,
 };
 use byteorder::{BigEndian, WriteBytesExt};
 use dlt_core::{
@@ -183,6 +183,17 @@ impl<'m> SingleParser for DltParser<'m> {
             }
         }
     }
+
+    fn parse_remaining(
+        &mut self,
+        _input: &[u8],
+        _timestamp: Option<u64>,
+    ) -> Result<Option<ParseYield<FormattableMessage<'m>>>, RemainderError> {
+        // A truncated DLT message can't be completed from the bytes at hand: its header states a
+        // length which those bytes don't reach. Keeping them lets the message parse whole if the
+        // source delivers the rest later.
+        Ok(None)
+    }
 }
 
 impl SingleParser for DltRangeParser {
@@ -210,6 +221,15 @@ impl SingleParser for DltRangeParser {
 
         Ok(item)
     }
+
+    fn parse_remaining(
+        &mut self,
+        _input: &[u8],
+        _timestamp: Option<u64>,
+    ) -> Result<Option<ParseYield<RangeMessage>>, RemainderError> {
+        // The range of a truncated message is unknown until its remaining bytes arrive.
+        Ok(None)
+    }
 }
 
 impl SingleParser for DltRawParser {
@@ -230,5 +250,15 @@ impl SingleParser for DltRawParser {
         let item = ParseOutput::new(total_consumed, msg.map(|m| m.into()));
 
         Ok(item)
+    }
+
+    fn parse_remaining(
+        &mut self,
+        _input: &[u8],
+        _timestamp: Option<u64>,
+    ) -> Result<Option<ParseYield<RawMessage>>, RemainderError> {
+        // Emitting the truncated bytes as a raw message would hand out a message the consumer
+        // can't parse back, so wait for the rest instead.
+        Ok(None)
     }
 }

@@ -165,6 +165,15 @@ impl Parser for MockParser<IterOnce> {
 
         Ok(iter::once(item))
     }
+
+    /// The mock source never stalls, so the producer never asks for a remainder here.
+    fn parse_remaining(
+        &mut self,
+        _input: &[u8],
+        _timestamp: Option<u64>,
+    ) -> Result<Option<parsers::ParseYield<MockMessage>>, parsers::RemainderError> {
+        Ok(None)
+    }
 }
 
 // NOTE: Methods within trait implementation have inner non-async function that should never be
@@ -198,5 +207,14 @@ impl Parser for MockParser<IterMany> {
         });
 
         black_box(Ok(res))
+    }
+
+    /// The mock source never stalls, so the producer never asks for a remainder here.
+    fn parse_remaining(
+        &mut self,
+        _input: &[u8],
+        _timestamp: Option<u64>,
+    ) -> Result<Option<parsers::ParseYield<MockMessage>>, parsers::RemainderError> {
+        Ok(None)
     }
 }

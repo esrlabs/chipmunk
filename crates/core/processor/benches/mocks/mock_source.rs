@@ -58,6 +58,18 @@ impl ByteSource for MockByteSource {
     }
 
     #[inline(always)]
+    fn can_buffer_more(&self) -> bool {
+        #[inline(never)]
+        fn inner() -> bool {
+            const CAN_BUFFER: bool = true;
+
+            black_box(CAN_BUFFER)
+        }
+
+        inner()
+    }
+
+    #[inline(always)]
     async fn load(
         &mut self,
         _filter: Option<&sources::SourceFilter>,

@@ -266,6 +266,19 @@ async fn run_producer<P: Parser, S: ByteSource>(
                             LoopAction::WriteItems
                         }
                         ProcessOutcome::NeedMoreBytes => LoopAction::Continue,
+                        ProcessOutcome::PendingRemainder => {
+                            // The parser holds a partial item and the source has stalled. A
+                            // source that stops delivering is usually finished rather than
+                            // paused mid-item, so give the parser the chance to close the item
+                            // now instead of holding it for the life of the session. Parsers
+                            // which can't complete a partial item keep their bytes, so a growing
+                            // file still completes them.
+                            if let Err(err) = producer.process_remaining(&mut logs_writer) {
+                                log::error!("Producer Error: {err}");
+                            }
+
+                            LoopAction::Wait
+                        }
                         ProcessOutcome::NoData => {
                             log::trace!(
                                 "No more bytes available with {} bytes skipped in total. Going into tail",

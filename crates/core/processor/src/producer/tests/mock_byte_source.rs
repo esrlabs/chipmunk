@@ -15,6 +15,8 @@ pub struct MockByteSource {
     /// Handle for spawned load task, used with seeds having timeout
     /// to ensure load method is cancel safe in that situation.
     load_handle: Option<JoinHandle<Result<Option<ReloadInfo>, Error>>>,
+    /// Value to be returned on [`ByteSource::can_buffer_more()`] calls.
+    can_buffer_more: bool,
 }
 
 impl MockByteSource {
@@ -24,7 +26,15 @@ impl MockByteSource {
             buffer,
             reload_seeds: reload_seeds.into(),
             load_handle: None,
+            can_buffer_more: true,
         }
+    }
+
+    /// Makes the source report that its buffer can't take any more bytes.
+    pub fn buffer_full(mut self) -> Self {
+        self.can_buffer_more = false;
+
+        self
     }
 }
 
@@ -74,6 +84,10 @@ impl ByteSource for MockByteSource {
     /// count of currently loaded bytes
     fn len(&self) -> usize {
         self.buffer.len()
+    }
+
+    fn can_buffer_more(&self) -> bool {
+        self.can_buffer_more
     }
 
     async fn load(&mut self, _filter: Option<&SourceFilter>) -> Result<Option<ReloadInfo>, Error> {

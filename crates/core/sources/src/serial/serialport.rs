@@ -153,6 +153,11 @@ impl ByteSource for SerialSource {
         Ok(Some(ReloadInfo::new(written, available_bytes, 0, None)))
     }
 
+    fn can_buffer_more(&self) -> bool {
+        // The buffer is never compacted, so only the space behind the buffered bytes is usable.
+        self.buffer.write_available() > 0
+    }
+
     fn current_slice(&self) -> &[u8] {
         self.buffer.read_slice()
     }

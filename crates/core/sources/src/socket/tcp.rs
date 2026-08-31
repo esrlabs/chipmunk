@@ -155,6 +155,12 @@ impl ByteSource for TcpSource {
         }
     }
 
+    fn can_buffer_more(&self) -> bool {
+        // `load()` compacts before reading, so the space in front of the buffered bytes counts
+        // too: this is the same question `handle_buff_capacity()` answers there.
+        self.buffer.spare_capacity() >= MAX_DATAGRAM_SIZE
+    }
+
     fn current_slice(&self) -> &[u8] {
         self.buffer.read_slice()
     }
@@ -226,6 +232,32 @@ mod tests {
 
         assert!(rec_res.is_ok());
         Ok(())
+    }
+
+    /// A line arriving in two segments must accumulate in the buffer: the source doesn't frame
+    /// lines, so both halves have to be exposed to the parser as one slice.
+    #[tokio::test]
+    async fn partial_line_accumulates_across_loads() {
+        static SERVER: &str = "127.0.0.1:4008";
+        let listener = TcpListener::bind(&SERVER).await.unwrap();
+        let accept_handle = tokio::spawn(async move { listener.accept().await.unwrap().0 });
+
+        let mut tcp_source = TcpSource::new(SERVER, None, None).await.unwrap();
+        let (_, mut send) = tokio::io::split(accept_handle.await.unwrap());
+
+        // Sending the second half only after the first load has returned puts the two halves in
+        // separate segments without relying on any timing.
+        send.write_all(b"hel").await.unwrap();
+        send.flush().await.unwrap();
+        let first = tcp_source.load(None).await.unwrap().unwrap();
+        assert_eq!(tcp_source.current_slice(), b"hel");
+
+        send.write_all(b"lo\n").await.unwrap();
+        send.flush().await.unwrap();
+        let second = tcp_source.load(None).await.unwrap().unwrap();
+
+        assert_eq!(tcp_source.current_slice(), b"hello\n");
+        assert_eq!(first.newly_loaded_bytes + second.newly_loaded_bytes, 6);
     }
 
     #[tokio::test(start_paused = true)]

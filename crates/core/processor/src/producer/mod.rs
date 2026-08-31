@@ -4,7 +4,7 @@
 mod tests;
 
 use log::warn;
-use parsers::{Error as ParserError, ParseOutput, Parser};
+use parsers::{Error as ParserError, ParseOutput, ParseYield, Parser, RemainderError};
 use sources::{ByteSource, ReloadInfo, SourceFilter};
 
 mod logs_collector;
@@ -32,6 +32,13 @@ pub enum ProduceSummary {
     },
     /// No more bytes are available in the byte-source currently.
     NoBytesAvailable {
+        /// The amount of skipped bytes in the last `produce_next()` call
+        skipped_bytes: usize,
+    },
+    /// The parser is holding an incomplete item and the byte-source delivered nothing.
+    /// The bytes are kept: the caller must either wait for more data and produce again, or call
+    /// [`MessageProducer::process_remaining()`] to let the parser resolve them.
+    PendingRemainder {
         /// The amount of skipped bytes in the last `produce_next()` call
         skipped_bytes: usize,
     },
@@ -89,6 +96,10 @@ pub enum ProcessOutcome {
     /// The parser needs more bytes. Call [`MessageProducer::fetch()`] again, then
     /// [`MessageProducer::process()`] again.
     NeedMoreBytes,
+    /// The parser is holding an incomplete item and the source delivered nothing this round.
+    /// The bytes are kept: the caller must either wait for more data and fetch again, or call
+    /// [`MessageProducer::process_remaining()`] to let the parser resolve them.
+    PendingRemainder,
     /// No bytes are available in the source right now. The caller decides whether that
     /// means "wait for more" (tailing) or "stop".
     NoData,
@@ -325,9 +336,53 @@ impl<P: Parser, D: ByteSource> MessageProducer<P, D> {
                         return Ok(ProcessOutcome::NeedMoreBytes);
                     }
 
-                    trace!("No bytes has been loaded on last fetch, dropping one byte");
-                    self.drop_one_byte();
-                    skipped_bytes += DROP_STEP;
+                    // Nothing arrived this round. As long as the source could still deliver into
+                    // its buffer, the bytes we hold are the start of an item and dropping them
+                    // destroys data.
+                    if self.byte_source.can_buffer_more() {
+                        trace!("Source stalled while the parser holds an incomplete item");
+
+                        return Ok(ProcessOutcome::PendingRemainder);
+                    }
+
+                    // The buffer can't grow, so waiting would stall forever: the remainder has to
+                    // be resolved now. A parser that can turn it into an item gets to, the rest
+                    // resync as before.
+                    match self
+                        .parser
+                        .parse_remaining(self.byte_source.current_slice(), self.last_seen_ts)
+                    {
+                        Ok(Some(item)) => {
+                            let bytes_consumed = self.take_whole_buffer(item, collector);
+
+                            return Ok(ProcessOutcome::Parsed {
+                                bytes_consumed,
+                                messages_count: 1,
+                                skipped_bytes,
+                            });
+                        }
+                        Ok(None) => {
+                            trace!(
+                                "Buffer is full and the remainder is unresolvable, dropping one byte"
+                            );
+                            self.drop_one_byte();
+                            skipped_bytes += DROP_STEP;
+                        }
+                        // The parser rejected these bytes on their own terms: funnel into the
+                        // existing resync path so the message is delivered once the source
+                        // proves it is dry.
+                        Err(RemainderError::Parse(msg)) => {
+                            self.status = ProducerStatus::ParserErrored { msg };
+                            self.drop_one_byte();
+                            skipped_bytes += DROP_STEP;
+                        }
+                        Err(RemainderError::Unrecoverable(msg)) => {
+                            error!("Parsing the remaining bytes failed: Error {msg}");
+                            self.status = ProducerStatus::Done;
+
+                            return Err(ProcessError::Unrecoverable(msg));
+                        }
+                    }
                 }
                 Err(ParserError::Eof) => {
                     trace!("EOF reached...no more messages (skipped_bytes={skipped_bytes})");
@@ -401,6 +456,64 @@ impl<P: Parser, D: ByteSource> MessageProducer<P, D> {
         }
     }
 
+    /// Gives the parser a chance to turn the bytes it is still holding into a final item, for a
+    /// caller that knows no more bytes are coming right now.
+    ///
+    /// Bytes are consumed only if an item was produced: a parser that can't complete a partial
+    /// item keeps its pending bytes, so a source that resumes later (a growing file) still
+    /// completes them.
+    ///
+    /// # Return:
+    /// The number of items appended to `collector`, or the parser's rejection of the remainder.
+    pub fn process_remaining<C: LogRecordsCollector<P::Output>>(
+        &mut self,
+        collector: &mut C,
+    ) -> Result<usize, ProcessError> {
+        if self.is_done() || self.byte_source.is_empty() {
+            return Ok(0);
+        }
+
+        match self
+            .parser
+            .parse_remaining(self.byte_source.current_slice(), self.last_seen_ts)
+        {
+            Ok(Some(item)) => {
+                self.take_whole_buffer(item, collector);
+
+                Ok(1)
+            }
+            // Keep the bytes: a stalled source is not proof that the source is finished, and
+            // discarding them would make the parser resume in the middle of an item.
+            Ok(None) => Ok(0),
+            Err(RemainderError::Parse(msg)) => Err(ProcessError::Parse(msg)),
+            Err(RemainderError::Unrecoverable(msg)) => {
+                self.status = ProducerStatus::Done;
+
+                Err(ProcessError::Unrecoverable(msg))
+            }
+        }
+    }
+
+    /// Appends the parser's resolution of the bytes it was holding to the `collector`, consuming
+    /// all of them: a remainder item covers the whole buffer by definition.
+    ///
+    /// # Return:
+    /// The number of bytes consumed from the byte source.
+    fn take_whole_buffer<C: LogRecordsCollector<P::Output>>(
+        &mut self,
+        item: ParseYield<P::Output>,
+        collector: &mut C,
+    ) -> usize {
+        let bytes_consumed = self.byte_source.current_slice().len();
+        self.byte_source.consume(bytes_consumed);
+        self.total_messages += 1;
+        // The parser made sense of these bytes, so a remembered parse error is stale.
+        self.status = ProducerStatus::Running;
+        collector.append(item);
+
+        bytes_consumed
+    }
+
     /// Drops [`DROP_STEP`] bytes from the bytes available in the byte source, counting them as
     /// skipped, in order to resync the parser on the remaining bytes.
     fn drop_one_byte(&mut self) {
@@ -424,6 +537,11 @@ impl<P: Parser, D: ByteSource> MessageProducer<P, D> {
     /// Cancel safe by construction: the only await points are [`Self::fetch()`] calls, and
     /// every effect of a [`Self::process()`] call is committed to the producer, the byte source
     /// and the collector before the next await.
+    ///
+    /// # Note:
+    /// A pending remainder is never resolved here. This method is meant to sit on a `select!`
+    /// arm, where "no bytes right now" doesn't imply "no bytes ever": only the caller knows,
+    /// and it resolves the remainder with [`Self::process_remaining()`].
     ///
     /// # Return:
     /// Summary of producer state with infos about consumed, skipped bytes and produced log
@@ -458,6 +576,9 @@ impl<P: Parser, D: ByteSource> MessageProducer<P, D> {
                     return Ok(summary);
                 }
                 ProcessOutcome::NeedMoreBytes => continue,
+                ProcessOutcome::PendingRemainder => {
+                    return Ok(ProduceSummary::PendingRemainder { skipped_bytes });
+                }
                 ProcessOutcome::NoData => {
                     return Ok(ProduceSummary::NoBytesAvailable { skipped_bytes });
                 }

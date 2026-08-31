@@ -3,6 +3,7 @@ use std::{collections::VecDeque, fmt, io::Write, mem};
 use parsers::Error;
 use parsers::LogMessage;
 use parsers::ParseYield;
+use parsers::RemainderError;
 use serde::Serialize;
 
 use super::*;
@@ -37,14 +38,27 @@ impl LogMessage for MockMessage {
 pub struct MockParser {
     /// The seeds that will be used to return values on [`Parser::parse()`] calls
     seeds: VecDeque<Result<Vec<MockParseSeed>, Error>>,
+    /// The seeds that will be used to return values on [`Parser::parse_remaining()`] calls
+    remainder_seeds: VecDeque<MockRemainderSeed>,
 }
+
+/// Return value of one [`Parser::parse_remaining()`] call on [`MockParser`]
+pub type MockRemainderSeed = Result<Option<ParseYield<MockMessage>>, RemainderError>;
 
 impl MockParser {
     /// * `seeds`: Seeds items which that will be used to produce return-values on [`Parser::parse()`] calls
     pub fn new(seeds: impl Into<VecDeque<Result<Vec<MockParseSeed>, Error>>>) -> Self {
         Self {
             seeds: seeds.into(),
+            remainder_seeds: VecDeque::new(),
         }
+    }
+
+    /// * `seeds`: Seeds which will be returned on [`Parser::parse_remaining()`] calls
+    pub fn with_remainder_seeds(mut self, seeds: impl Into<VecDeque<MockRemainderSeed>>) -> Self {
+        self.remainder_seeds = seeds.into();
+
+        self
     }
 }
 
@@ -84,6 +98,16 @@ impl Parser for MockParser {
         Ok(seeds
             .into_iter()
             .map(|seed| ParseOutput::new(seed.cosumed, seed.parse_yeild)))
+    }
+
+    fn parse_remaining(
+        &mut self,
+        _input: &[u8],
+        _timestamp: Option<u64>,
+    ) -> Result<Option<ParseYield<MockMessage>>, RemainderError> {
+        self.remainder_seeds
+            .pop_front()
+            .expect("Remainder seeds count must match parse_remaining count")
     }
 }
 

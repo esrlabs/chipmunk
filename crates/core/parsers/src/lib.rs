@@ -28,6 +28,16 @@ pub enum Error {
     Eof,
 }
 
+/// Why a parser rejected the bytes remaining after the last parse call.
+#[derive(Error, Debug)]
+pub enum RemainderError {
+    /// The bytes will never form an item. Recoverable: the caller resyncs past them.
+    #[error("Parse error: {0}")]
+    Parse(String),
+    #[error("Unrecoverable error, cannot continue: {0}")]
+    Unrecoverable(String),
+}
+
 /// The result of a single parsing step, returned by [`Parser::parse`]
 /// or [`SingleParser::parse_item`] calls.
 #[derive(Debug)]
@@ -87,6 +97,18 @@ pub trait Parser {
         input: &[u8],
         timestamp: Option<u64>,
     ) -> Result<impl Iterator<Item = ParseOutput<Self::Output>>, Error>;
+
+    /// Turns the bytes remaining after the last [`Parser::parse`] call into a final item,
+    /// knowing that no more bytes are coming for them right now.
+    ///
+    /// Returning an item consumes all of `input`. Returning `Ok(None)` -- which is what a parser
+    /// that cannot complete a partial item does -- leaves the bytes untouched, so a parser still
+    /// waiting for the rest of a message gets it if the source resumes.
+    fn parse_remaining(
+        &mut self,
+        input: &[u8],
+        timestamp: Option<u64>,
+    ) -> Result<Option<ParseYield<Self::Output>>, RemainderError>;
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -161,6 +183,16 @@ pub trait SingleParser {
         input: &[u8],
         timestamp: Option<u64>,
     ) -> Result<ParseOutput<Self::Output>, Error>;
+
+    /// Turns the bytes remaining after the last [`SingleParser::parse_item`] call into a final
+    /// item, knowing that no more bytes are coming for them right now.
+    ///
+    /// See [`Parser::parse_remaining`], which the blanket implementation forwards to this method.
+    fn parse_remaining(
+        &mut self,
+        input: &[u8],
+        timestamp: Option<u64>,
+    ) -> Result<Option<ParseYield<Self::Output>>, RemainderError>;
 }
 
 /// A blanket implementation of [`Parser`] for any type that implements [`SingleParser`].
@@ -196,5 +228,13 @@ where
         });
 
         Ok(iter)
+    }
+
+    fn parse_remaining(
+        &mut self,
+        input: &[u8],
+        timestamp: Option<u64>,
+    ) -> Result<Option<ParseYield<Self::Output>>, RemainderError> {
+        SingleParser::parse_remaining(self, input, timestamp)
     }
 }
