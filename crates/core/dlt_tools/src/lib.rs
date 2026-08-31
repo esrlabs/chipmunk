@@ -153,7 +153,7 @@ mod tests {
                 assert_eq!("test3.txt", files.get(2).unwrap().name);
             }
             Err(error) => {
-                panic!("{}", format!("{error}"));
+                panic!("{error}");
             }
         }
     }
@@ -170,7 +170,7 @@ mod tests {
                 assert_eq!(files.len(), 0);
             }
             Err(error) => {
-                panic!("{}", format!("{error}"));
+                panic!("{error}");
             }
         }
     }
@@ -195,7 +195,7 @@ mod tests {
                 assert_eq!("test2.txt", files.first().unwrap().name);
             }
             Err(error) => {
-                panic!("{}", format!("{error}"));
+                panic!("{error}");
             }
         }
     }
@@ -217,12 +217,12 @@ mod tests {
                         assert_eq!(size, 18);
                     }
                     Err(error) => {
-                        panic!("{}", format!("{error}"));
+                        panic!("{error}");
                     }
                 }
             }
             Err(error) => {
-                panic!("{}", format!("{error}"));
+                panic!("{error}");
             }
         }
 
@@ -246,12 +246,12 @@ mod tests {
                         assert_eq!(size, 0);
                     }
                     Err(error) => {
-                        panic!("{}", format!("{error}"));
+                        panic!("{error}");
                     }
                 }
             }
             Err(error) => {
-                panic!("{}", format!("{error}"));
+                panic!("{error}");
             }
         }
     }
@@ -279,12 +279,12 @@ mod tests {
                         assert_eq!(size, 6);
                     }
                     Err(error) => {
-                        panic!("{}", format!("{error}"));
+                        panic!("{error}");
                     }
                 }
             }
             Err(error) => {
-                panic!("{}", format!("{error}"));
+                panic!("{error}");
             }
         }
 
@@ -309,12 +309,12 @@ mod tests {
                         assert_eq!(size, 6);
                     }
                     Err(error) => {
-                        panic!("{}", format!("{error}"));
+                        panic!("{error}");
                     }
                 }
             }
             Err(error) => {
-                panic!("{}", format!("{error}"));
+                panic!("{error}");
             }
         }
 
@@ -344,12 +344,12 @@ mod tests {
                         assert_eq!(size, 6);
                     }
                     Err(error) => {
-                        panic!("{}", format!("{error}"));
+                        panic!("{error}");
                     }
                 }
             }
             Err(error) => {
-                panic!("{}", format!("{error}"));
+                panic!("{error}");
             }
         }
 

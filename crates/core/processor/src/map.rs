@@ -25,7 +25,7 @@ impl FiltersStats {
     }
 
     pub fn increment(&mut self, alias: impl Into<String>, value: Option<u64>) {
-        *self.stats.entry(alias.into()).or_insert(0) += value.map_or(1, |v| v);
+        *self.stats.entry(alias.into()).or_insert(0) += value.unwrap_or(1);
     }
 }
 
@@ -201,8 +201,8 @@ impl SearchMap {
     }
 
     pub fn set(&mut self, matches: Option<Vec<stypes::FilterMatch>>, stats: Option<FiltersStats>) {
-        self.matches = matches.map_or(vec![], |m| m);
-        self.stats = stats.map_or(FiltersStats::default(), |s| s);
+        self.matches = matches.unwrap_or_default();
+        self.stats = stats.unwrap_or_default();
     }
 
     pub fn append(&mut self, matches: &mut Vec<stypes::FilterMatch>) -> usize {

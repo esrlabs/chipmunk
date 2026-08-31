@@ -246,7 +246,8 @@ impl SessionService {
                 if len == 0 {
                     Ok(Vec::new())
                 } else {
-                    Ok(vec![0..=(len as u64 - 1)])
+                    let rng: RangeInclusive<_> = 0..=(len as u64 - 1);
+                    Ok(vec![rng])
                 }
             }
             ExportTarget::Indexed => {
