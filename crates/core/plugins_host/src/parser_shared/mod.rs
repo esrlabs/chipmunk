@@ -179,4 +179,14 @@ impl p::Parser for PluginsParser {
 
         res
     }
+
+    fn parse_remaining(
+        &mut self,
+        input: &[u8],
+        timestamp: Option<u64>,
+    ) -> Result<Option<p::ParseYield<PluginParseMessage>>, p::RemainderError> {
+        match &mut self.parser {
+            PlugVerParser::Ver010(parser) => parser.parse_remaining(input, timestamp),
+        }
+    }
 }

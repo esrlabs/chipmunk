@@ -40,6 +40,12 @@ impl<R> BufReader<R> {
     pub fn buffer(&self) -> &[u8] {
         self.buffer.read_slice()
     }
+
+    /// Returns the number of bytes the next read could add to the inner buffer without
+    /// consuming any of the buffered ones.
+    pub fn write_available(&self) -> usize {
+        self.buffer.write_available()
+    }
 }
 
 impl<R: Read> Read for BufReader<R> {
@@ -176,6 +182,12 @@ impl DeqBuffer {
     /// Returns the number of currently available bytes for writing.
     pub fn write_available(&self) -> usize {
         self.slice.len() - self.end
+    }
+
+    /// Returns the number of bytes that could be written after moving the remaining bytes
+    /// to the front of the buffer.
+    pub fn spare_capacity(&self) -> usize {
+        self.capacity() - self.read_available()
     }
 
     /// Returns the current slice to write to.

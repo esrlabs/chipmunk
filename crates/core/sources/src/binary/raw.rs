@@ -63,6 +63,12 @@ impl<R: Read + Send> ByteSource for BinaryByteSource<R> {
         )))
     }
 
+    fn can_buffer_more(&self) -> bool {
+        // `fill_buf` compacts only when the buffered bytes fall below its minimum, so free space
+        // in front of them is not reachable by the next read.
+        self.reader.write_available() > 0
+    }
+
     fn current_slice(&self) -> &[u8] {
         self.reader.buffer()
     }

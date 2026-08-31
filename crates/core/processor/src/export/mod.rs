@@ -81,36 +81,44 @@ where
             if cancel.is_cancelled() {
                 return Err(ExportError::Cancelled);
             }
-            match producer.produce_next(&mut collector).await {
-                Ok(ProduceSummary::Processed { .. }) => {
-                    for item in collector.get_records().drain(..) {
-                        let written = match item {
-                            ParseYield::Message(msg) => {
-                                msg.to_writer(&mut out_writer)?;
-                                true
-                            }
-                            ParseYield::MessageAndAttachment((msg, _)) => {
-                                msg.to_writer(&mut out_writer)?;
-                                true
-                            }
-                            _ => false,
-                        };
-                        if written && text_file {
-                            out_writer.write_all("\n".as_bytes())?;
-                        }
-                        if written {
-                            exported += 1;
-                        }
-                    }
+            let last_round = match producer.produce_next(&mut collector).await {
+                Ok(ProduceSummary::Processed { .. }) => false,
+                Ok(ProduceSummary::PendingRemainder { .. }) => {
+                    resolve_remainder(&mut producer, &mut collector);
+                    true
                 }
                 Ok(ProduceSummary::Done { .. } | ProduceSummary::NoBytesAvailable { .. }) => {
                     debug!("No more messages to export");
-                    return Ok(exported);
+                    true
                 }
                 Err(err) => {
                     log::error!("Error while raw export: {err:?}");
                     return Err(ExportError::Producer(err));
                 }
+            };
+
+            for item in collector.get_records().drain(..) {
+                let written = match item {
+                    ParseYield::Message(msg) => {
+                        msg.to_writer(&mut out_writer)?;
+                        true
+                    }
+                    ParseYield::MessageAndAttachment((msg, _)) => {
+                        msg.to_writer(&mut out_writer)?;
+                        true
+                    }
+                    _ => false,
+                };
+                if written && text_file {
+                    out_writer.write_all("\n".as_bytes())?;
+                }
+                if written {
+                    exported += 1;
+                }
+            }
+
+            if last_round {
+                return Ok(exported);
             }
         }
     }
@@ -120,81 +128,119 @@ where
             return Err(ExportError::Cancelled);
         }
 
-        match producer.produce_next(&mut collector).await {
-            Ok(ProduceSummary::Processed { .. }) => {
-                for item in collector.get_records().drain(..) {
-                    if !inside {
-                        if sections[section_index].first_line == current_index {
-                            inside = true;
-                        }
-                    } else if sections[section_index].last_line < current_index {
-                        inside = false;
-                        section_index += 1;
-                        if sections.len() <= section_index {
-                            // no more sections
-                            current_index += 1;
-                            break 'outer;
-                        }
-                        // check if we are in next section again
-                        if sections[section_index].first_line == current_index {
-                            inside = true;
-                        }
-                    }
-                    let written = match item {
-                        ParseYield::Message(msg) => {
-                            if inside {
-                                msg.to_writer(&mut out_writer)?;
-                            }
-                            current_index += 1;
-                            inside
-                        }
-                        ParseYield::MessageAndAttachment((msg, _)) => {
-                            if inside {
-                                msg.to_writer(&mut out_writer)?;
-                            }
-                            current_index += 1;
-                            inside
-                        }
-                        _ => false,
-                    };
-                    if written && text_file {
-                        out_writer.write_all("\n".as_bytes())?;
-                    }
-                }
+        let last_round = match producer.produce_next(&mut collector).await {
+            Ok(ProduceSummary::Processed { .. }) => false,
+            Ok(ProduceSummary::PendingRemainder { .. }) => {
+                resolve_remainder(&mut producer, &mut collector);
+                true
             }
             Ok(ProduceSummary::Done { .. } | ProduceSummary::NoBytesAvailable { .. }) => {
                 debug!("No more messages to export");
-                break 'outer;
+                true
             }
             Err(err) => {
                 log::error!("Error while raw export: {err:?}");
 
                 return Err(ExportError::Producer(err));
             }
+        };
+
+        for item in collector.get_records().drain(..) {
+            if !inside {
+                if sections[section_index].first_line == current_index {
+                    inside = true;
+                }
+            } else if sections[section_index].last_line < current_index {
+                inside = false;
+                section_index += 1;
+                if sections.len() <= section_index {
+                    // no more sections
+                    current_index += 1;
+                    break 'outer;
+                }
+                // check if we are in next section again
+                if sections[section_index].first_line == current_index {
+                    inside = true;
+                }
+            }
+            let written = match item {
+                ParseYield::Message(msg) => {
+                    if inside {
+                        msg.to_writer(&mut out_writer)?;
+                    }
+                    current_index += 1;
+                    inside
+                }
+                ParseYield::MessageAndAttachment((msg, _)) => {
+                    if inside {
+                        msg.to_writer(&mut out_writer)?;
+                    }
+                    current_index += 1;
+                    inside
+                }
+                _ => false,
+            };
+            if written && text_file {
+                out_writer.write_all("\n".as_bytes())?;
+            }
+        }
+
+        if last_round {
+            break 'outer;
         }
     }
     if read_to_end {
-        'outer: loop {
+        loop {
             if cancel.is_cancelled() {
                 return Err(ExportError::Cancelled);
             }
 
-            match producer.produce_next(&mut collector).await {
-                Ok(ProduceSummary::Processed { .. }) => {
-                    current_index += 1;
+            let last_round = match producer.produce_next(&mut collector).await {
+                Ok(ProduceSummary::Processed { .. }) => false,
+                Ok(ProduceSummary::PendingRemainder { .. }) => {
+                    resolve_remainder(&mut producer, &mut collector);
+                    true
                 }
-                Ok(ProduceSummary::Done { .. } | ProduceSummary::NoBytesAvailable { .. }) => {
-                    break 'outer;
-                }
+                Ok(ProduceSummary::Done { .. } | ProduceSummary::NoBytesAvailable { .. }) => true,
                 Err(err) => {
                     log::error!("Error while raw export: {err:?}");
                     return Err(ExportError::Producer(err));
                 }
+            };
+
+            // Nothing is written past the last section, only counted, but the records still have
+            // to be dropped each round: they are never drained otherwise and would pile up until
+            // the end of the file. Attachments don't count as lines, same as in the loop above.
+            current_index += collector
+                .get_records()
+                .drain(..)
+                .filter(|item| {
+                    matches!(
+                        item,
+                        ParseYield::Message(_) | ParseYield::MessageAndAttachment(_)
+                    )
+                })
+                .count();
+
+            if last_round {
+                break;
             }
         }
     }
     debug!("export_raw done ({current_index} messages)");
     Ok(current_index)
+}
+
+/// Lets the parser close the item it is still holding: exports never tail, so a stalled source
+/// is the end of the input here.
+fn resolve_remainder<P: Parser, D: ByteSource>(
+    producer: &mut MessageProducer<P, D>,
+    collector: &mut GeneralLogCollector<P::Output>,
+) {
+    if let Err(err) = producer.process_remaining(collector) {
+        // The trailing bytes are unusable, but everything before them has been exported.
+        log::error!("Error while resolving the remaining bytes: {err}");
+    }
 }
 
 fn sections_valid(sections: &[IndexSection]) -> bool {

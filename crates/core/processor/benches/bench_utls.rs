@@ -96,7 +96,8 @@ where
                 counter.loaded_bytes += bytes_consumed;
                 counter.skipped_bytes += skipped_bytes;
             }
-            processor::producer::ProduceSummary::NoBytesAvailable { skipped_bytes } => {
+            processor::producer::ProduceSummary::NoBytesAvailable { skipped_bytes }
+            | processor::producer::ProduceSummary::PendingRemainder { skipped_bytes } => {
                 counter.skipped_bytes += skipped_bytes;
                 break;
             }

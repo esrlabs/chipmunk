@@ -129,6 +129,18 @@ pub trait ByteSource: Send {
     /// This function must be **Cancel-Safe**
     async fn load(&mut self, filter: Option<&SourceFilter>) -> Result<Option<ReloadInfo>, Error>;
 
+    /// Whether the next [`ByteSource::load()`] call could actually add bytes to the buffer
+    /// without the caller consuming any first.
+    ///
+    /// `false` means the parser will never see more than [`ByteSource::current_slice()`] until
+    /// something is consumed, so a caller that waits for more bytes would wait forever.
+    ///
+    /// # Note:
+    ///
+    /// Implementations must mirror their own `load()`: free space that `load()` can't reach
+    /// doesn't count. The two differ for every source which doesn't compact inside `load()`.
+    fn can_buffer_more(&self) -> bool;
+
     /// In case the ByteSource is some kind of connection that does not end,
     /// cancel can be implemented that will give the ByteSource the chance to perform some
     /// cleanup before the ByteSource is discarded

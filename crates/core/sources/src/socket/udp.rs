@@ -117,6 +117,12 @@ impl ByteSource for UdpSource {
         Ok(Some(ReloadInfo::new(len, available_bytes, 0, None)))
     }
 
+    fn can_buffer_more(&self) -> bool {
+        // `load()` compacts before reading, so the space in front of the buffered bytes counts
+        // too: this is the same question `handle_buff_capacity()` answers there.
+        self.buffer.spare_capacity() >= MAX_DATAGRAM_SIZE
+    }
+
     fn current_slice(&self) -> &[u8] {
         self.buffer.read_slice()
     }
@@ -168,6 +174,34 @@ mod tests {
 
         assert!(rec_res.is_ok());
         Ok(())
+    }
+
+    /// A line split over two datagrams must accumulate in the buffer: the source doesn't frame
+    /// lines, so both halves have to be exposed to the parser as one slice.
+    #[tokio::test]
+    async fn partial_line_accumulates_across_loads() {
+        static SENDER: &str = "127.0.0.1:4003";
+        static RECEIVER: &str = "127.0.0.1:5003";
+
+        // The receiver has to be bound before anything is sent: a datagram to a port nobody
+        // listens on is dropped, and `load()` would then wait forever.
+        let mut udp_source = UdpSource::new(RECEIVER, vec![]).await.unwrap();
+
+        let send_socket = UdpSocket::bind(SENDER).await.unwrap();
+        tokio::spawn(async move {
+            for part in ["hel", "lo\n"] {
+                send_socket
+                    .send_to(part.as_bytes(), RECEIVER)
+                    .await
+                    .expect("could not send on socket");
+            }
+        });
+
+        let first = udp_source.load(None).await.unwrap().unwrap();
+        let second = udp_source.load(None).await.unwrap().unwrap();
+
+        assert_eq!(udp_source.current_slice(), b"hello\n");
+        assert_eq!(first.newly_loaded_bytes + second.newly_loaded_bytes, 6);
     }
 
     #[tokio::test]

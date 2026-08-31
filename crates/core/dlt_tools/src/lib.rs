@@ -69,6 +69,14 @@ pub async fn scan_dlt_ft(
                             Ok(ProduceSummary::Processed {..}) => {
                                 // Attachments are appended.
                             },
+                            Ok(ProduceSummary::PendingRemainder {..}) => {
+                                // Scanning doesn't tail, so a stalled source is the end of the
+                                // file: let the parser close its partial message, then stop.
+                                if let Err(err) = producer.process_remaining(&mut collector) {
+                                    return Err(format!("Error while processing DLT file. {err}"));
+                                }
+                                break;
+                            }
                             Ok(ProduceSummary::Done {..} | ProduceSummary::NoBytesAvailable {..}) => {
                                 // Stop as tailing isn't needed here.
                                 break;

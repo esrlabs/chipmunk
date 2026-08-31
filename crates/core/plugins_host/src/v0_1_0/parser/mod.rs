@@ -168,4 +168,16 @@ impl p::Parser for PluginParser {
             .map(|item| p::ParseOutput::new(item.consumed as usize, item.value.map(|v| v.into())));
         Ok(res)
     }
+
+    fn parse_remaining(
+        &mut self,
+        _input: &[u8],
+        _timestamp: Option<u64>,
+    ) -> Result<Option<p::ParseYield<PluginParseMessage>>, p::RemainderError> {
+        // TODO: Plugin parsers cannot resolve a remainder yet. Supporting it needs a new call in
+        // the WIT parser interface plus the matching bindings here, which is deliberately out of
+        // scope for this change and tracked as separate work. Until then a plugin that tokenizes
+        // lines keeps splitting the last item of a stalled source, exactly as it does today.
+        Ok(None)
+    }
 }

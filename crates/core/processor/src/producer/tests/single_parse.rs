@@ -1,6 +1,6 @@
 //! Tests for parsers returning single value always
 
-use std::{collections::VecDeque, io::Cursor};
+use std::{assert_matches, collections::VecDeque, io::Cursor};
 
 use super::mock_byte_source::*;
 use super::mock_parser::*;
@@ -25,7 +25,9 @@ async fn empty_byte_source() {
     // NoBytesAvailable message should be sent
     let summary = producer.produce_next(&mut collector).await.unwrap();
     match summary {
-        ProduceSummary::Processed { .. } | ProduceSummary::Done { .. } => {
+        ProduceSummary::Processed { .. }
+        | ProduceSummary::PendingRemainder { .. }
+        | ProduceSummary::Done { .. } => {
             panic!("Summary should be Processed but got {summary:?}");
         }
         ProduceSummary::NoBytesAvailable { skipped_bytes } => {
@@ -50,28 +52,24 @@ async fn byte_source_fail() {
 }
 
 #[tokio::test]
-async fn text_keeps_unterminated_line() {
+async fn text_keeps_unterminated_line_until_asked() {
     let parser = StringTokenizer {};
     let source = BinaryByteSource::new(Cursor::new(b"{\"key\":\"value\"}".to_vec()));
 
     let mut producer = MessageProducer::new(parser, source);
     let mut collector = GeneralLogCollector::<StringMessage>::default();
 
+    // The input ends without a line break: the producer must hold those bytes instead of
+    // deciding on its own that the line is complete.
     let summary = producer.produce_next(&mut collector).await.unwrap();
-    match summary {
-        ProduceSummary::Processed {
-            bytes_consumed,
-            messages_count,
-            skipped_bytes,
-        } => {
-            assert_eq!(messages_count, 1);
-            assert_eq!(bytes_consumed, 15);
-            assert_eq!(skipped_bytes, 0);
-        }
-        ProduceSummary::NoBytesAvailable { .. } | ProduceSummary::Done { .. } => {
-            panic!("Summary should be Processed but got {summary:?}");
-        }
-    }
+    assert_matches!(
+        summary,
+        ProduceSummary::PendingRemainder { skipped_bytes: 0 }
+    );
+    assert!(collector.get_records().is_empty());
+
+    // Only the caller knows that no more bytes are coming, and then the line is delivered.
+    assert_eq!(producer.process_remaining(&mut collector).unwrap(), 1);
 
     let records = collector.get_records();
     assert_eq!(records.len(), 1);
@@ -114,7 +112,9 @@ async fn parse_item_then_skip() {
             assert_eq!(bytes_consumed, 5);
             assert_eq!(skipped_bytes, 0);
         }
-        ProduceSummary::NoBytesAvailable { .. } | ProduceSummary::Done { .. } => {
+        ProduceSummary::NoBytesAvailable { .. }
+        | ProduceSummary::PendingRemainder { .. }
+        | ProduceSummary::Done { .. } => {
             panic!("Summary should be Processed but got {summary:?}");
         }
     }
@@ -139,7 +139,9 @@ async fn parse_item_then_skip() {
             assert_eq!(bytes_consumed, 5);
             assert_eq!(skipped_bytes, 5);
         }
-        ProduceSummary::NoBytesAvailable { .. } | ProduceSummary::Done { .. } => {
+        ProduceSummary::NoBytesAvailable { .. }
+        | ProduceSummary::PendingRemainder { .. }
+        | ProduceSummary::Done { .. } => {
             panic!("Summary should be Processed but got {summary:?}");
         }
     }
@@ -149,7 +151,9 @@ async fn parse_item_then_skip() {
     // NoBytesAvailable message should be sent
     let summary = producer.produce_next(&mut collector).await.unwrap();
     match summary {
-        ProduceSummary::Processed { .. } | ProduceSummary::Done { .. } => {
+        ProduceSummary::Processed { .. }
+        | ProduceSummary::PendingRemainder { .. }
+        | ProduceSummary::Done { .. } => {
             panic!("Summary should be Processed but got {summary:?}");
         }
         ProduceSummary::NoBytesAvailable { skipped_bytes } => {
@@ -200,7 +204,9 @@ async fn parse_incomplete() {
             assert_eq!(bytes_consumed, 5);
             assert_eq!(skipped_bytes, 0);
         }
-        ProduceSummary::NoBytesAvailable { .. } | ProduceSummary::Done { .. } => {
+        ProduceSummary::NoBytesAvailable { .. }
+        | ProduceSummary::PendingRemainder { .. }
+        | ProduceSummary::Done { .. } => {
             panic!("Summary should be Processed but got {summary:?}");
         }
     }
@@ -226,7 +232,9 @@ async fn parse_incomplete() {
             assert_eq!(bytes_consumed, 25);
             assert_eq!(skipped_bytes, 0);
         }
-        ProduceSummary::NoBytesAvailable { .. } | ProduceSummary::Done { .. } => {
+        ProduceSummary::NoBytesAvailable { .. }
+        | ProduceSummary::PendingRemainder { .. }
+        | ProduceSummary::Done { .. } => {
             panic!("Summary should be Processed but got {summary:?}");
         }
     }
@@ -242,7 +250,9 @@ async fn parse_incomplete() {
     // NoBytesAvailable message should be sent
     let summary = producer.produce_next(&mut collector).await.unwrap();
     match summary {
-        ProduceSummary::Processed { .. } | ProduceSummary::Done { .. } => {
+        ProduceSummary::Processed { .. }
+        | ProduceSummary::PendingRemainder { .. }
+        | ProduceSummary::Done { .. } => {
             panic!("Summary should be Processed but got {summary:?}");
         }
         ProduceSummary::NoBytesAvailable { skipped_bytes } => {
@@ -295,7 +305,9 @@ async fn parse_err_eof() {
             assert_eq!(skipped_bytes, 0);
             assert_eq!(produced_messages, 0);
         }
-        ProduceSummary::NoBytesAvailable { .. } | ProduceSummary::Processed { .. } => {
+        ProduceSummary::NoBytesAvailable { .. }
+        | ProduceSummary::Processed { .. }
+        | ProduceSummary::PendingRemainder { .. } => {
             panic!("Summary should be Done but got {summary:?}");
         }
     }
@@ -335,7 +347,9 @@ async fn initial_parsing_error() {
     // Then the producer should be closed.
     let summary = producer.produce_next(&mut collector).await.unwrap();
     match summary {
-        ProduceSummary::Processed { .. } | ProduceSummary::NoBytesAvailable { .. } => {
+        ProduceSummary::Processed { .. }
+        | ProduceSummary::NoBytesAvailable { .. }
+        | ProduceSummary::PendingRemainder { .. } => {
             panic!("Summary should be Done but got {summary:?}");
         }
         ProduceSummary::Done { .. } => {}
@@ -385,7 +399,9 @@ async fn success_parse_err_success() {
             assert_eq!(bytes_consumed, 10);
             assert_eq!(skipped_bytes, 0);
         }
-        ProduceSummary::NoBytesAvailable { .. } | ProduceSummary::Done { .. } => {
+        ProduceSummary::NoBytesAvailable { .. }
+        | ProduceSummary::PendingRemainder { .. }
+        | ProduceSummary::Done { .. } => {
             panic!("Summary should be Processed but got {summary:?}");
         }
     }
@@ -416,7 +432,9 @@ async fn success_parse_err_success() {
             assert_eq!(bytes_consumed, 10);
             assert_eq!(skipped_bytes, 0);
         }
-        ProduceSummary::NoBytesAvailable { .. } | ProduceSummary::Done { .. } => {
+        ProduceSummary::NoBytesAvailable { .. }
+        | ProduceSummary::PendingRemainder { .. }
+        | ProduceSummary::Done { .. } => {
             panic!("Summary should be Processed but got {summary:?}");
         }
     }
@@ -439,7 +457,9 @@ async fn success_parse_err_success() {
     // NoBytesAvailable message should be sent
     let summary = producer.produce_next(&mut collector).await.unwrap();
     match summary {
-        ProduceSummary::Processed { .. } | ProduceSummary::Done { .. } => {
+        ProduceSummary::Processed { .. }
+        | ProduceSummary::PendingRemainder { .. }
+        | ProduceSummary::Done { .. } => {
             panic!("Summary should be Processed but got {summary:?}");
         }
         ProduceSummary::NoBytesAvailable { skipped_bytes } => {
@@ -487,7 +507,9 @@ async fn success_parse_err_done() {
             assert_eq!(bytes_consumed, 10);
             assert_eq!(skipped_bytes, 0);
         }
-        ProduceSummary::NoBytesAvailable { .. } | ProduceSummary::Done { .. } => {
+        ProduceSummary::NoBytesAvailable { .. }
+        | ProduceSummary::PendingRemainder { .. }
+        | ProduceSummary::Done { .. } => {
             panic!("Summary should be Processed but got {summary:?}");
         }
     }
@@ -511,7 +533,9 @@ async fn success_parse_err_done() {
     // NoBytesAvailable message should be sent
     let summary = producer.produce_next(&mut collector).await.unwrap();
     match summary {
-        ProduceSummary::Processed { .. } | ProduceSummary::Done { .. } => {
+        ProduceSummary::Processed { .. }
+        | ProduceSummary::PendingRemainder { .. }
+        | ProduceSummary::Done { .. } => {
             panic!("Summary should be Processed but got {summary:?}");
         }
         ProduceSummary::NoBytesAvailable { skipped_bytes } => {
@@ -558,7 +582,9 @@ async fn success_parsing_error_then_fail_reload() {
             assert_eq!(bytes_consumed, 10);
             assert_eq!(skipped_bytes, 0);
         }
-        ProduceSummary::NoBytesAvailable { .. } | ProduceSummary::Done { .. } => {
+        ProduceSummary::NoBytesAvailable { .. }
+        | ProduceSummary::PendingRemainder { .. }
+        | ProduceSummary::Done { .. } => {
             panic!("Summary should be Processed but got {summary:?}");
         }
     }
@@ -614,7 +640,9 @@ async fn parse_with_skipped_bytes() {
             assert_eq!(bytes_consumed, 3);
             assert_eq!(skipped_bytes, 4);
         }
-        ProduceSummary::NoBytesAvailable { .. } | ProduceSummary::Done { .. } => {
+        ProduceSummary::NoBytesAvailable { .. }
+        | ProduceSummary::PendingRemainder { .. }
+        | ProduceSummary::Done { .. } => {
             panic!("Summary should be Processed but got {summary:?}");
         }
     }
@@ -639,7 +667,9 @@ async fn parse_with_skipped_bytes() {
             assert_eq!(bytes_consumed, 2);
             assert_eq!(skipped_bytes, 6);
         }
-        ProduceSummary::NoBytesAvailable { .. } | ProduceSummary::Done { .. } => {
+        ProduceSummary::NoBytesAvailable { .. }
+        | ProduceSummary::PendingRemainder { .. }
+        | ProduceSummary::Done { .. } => {
             panic!("Summary should be Processed but got {summary:?}");
         }
     }
@@ -658,7 +688,9 @@ async fn parse_with_skipped_bytes() {
             assert_eq!(bytes_consumed, 15);
             assert_eq!(skipped_bytes, 15);
         }
-        ProduceSummary::NoBytesAvailable { .. } | ProduceSummary::Done { .. } => {
+        ProduceSummary::NoBytesAvailable { .. }
+        | ProduceSummary::PendingRemainder { .. }
+        | ProduceSummary::Done { .. } => {
             panic!("Summary should be Processed but got {summary:?}");
         }
     }
@@ -668,7 +700,9 @@ async fn parse_with_skipped_bytes() {
     // NoBytesAvailable message should be sent
     let summary = producer.produce_next(&mut collector).await.unwrap();
     match summary {
-        ProduceSummary::Processed { .. } | ProduceSummary::Done { .. } => {
+        ProduceSummary::Processed { .. }
+        | ProduceSummary::PendingRemainder { .. }
+        | ProduceSummary::Done { .. } => {
             panic!("Summary should be Processed but got {summary:?}");
         }
         ProduceSummary::NoBytesAvailable { skipped_bytes } => {
@@ -722,7 +756,9 @@ async fn success_parsi_err_success_drain_bytes() {
             assert_eq!(bytes_consumed, 5);
             assert_eq!(skipped_bytes, 3);
         }
-        ProduceSummary::NoBytesAvailable { .. } | ProduceSummary::Done { .. } => {
+        ProduceSummary::NoBytesAvailable { .. }
+        | ProduceSummary::PendingRemainder { .. }
+        | ProduceSummary::Done { .. } => {
             panic!("Summary should be Processed but got {summary:?}");
         }
     }
@@ -748,7 +784,9 @@ async fn success_parsi_err_success_drain_bytes() {
             assert_eq!(bytes_consumed, 5);
             assert_eq!(skipped_bytes, 4);
         }
-        ProduceSummary::NoBytesAvailable { .. } | ProduceSummary::Done { .. } => {
+        ProduceSummary::NoBytesAvailable { .. }
+        | ProduceSummary::PendingRemainder { .. }
+        | ProduceSummary::Done { .. } => {
             panic!("Summary should be Processed but got {summary:?}");
         }
     }
@@ -774,7 +812,9 @@ async fn success_parsi_err_success_drain_bytes() {
             assert_eq!(bytes_consumed, 9);
             assert_eq!(skipped_bytes, 0);
         }
-        ProduceSummary::NoBytesAvailable { .. } | ProduceSummary::Done { .. } => {
+        ProduceSummary::NoBytesAvailable { .. }
+        | ProduceSummary::PendingRemainder { .. }
+        | ProduceSummary::Done { .. } => {
             panic!("Summary should be Processed but got {summary:?}");
         }
     }
@@ -791,7 +831,9 @@ async fn success_parsi_err_success_drain_bytes() {
     // NoBytesAvailable message should be sent
     let summary = producer.produce_next(&mut collector).await.unwrap();
     match summary {
-        ProduceSummary::Processed { .. } | ProduceSummary::Done { .. } => {
+        ProduceSummary::Processed { .. }
+        | ProduceSummary::PendingRemainder { .. }
+        | ProduceSummary::Done { .. } => {
             panic!("Summary should be Processed but got {summary:?}");
         }
         ProduceSummary::NoBytesAvailable { skipped_bytes } => {

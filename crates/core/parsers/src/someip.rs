@@ -1,4 +1,4 @@
-use crate::{Error, LogMessage, ParseOutput, ParseYield, SingleParser};
+use crate::{Error, LogMessage, ParseOutput, ParseYield, RemainderError, SingleParser};
 use std::{
     borrow::Cow,
     cmp::Ordering,
@@ -343,6 +343,16 @@ impl SingleParser for SomeipParser {
             timestamp,
         )
         .map(|(rest, message)| ParseOutput::new(rest, message.map(ParseYield::from)))
+    }
+
+    fn parse_remaining(
+        &mut self,
+        _input: &[u8],
+        _timestamp: Option<u64>,
+    ) -> Result<Option<ParseYield<SomeipLogMessage>>, RemainderError> {
+        // A SOME/IP message is framed by the length field in its header, so a truncated one can
+        // only be completed by the bytes that are still missing.
+        Ok(None)
     }
 }
 

@@ -2,6 +2,7 @@ mod mock_byte_source;
 mod mock_parser;
 
 mod cancel_safety;
+mod line_boundaries;
 mod multi_parse;
 mod process;
 mod single_parse;

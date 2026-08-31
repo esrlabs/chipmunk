@@ -51,7 +51,6 @@ where
     let mut msg_count = 0;
 
     loop {
-        collector.get_records().clear();
         tokio::select! {
             _ = cancel_token.cancelled() => {
                 file_writer.flush().context("Error writing data to file.")?;
@@ -60,28 +59,35 @@ where
                 return Ok(());
             },
             res = producer.produce_next(&mut collector) => {
-                let summary = res?;
-                match summary {
-                    ProduceSummary::Processed {..} => {
-                        for record in collector.get_records() {
-                           let msg =  match record {
-                                ParseYield::Message(msg) => msg,
-                                ParseYield::Attachment(..) => continue,
-                                ParseYield::MessageAndAttachment((msg, _att)) => msg,
-                            };
-                            msg_formatter.write_msg(&mut file_writer, msg)?;
+                // We don't support file tailing in the CLI tool, so a stalled source is the end
+                // of the input.
+                let last_round = match res? {
+                    ProduceSummary::Processed {..} => false,
+                    ProduceSummary::PendingRemainder {..} => {
+                        // Let the parser close the item it is still holding.
+                        producer.process_remaining(&mut collector)?;
+                        true
+                    },
+                    ProduceSummary::NoBytesAvailable {..} | ProduceSummary::Done {..} => true,
+                };
 
-                            msg_count += 1;
-                            if msg_count % UPDATE_MESSAGE_INTERVAL == 0 {
-                                println!("Processing... {msg_count} messages have been written to file.");
-                            }
-                        }
-                    },
-                    // We don't support file tailing in the CLI tool.
-                    ProduceSummary::NoBytesAvailable {..} | ProduceSummary::Done {..} => {
-                        write_sum(&mut producer);
-                        return Ok(());
-                    },
+                for record in collector.get_records().drain(..) {
+                   let msg =  match record {
+                        ParseYield::Message(msg) => msg,
+                        ParseYield::Attachment(..) => continue,
+                        ParseYield::MessageAndAttachment((msg, _att)) => msg,
+                    };
+                    msg_formatter.write_msg(&mut file_writer, &msg)?;
+
+                    msg_count += 1;
+                    if msg_count % UPDATE_MESSAGE_INTERVAL == 0 {
+                        println!("Processing... {msg_count} messages have been written to file.");
+                    }
+                }
+
+                if last_round {
+                    write_sum(&mut producer);
+                    return Ok(());
                 }
             }
 
