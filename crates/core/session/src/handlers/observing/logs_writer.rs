@@ -56,6 +56,9 @@ impl LogsWriter {
         }
         if !self.attachments.is_empty() {
             // Draining into a new vector preserves the capacity of the internal buffer.
+            // `mem::take` would hand the allocation away and force the buffer to regrow
+            // on each iteration.
+            #[allow(clippy::drain_collect)]
             let attachments = self.attachments.drain(..).collect();
             self.state.add_attachments(attachments)?;
         }
