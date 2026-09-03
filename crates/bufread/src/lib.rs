@@ -225,6 +225,19 @@ impl DeqBuffer {
 
         before
     }
+
+    /// Moves the remaining bytes to the front when the space behind them is smaller than
+    /// `required`, and returns whether that many bytes can be written afterwards.
+    ///
+    /// The result is always `spare_capacity() >= required`, so a caller that only holds a shared
+    /// reference can ask the same question through [`DeqBuffer::spare_capacity()`].
+    pub fn ensure_write_space(&mut self, required: usize) -> bool {
+        if self.write_available() < required {
+            self.flush();
+        }
+
+        self.write_available() >= required
+    }
 }
 
 #[cfg(test)]
@@ -339,6 +352,34 @@ mod tests {
         assert_eq!(0, buffer.flush());
         assert_eq!(max_size, buffer.write_available());
         assert_eq!(0, buffer.read_available());
+    }
+
+    #[test]
+    fn ensure_write_space_compacts_and_matches_spare_capacity() {
+        let max_size = 10;
+        let mut buffer = DeqBuffer::new(max_size);
+
+        assert_eq!(max_size, buffer.write_from(&[7; 10]));
+        // Space behind the buffered bytes is enough on its own, so nothing is moved.
+        assert!(buffer.ensure_write_space(0));
+        assert_eq!(max_size, buffer.read_available());
+
+        // Full buffer: nothing was consumed, so compacting can't free anything.
+        assert!(!buffer.ensure_write_space(1));
+        assert_eq!(max_size, buffer.read_available());
+
+        // The space freed by reading sits in front of the remaining bytes and is only reachable
+        // by compacting, which must not disturb what is still buffered.
+        assert_eq!(4, buffer.read_done(4));
+        assert_eq!(0, buffer.write_available());
+        assert!(buffer.ensure_write_space(4));
+        assert_eq!(6, buffer.read_available());
+        assert_eq!(&[7; 6], buffer.read_slice());
+        // Compacting reached everything there was, so both answers agree from here on.
+        assert_eq!(buffer.spare_capacity(), buffer.write_available());
+
+        // More than the freed space can't be made available.
+        assert!(!buffer.ensure_write_space(5));
     }
 
     #[test]

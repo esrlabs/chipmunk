@@ -82,7 +82,6 @@ pub async fn observe_stream(
                 settings.cwd.clone(),
                 settings.shell.clone(),
             )
-            .await
             .map_err(|e| stypes::NativeError {
                 severity: stypes::Severity::ERROR,
                 kind: stypes::NativeErrorKind::Interrupted,

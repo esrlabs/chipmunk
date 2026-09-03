@@ -6,7 +6,7 @@ use reconnect::{ReconnectInfo, ReconnectResult, TcpReconnecter};
 use socket2::{SockRef, TcpKeepalive};
 use tokio::net::TcpStream;
 
-use super::{BuffCapacityState, MAX_BUFF_SIZE, MAX_DATAGRAM_SIZE, handle_buff_capacity};
+use super::{MAX_BUFF_SIZE, MAX_DATAGRAM_SIZE};
 
 pub mod reconnect;
 
@@ -76,12 +76,9 @@ impl ByteSource for TcpSource {
         // If buffer is almost full then skip loading and return the available bytes.
         // This can happen because some parsers will parse the first item of the provided slice
         // while the producer will call load on each iteration making data accumulate.
-        match handle_buff_capacity(&mut self.buffer) {
-            BuffCapacityState::CanLoad => {}
-            BuffCapacityState::AlmostFull => {
-                let available_bytes = self.len();
-                return Ok(Some(ReloadInfo::new(0, available_bytes, 0, None)));
-            }
+        if !self.buffer.ensure_write_space(MAX_DATAGRAM_SIZE) {
+            let available_bytes = self.len();
+            return Ok(Some(ReloadInfo::new(0, available_bytes, 0, None)));
         }
 
         // TODO use filter
@@ -157,7 +154,7 @@ impl ByteSource for TcpSource {
 
     fn can_buffer_more(&self) -> bool {
         // `load()` compacts before reading, so the space in front of the buffered bytes counts
-        // too: this is the same question `handle_buff_capacity()` answers there.
+        // too: this is the same question `ensure_write_space()` answers there.
         self.buffer.spare_capacity() >= MAX_DATAGRAM_SIZE
     }
 
@@ -185,10 +182,22 @@ mod tests {
         io::AsyncWriteExt,
         net::TcpListener,
         task::yield_now,
-        time::{Instant, sleep, timeout},
+        time::{sleep, timeout},
     };
 
     static MESSAGES: &[&str] = &["one", "two", "three"];
+
+    /// Binds a listener to `addr`, waiting out the moment in which the address is still held by
+    /// the connections of a listener that was just dropped.
+    async fn bind_when_free(addr: &str) -> TcpListener {
+        loop {
+            match TcpListener::bind(addr).await {
+                Ok(listener) => return listener,
+                Err(err) if err.kind() == std::io::ErrorKind::AddrInUse => yield_now().await,
+                Err(err) => panic!("Binding {addr} failed: {err}"),
+            }
+        }
+    }
 
     /// Accepts a connection from the provided listener and sends mock messages,  
     /// sleeping for the specified duration (in milliseconds) between messages.
@@ -309,7 +318,9 @@ mod tests {
         }
     }
 
-    #[tokio::test(start_paused = true)]
+    // Real time on purpose: the test coordinates two real sockets, and paused time would make
+    // every sleep below elapse instantly, so the outage it is supposed to create wouldn't happen.
+    #[tokio::test]
     async fn reconnect_no_msgs() {
         static SERVER: &str = "127.0.0.1:4003";
         let listener = TcpListener::bind(&SERVER).await.unwrap();
@@ -320,7 +331,7 @@ mod tests {
             sleep(Duration::from_millis(150)).await;
 
             // Start new server sending data again.
-            let listener = TcpListener::bind(&SERVER).await.unwrap();
+            let listener = bind_when_free(SERVER).await;
             accept_and_send(&listener, 30).await;
         });
 
@@ -348,10 +359,10 @@ mod tests {
         assert!(rec_res.is_ok());
     }
 
-    #[tokio::test(start_paused = true)]
+    // Real time on purpose, see `reconnect_no_msgs`.
+    #[tokio::test]
     async fn reconnect_with_state_msgs() {
         static SERVER: &str = "127.0.0.1:4004";
-        const OUTAGE_DURATION: Duration = Duration::from_millis(160);
 
         let listener = TcpListener::bind(&SERVER).await.unwrap();
 
@@ -361,43 +372,39 @@ mod tests {
 
         let send_handle = tokio::spawn(async move {
             accept_and_send(&listener, 30).await;
-
-            let outage_started = Instant::now();
             drop(listener);
 
-            let four_attempts_elapsed = loop {
+            // The outage lasts as long as it takes the source to report four attempts, so the
+            // assertion below is about an observed state and not about a chosen duration.
+            loop {
                 outage_state_rx.changed().await.unwrap();
                 if matches!(
                     *outage_state_rx.borrow_and_update(),
                     ReconnectStateMsg::Reconnecting { attempts } if attempts >= 4
                 ) {
-                    break outage_started.elapsed();
+                    break;
                 }
-            };
-
-            if let Some(remaining) = OUTAGE_DURATION.checked_sub(four_attempts_elapsed) {
-                tokio::time::advance(remaining).await;
             }
 
-            // Start new server after the 160 millisecond outage.
-            let listener = TcpListener::bind(&SERVER).await.unwrap();
+            let listener = bind_when_free(SERVER).await;
             accept_and_send(&listener, 30).await;
-
-            four_attempts_elapsed
         });
 
         let rec_info = ReconnectInfo::new(1000, Duration::from_millis(50), Some(state_tx));
 
         let mut tcp_source = TcpSource::new(SERVER, None, Some(rec_info)).await.unwrap();
 
-        // Tests reconnecting state messages.
+        // Tests reconnecting state messages. The count of the attempts can't be asserted here:
+        // `watch` keeps the latest value only, so a receiver that isn't scheduled between two
+        // updates never sees the ones in between. The sender task waits for the fourth attempt
+        // instead, which tolerates that coalescing.
         let reconnect_handler = tokio::spawn(async move {
-            let mut attempts = 0;
+            let mut reconnecting_seen = false;
             loop {
                 state_rx.changed().await.unwrap();
                 match *state_rx.borrow_and_update() {
                     ReconnectStateMsg::Connected => break,
-                    ReconnectStateMsg::Reconnecting { attempts: atts } => attempts = atts,
+                    ReconnectStateMsg::Reconnecting { attempts: _ } => reconnecting_seen = true,
                     ReconnectStateMsg::Failed {
                         attempts,
                         ref err_msg,
@@ -410,11 +417,9 @@ mod tests {
                 };
             }
 
-            // In 160 Milliseconds Down time and reconnect interval of 50 Milliseconds
-            // we must get at least 4 reconnect attempts.
             assert!(
-                attempts >= 4,
-                "Reconnect attempts {attempts} can't be less than 4"
+                reconnecting_seen,
+                "Source reported no reconnect attempt at all"
             );
         });
 
@@ -436,12 +441,13 @@ mod tests {
         let (send_res, rec_res, reconnect_res) =
             tokio::join!(send_handle, receive_handle, reconnect_handler);
 
-        assert!(send_res.unwrap() <= OUTAGE_DURATION);
+        assert!(send_res.is_ok());
         assert!(rec_res.is_ok());
         assert!(reconnect_res.is_ok());
     }
 
-    #[tokio::test(start_paused = true)]
+    // Real time on purpose, see `reconnect_no_msgs`.
+    #[tokio::test]
     async fn reconnect_fail() {
         static SERVER: &str = "127.0.0.1:4005";
         let listener = TcpListener::bind(&SERVER).await.unwrap();
