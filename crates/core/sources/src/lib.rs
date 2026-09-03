@@ -86,6 +86,13 @@ impl From<Error> for stypes::NativeError {
 pub(crate) const DEFAULT_READER_CAPACITY: usize = 10 * 1024 * 1024;
 pub(crate) const DEFAULT_MIN_BUFFER_SPACE: usize = 10 * 1024;
 
+/// Buffer capacity of the stream sources reading from a process or a serial port.
+///
+/// Since those sources hand over raw bytes, this is the longest item a parser can be given in
+/// one piece: once the buffer is full the producer resolves what it holds, which splits a longer
+/// line in two.
+pub(crate) const STREAM_BUFFER_CAPACITY: usize = 64 * 1024;
+
 // Warning can be suppressed here because we are using this trait in our own codebase only.
 #[allow(async_fn_in_trait)]
 /// A `ByteSource` provides a way to read data from some underlying data source. But it does

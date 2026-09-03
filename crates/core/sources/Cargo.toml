@@ -13,16 +13,12 @@ bufread.workspace = true
 stypes.workspace = true
 
 # External crates
-bytes.workspace = true
 etherparse.workspace = true
-futures.workspace = true
 log.workspace = true
 pcap-parser.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
 tokio-serial.workspace = true
-tokio-stream.workspace = true
-tokio-util = { workspace = true , features = ["full"] }
 serde = { workspace = true, features = ["derive"] }
 uuid = { workspace = true , features = ["serde", "v4"] }
 socket2.workspace = true

@@ -5,10 +5,7 @@ use thiserror::Error;
 use tokio::net::{ToSocketAddrs, UdpSocket};
 
 use super::{MAX_BUFF_SIZE, MAX_DATAGRAM_SIZE};
-use crate::{
-    ByteSource, Error as SourceError, ReloadInfo, SourceFilter,
-    socket::{BuffCapacityState, handle_buff_capacity},
-};
+use crate::{ByteSource, Error as SourceError, ReloadInfo, SourceFilter};
 
 #[derive(Error, Debug)]
 pub enum UdpSourceError {
@@ -83,12 +80,9 @@ impl ByteSource for UdpSource {
         // If buffer is almost full then skip loading and return the available bytes.
         // This can happen because some parsers will parse the first item of the provided slice
         // while the producer will call load on each iteration making data accumulate.
-        match handle_buff_capacity(&mut self.buffer) {
-            BuffCapacityState::CanLoad => {}
-            BuffCapacityState::AlmostFull => {
-                let available_bytes = self.len();
-                return Ok(Some(ReloadInfo::new(0, available_bytes, 0, None)));
-            }
+        if !self.buffer.ensure_write_space(MAX_DATAGRAM_SIZE) {
+            let available_bytes = self.len();
+            return Ok(Some(ReloadInfo::new(0, available_bytes, 0, None)));
         }
 
         // TODO use filter
@@ -119,7 +113,7 @@ impl ByteSource for UdpSource {
 
     fn can_buffer_more(&self) -> bool {
         // `load()` compacts before reading, so the space in front of the buffered bytes counts
-        // too: this is the same question `handle_buff_capacity()` answers there.
+        // too: this is the same question `ensure_write_space()` answers there.
         self.buffer.spare_capacity() >= MAX_DATAGRAM_SIZE
     }
 

@@ -1,41 +1,15 @@
-use crate::{ByteSource, Error as SourceError, ReloadInfo, SourceFilter};
+//! Byte source over an open serial port.
+//!
+//! Incoming bytes are handed over unchanged: framing and decoding belong to the parser. Writing
+//! back to the port serves the session's send-data-to-source requests.
+
+use crate::{ByteSource, Error as SourceError, ReloadInfo, STREAM_BUFFER_CAPACITY, SourceFilter};
 use bufread::DeqBuffer;
-use bytes::{BufMut, BytesMut};
-use futures::{
-    SinkExt,
-    stream::{SplitSink, SplitStream, StreamExt},
+use tokio::{
+    io::{AsyncReadExt, AsyncWriteExt},
+    time::{Duration, sleep},
 };
-use std::{io, str};
-use tokio::time::{Duration, sleep};
 use tokio_serial::{DataBits, FlowControl, Parity, SerialPortBuilderExt, SerialStream, StopBits};
-use tokio_util::codec::{Decoder, Encoder, Framed};
-
-struct LineCodec;
-
-impl Decoder for LineCodec {
-    type Item = String;
-    type Error = io::Error;
-
-    fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
-        match &src.iter().position(|b| *b == b'\n') {
-            Some(n) => match str::from_utf8(&src.split_to(n + 1)) {
-                Ok(s) => Ok(Some(s.to_string())),
-                Err(err) => Err(io::Error::other(format!("Failed to format string: {err}"))),
-            },
-            None => Ok(None),
-        }
-    }
-}
-
-impl Encoder<Vec<u8>> for LineCodec {
-    type Error = io::Error;
-
-    fn encode(&mut self, item: Vec<u8>, dst: &mut BytesMut) -> Result<(), Self::Error> {
-        dst.reserve(item.len());
-        dst.put(&item as &[u8]);
-        Ok(())
-    }
-}
 
 fn data_bits(data_bits: &u8) -> DataBits {
     match data_bits {
@@ -73,9 +47,11 @@ fn stop_bits(stop_bits: &u8) -> StopBits {
     }
 }
 
+/// Reads from a serial port and writes back what the session sends to it.
 pub struct SerialSource {
-    write_stream: SplitSink<Framed<SerialStream, LineCodec>, Vec<u8>>,
-    read_stream: SplitStream<Framed<SerialStream, LineCodec>>,
+    // Reading and writing never overlap: both go through `&mut self`, so the port needs no
+    // splitting into halves.
+    port: SerialStream,
     buffer: DeqBuffer,
     send_data_delay: u8,
 }
@@ -88,6 +64,7 @@ pub struct SerialSource {
 // }
 
 impl SerialSource {
+    /// Opens the port described by `config` with its baud rate, framing and flow control.
     pub fn new(config: &stypes::SerialTransportConfig) -> Result<Self, SourceError> {
         match tokio_serial::new(config.path.as_str(), config.baud_rate)
             .data_bits(data_bits(&config.data_bits))
@@ -106,12 +83,9 @@ impl SerialSource {
                         config.path, config.exclusive, err
                     )));
                 }
-                let stream = LineCodec.framed(port);
-                let (write_stream, read_stream) = stream.split();
                 Ok(Self {
-                    write_stream,
-                    read_stream,
-                    buffer: DeqBuffer::new(8192),
+                    port,
+                    buffer: DeqBuffer::new(STREAM_BUFFER_CAPACITY),
                     send_data_delay: config.send_data_delay,
                 })
             }
@@ -128,34 +102,40 @@ impl ByteSource for SerialSource {
         &mut self,
         _filter: Option<&SourceFilter>,
     ) -> Result<Option<ReloadInfo>, SourceError> {
-        // Implementation is cancel-safe here because there is one await call on a stream only.
-        let written = match self.read_stream.next().await {
-            Some(Ok(received)) => {
-                if received.is_empty() {
-                    return Ok(None);
-                }
-                // Report what the buffer actually took: `write_from` truncates silently when the
-                // buffer is full, and a short write means a full buffer, not end of stream, so it
-                // must not turn into `Ok(None)`.
-                self.buffer.write_from(received.as_bytes())
-            }
-            Some(Err(err)) => {
-                return Err(SourceError::Setup(format!("Failed to read stream: {err}")));
-            }
-            None => {
-                return Err(SourceError::Setup(
-                    "Error awaiting future in reading (RX) stream".to_string(),
-                ));
-            }
-        };
+        // Space freed by the consumer sits in front of the buffered bytes and is reachable by
+        // compacting only: without this a retained partial line would shrink every following read
+        // until the buffer looks full while being mostly empty.
+        if !self.buffer.ensure_write_space(1) {
+            // Nothing in the buffer has been consumed yet, so there is nowhere to read into, and
+            // bytes taken from the port can't be put back. The producer resolves this by parsing
+            // what is buffered.
+            let available_bytes = self.buffer.read_available();
+            let info = ReloadInfo::new(0, available_bytes, 0, None);
 
+            return Ok(Some(info));
+        }
+
+        // Implementation is cancel-safe here because there is one await call only, and `read()`
+        // takes nothing from the port when its future is dropped.
+        let free_space = self.buffer.write_slice();
+        let read = self.port.read(free_space).await.map_err(SourceError::Io)?;
+        if read == 0 {
+            return Ok(None);
+        }
+
+        // The read went straight into the free space of the buffer, so `write_done` only moves
+        // the write cursor. Its return value stays the reported one: claiming bytes the buffer
+        // doesn't hold tells the producer that progress happened and makes it ask forever.
+        let written = self.buffer.write_done(read);
         let available_bytes = self.buffer.read_available();
-        Ok(Some(ReloadInfo::new(written, available_bytes, 0, None)))
+        let info = ReloadInfo::new(written, available_bytes, 0, None);
+
+        Ok(Some(info))
     }
 
     fn can_buffer_more(&self) -> bool {
-        // The buffer is never compacted, so only the space behind the buffered bytes is usable.
-        self.buffer.write_available() > 0
+        // `load()` compacts before reading, so the space in front of the buffered bytes counts.
+        self.buffer.spare_capacity() > 0
     }
 
     fn current_slice(&self) -> &[u8] {
@@ -178,44 +158,24 @@ impl ByteSource for SerialSource {
         &mut self,
         request: stypes::SdeRequest,
     ) -> Result<stypes::SdeResponse, SourceError> {
-        Ok(match request {
-            stypes::SdeRequest::WriteText(mut str) => {
-                let len = str.len();
-                if self.send_data_delay == 0 {
-                    self.write_stream
-                        .send(str.as_bytes().to_vec())
-                        .await
-                        .map_err(SourceError::Io)?;
-                } else {
-                    while !str.is_empty() {
-                        self.write_stream
-                            .send(str.drain(0..1).collect::<String>().as_bytes().to_vec())
-                            .await
-                            .map_err(SourceError::Io)?;
-                        sleep(Duration::from_millis(self.send_data_delay as u64)).await;
-                    }
-                }
-                stypes::SdeResponse { bytes: len }
+        let bytes = match &request {
+            stypes::SdeRequest::WriteText(text) => text.as_bytes(),
+            stypes::SdeRequest::WriteBytes(bytes) => bytes.as_slice(),
+        };
+
+        if self.send_data_delay == 0 {
+            self.port.write_all(bytes).await.map_err(SourceError::Io)?;
+        } else {
+            for byte in bytes {
+                self.port
+                    .write_all(&[*byte])
+                    .await
+                    .map_err(SourceError::Io)?;
+                sleep(Duration::from_millis(self.send_data_delay as u64)).await;
             }
-            stypes::SdeRequest::WriteBytes(mut bytes) => {
-                let len = bytes.len();
-                if self.send_data_delay == 0 {
-                    self.write_stream
-                        .send(bytes)
-                        .await
-                        .map_err(SourceError::Io)?;
-                } else {
-                    while !bytes.is_empty() {
-                        self.write_stream
-                            .send(bytes.drain(0..1).collect::<Vec<u8>>())
-                            .await
-                            .map_err(SourceError::Io)?;
-                        sleep(Duration::from_millis(self.send_data_delay as u64)).await;
-                    }
-                }
-                stypes::SdeResponse { bytes: len }
-            }
-        })
+        }
+
+        Ok(stypes::SdeResponse { bytes: bytes.len() })
     }
 }
 
