@@ -29,30 +29,10 @@ pub enum SessionFileState {
     NoChanges,
 }
 
-#[derive(Debug, Clone)]
-pub enum SessionFileOrigin {
-    Linked(PathBuf),
-    Generated(PathBuf),
-}
-
-impl SessionFileOrigin {
-    pub fn filename(&self) -> PathBuf {
-        match self {
-            Self::Linked(filename) => filename,
-            Self::Generated(filename) => filename,
-        }
-        .clone()
-    }
-
-    pub fn is_linked(&self) -> bool {
-        matches!(self, Self::Linked(_))
-    }
-}
-
 #[derive(Debug)]
 pub struct SessionFile {
     pub grabber: Option<Box<Grabber>>,
-    pub filename: Option<SessionFileOrigin>,
+    pub filename: Option<PathBuf>,
     pub writer: Option<BufWriter<File>>,
     pub last_message_timestamp: Instant,
     pub sources: SourceIDs,
@@ -69,34 +49,29 @@ impl SessionFile {
         }
     }
 
-    pub fn init(&mut self, filename: Option<PathBuf>) -> Result<(), stypes::NativeError> {
-        if self.grabber.is_none() {
-            let filename = if let Some(filename) = filename {
-                self.filename = Some(SessionFileOrigin::Linked(filename.clone()));
-                filename
-            } else {
-                let streams = paths::get_streams_dir()?;
-                let filename = streams.join(format!("{}.{SESSION_FILE_EXTENSION}", Uuid::new_v4()));
-                debug!("Session file setup: {}", filename.to_string_lossy());
-                self.writer = Some(BufWriter::new(File::create(&filename).map_err(|e| {
-                    stypes::NativeError {
-                        severity: stypes::Severity::ERROR,
-                        kind: stypes::NativeErrorKind::Io,
-                        message: Some(format!(
-                            "Fail to create session writer for {}: {}",
-                            filename.to_string_lossy(),
-                            e
-                        )),
-                    }
-                })?));
-                self.filename = Some(SessionFileOrigin::Generated(filename.clone()));
-                filename
-            };
-            Ok(Grabber::lazy(TextFileSource::new(&filename))
-                .map(|g| self.grabber = Some(Box::new(g)))?)
-        } else {
-            Ok(())
+    /// Creates the session file this session writes its parsed content to, unless it exists
+    /// already. Every source of the session appends to that one file.
+    pub fn init(&mut self) -> Result<(), stypes::NativeError> {
+        if self.grabber.is_some() {
+            return Ok(());
         }
+        let streams = paths::get_streams_dir()?;
+        let filename = streams.join(format!("{}.{SESSION_FILE_EXTENSION}", Uuid::new_v4()));
+        debug!("Session file setup: {}", filename.to_string_lossy());
+        self.writer = Some(BufWriter::new(File::create(&filename).map_err(|e| {
+            stypes::NativeError {
+                severity: stypes::Severity::ERROR,
+                kind: stypes::NativeErrorKind::Io,
+                message: Some(format!(
+                    "Fail to create session writer for {}: {}",
+                    filename.to_string_lossy(),
+                    e
+                )),
+            }
+        })?));
+        self.filename = Some(filename.clone());
+        Ok(Grabber::lazy(TextFileSource::new(&filename))
+            .map(|g| self.grabber = Some(Box::new(g)))?)
     }
 
     #[allow(clippy::len_without_is_empty)]
@@ -222,8 +197,8 @@ impl SessionFile {
     }
 
     pub fn filename(&self) -> Result<PathBuf, stypes::NativeError> {
-        if let Some(origin) = self.filename.as_ref() {
-            Ok(origin.filename())
+        if let Some(filename) = self.filename.as_ref() {
+            Ok(filename.clone())
         } else {
             Err(stypes::NativeError {
                 severity: stypes::Severity::ERROR,
@@ -273,9 +248,9 @@ impl SessionFile {
             })
     }
 
-    /// Cleans up temporary generated files and attachments for non-linked sessions.
+    /// Cleans up the generated session file and its attachments.
     pub fn cleanup(&mut self) -> Result<(), stypes::NativeError> {
-        let Some(SessionFileOrigin::Generated(filename)) = &self.filename else {
+        let Some(filename) = &self.filename else {
             return Ok(());
         };
 
@@ -338,7 +313,7 @@ mod tests {
         io::BufWriter,
     };
 
-    use super::{SessionFile, SessionFileOrigin};
+    use super::SessionFile;
 
     #[test]
     fn cleanup_removes_generated_file_and_attachments() {
@@ -349,26 +324,12 @@ mod tests {
         fs::write(attachments_dir.join("attachment.txt"), "content").unwrap();
 
         let mut session_file = SessionFile::new();
-        session_file.filename = Some(SessionFileOrigin::Generated(session_path.clone()));
+        session_file.filename = Some(session_path.clone());
         session_file.writer = Some(BufWriter::new(File::create(&session_path).unwrap()));
 
         session_file.cleanup().unwrap();
 
         assert!(!session_path.exists());
         assert!(!attachments_dir.exists());
-    }
-
-    #[test]
-    fn cleanup_keeps_linked_file() {
-        let temp_dir = tempfile::tempdir().unwrap();
-        let session_path = temp_dir.path().join("linked.session");
-        fs::write(&session_path, "content").unwrap();
-
-        let mut session_file = SessionFile::new();
-        session_file.filename = Some(SessionFileOrigin::Linked(session_path.clone()));
-
-        session_file.cleanup().unwrap();
-
-        assert!(session_path.exists());
     }
 }

@@ -1,39 +1,31 @@
 //! Public nested-search API contract tests.
 
-use std::io::Write;
-
 use processor::search::filter::SearchFilter;
 use session::{
     session::Session,
     state::{IndexedNavigation, NestedMatch},
 };
-use tempfile::NamedTempFile;
 use uuid::Uuid;
 
 #[tokio::test]
 async fn public_api_returns_named_nested_coordinates() {
-    let mut file = NamedTempFile::new().unwrap();
-    for line in [
+    let content = [
         "zero",
         "primary one",
         "bookmark two",
         "primary three",
         "bookmark four",
         "final target",
-    ] {
-        writeln!(file, "{line}").unwrap();
-    }
-    file.flush().unwrap();
+    ]
+    .iter()
+    .map(|line| format!("{line}\n"))
+    .collect();
 
     let session_id = Uuid::new_v4();
     let (session, _events) = Session::new(session_id).await.unwrap();
-    let session_path = file.path().to_path_buf();
-    session
-        .state
-        .set_session_file(Some(session_path))
-        .await
-        .unwrap();
-    session.state.update_session(0).await.unwrap();
+    session.state.create_session_file().await.unwrap();
+    session.state.write_session_file(0, content).await.unwrap();
+    session.state.flush_session_file().await.unwrap();
     let matches = [1, 3, 5]
         .into_iter()
         .map(|row| stypes::FilterMatch::new(row, vec![]))

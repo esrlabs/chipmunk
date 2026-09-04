@@ -546,28 +546,15 @@ impl SessionService {
 
                 let origin = match source {
                     AttachSource::Files(paths) => {
-                        let mut files = Vec::new();
-                        let mut unsupported_text_files = Vec::new();
+                        let files: Vec<_> = paths
+                            .into_iter()
+                            .map(|path| {
+                                let format = file::detect_file_format(&path)
+                                    .unwrap_or(stypes::FileFormat::Text);
 
-                        for path in paths {
-                            let format = match file::detect_file_format(&path) {
-                                Ok(file::FileFormatDetection::Supported(format)) => format,
-                                Ok(file::FileFormatDetection::UnsupportedTextEncoding) => {
-                                    unsupported_text_files.push(path);
-                                    continue;
-                                }
-                                Err(_) => stypes::FileFormat::Text,
-                            };
-
-                            files.push((Uuid::new_v4().to_string(), format, path));
-                        }
-
-                        for path in unsupported_text_files {
-                            let message = file::unsupported_text_encoding_message(&path);
-                            self.senders
-                                .send_notification(AppNotification::Warning(message))
-                                .await;
-                        }
+                                (Uuid::new_v4().to_string(), format, path)
+                            })
+                            .collect();
 
                         if files.is_empty() {
                             return Ok(ControlFlow::Continue(()));

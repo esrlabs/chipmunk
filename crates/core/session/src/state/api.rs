@@ -1,9 +1,6 @@
 use super::values::graph::CandlePoint;
 use crate::{
-    state::{
-        NestedMatch, indexes::IndexedNavigation, observed::Observed,
-        session_file::SessionFileOrigin, values::ValuesError,
-    },
+    state::{NestedMatch, indexes::IndexedNavigation, observed::Observed, values::ValuesError},
     tracker::OperationTrackerAPI,
 };
 use log::error;
@@ -30,12 +27,7 @@ use uuid::Uuid;
 
 #[derive(Debug)]
 pub enum Api {
-    SetSessionFile(
-        (
-            Option<PathBuf>,
-            oneshot::Sender<Result<(), stypes::NativeError>>,
-        ),
-    ),
+    CreateSessionFile(oneshot::Sender<Result<(), stypes::NativeError>>),
     GetSessionFile(oneshot::Sender<Result<PathBuf, stypes::NativeError>>),
     WriteSessionFile(
         (
@@ -45,8 +37,6 @@ pub enum Api {
         ),
     ),
     FlushSessionFile(oneshot::Sender<Result<(), stypes::NativeError>>),
-    GetSessionFileOrigin(oneshot::Sender<Result<Option<SessionFileOrigin>, stypes::NativeError>>),
-    UpdateSession((u16, oneshot::Sender<Result<bool, stypes::NativeError>>)),
     AddSource((String, oneshot::Sender<u16>)),
     GetSource((String, oneshot::Sender<Option<u16>>)),
     GetSourcesDefinitions(oneshot::Sender<Vec<stypes::SourceDefinition>>),
@@ -205,12 +195,10 @@ impl Display for Api {
             f,
             "{}",
             match self {
-                Self::SetSessionFile(_) => "SetSessionFile",
+                Self::CreateSessionFile(_) => "CreateSessionFile",
                 Self::GetSessionFile(_) => "GetSessionFile",
                 Self::WriteSessionFile(_) => "WriteSessionFile",
                 Self::FlushSessionFile(_) => "FlushSessionFile",
-                Self::GetSessionFileOrigin(_) => "GetSessionFileOrigin",
-                Self::UpdateSession(_) => "UpdateSession",
                 Self::AddSource(_) => "AddSource",
                 Self::GetSource(_) => "GetSource",
                 Self::GetSourcesDefinitions(_) => "GetSourcesDefinitions",
@@ -416,13 +404,9 @@ impl SessionStateAPI {
             .await
     }
 
-    pub async fn set_session_file(
-        &self,
-        filename: Option<PathBuf>,
-    ) -> Result<(), stypes::NativeError> {
+    pub async fn create_session_file(&self) -> Result<(), stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
-        self.exec_operation(Api::SetSessionFile((filename, tx)), rx)
-            .await?
+        self.exec_operation(Api::CreateSessionFile(tx), rx).await?
     }
 
     pub async fn get_session_file(&self) -> Result<PathBuf, stypes::NativeError> {
@@ -443,20 +427,6 @@ impl SessionStateAPI {
     pub async fn flush_session_file(&self) -> Result<(), stypes::NativeError> {
         let (tx, rx) = oneshot::channel();
         self.exec_operation(Api::FlushSessionFile(tx), rx).await?
-    }
-
-    pub async fn get_session_file_origin(
-        &self,
-    ) -> Result<Option<SessionFileOrigin>, stypes::NativeError> {
-        let (tx, rx) = oneshot::channel();
-        self.exec_operation(Api::GetSessionFileOrigin(tx), rx)
-            .await?
-    }
-
-    pub async fn update_session(&self, source_id: u16) -> Result<bool, stypes::NativeError> {
-        let (tx, rx) = oneshot::channel();
-        self.exec_operation(Api::UpdateSession((source_id, tx)), rx)
-            .await?
     }
 
     pub async fn add_source(&self, uuid: &str) -> Result<u16, stypes::NativeError> {

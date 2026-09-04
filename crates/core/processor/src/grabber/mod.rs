@@ -9,8 +9,6 @@ use std::{
 use thiserror::Error;
 use tokio_util::sync::CancellationToken;
 
-pub mod factory;
-
 #[derive(Error, Debug, Serialize)]
 pub enum GrabError {
     #[error("Configuration error ({0})")]

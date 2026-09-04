@@ -1,9 +1,6 @@
 //! Nested-search state contract tests.
 
-use std::io::Write;
-
 use processor::search::filter::SearchFilter;
-use tempfile::NamedTempFile;
 use tokio::sync::mpsc::{channel, unbounded_channel};
 use tokio_util::sync::CancellationToken;
 
@@ -11,28 +8,27 @@ use super::{IndexedNavigation, NestedMatch, SessionState};
 
 struct Fixture {
     state: SessionState,
-    _file: NamedTempFile,
 }
 
 impl Fixture {
+    /// Fills the session file of a fresh state with `lines`, which is how every source feeds
+    /// content into a session. `SessionState::drop` removes the file again.
     fn new(lines: &[&str]) -> Self {
-        let mut file = NamedTempFile::new().unwrap();
-        for line in lines {
-            writeln!(file, "{line}").unwrap();
-        }
-        file.flush().unwrap();
-
         let (callback_tx, _callback_rx) = unbounded_channel();
         let (search_tx, _search_rx) = channel(1);
         let mut state = SessionState::new(callback_tx, search_tx);
-        let session_path = file.path().to_path_buf();
-        state.session_file.init(Some(session_path)).unwrap();
+        state.session_file.init().unwrap();
+        let content = lines.iter().map(|line| format!("{line}\n")).collect();
         state
             .session_file
-            .update(0, CancellationToken::new())
+            .write(0, CancellationToken::new(), content)
+            .unwrap();
+        state
+            .session_file
+            .flush(CancellationToken::new(), true)
             .unwrap();
 
-        Self { state, _file: file }
+        Self { state }
     }
 
     fn set_primary(&mut self, rows: &[u64]) {
