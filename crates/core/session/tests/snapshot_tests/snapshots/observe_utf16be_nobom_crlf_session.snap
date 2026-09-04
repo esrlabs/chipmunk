@@ -1,0 +1,16 @@
+---
+source: crates/core/session/tests/snapshot_tests/mod.rs
+description: "Snapshot for a UTF-16BE file without a byte order mark, terminated by CRLF."
+---
+session_file:
+  - "[2026-04-22 13:44:53,812]-INFO-[main] service started, encoding=UTF-16"
+  - "[2026-04-22 13:44:53,833]-WARN-[main] tamaño total: 1, größe: 2, ratio: ½"
+  - "[2026-04-22 13:44:53,901]-INFO-[worker-3] Cyrillic: Привет, мир"
+  - "[2026-04-22 13:44:54,002]-INFO-[worker-3] CJK: 日本語のログ行 / 中文日志 / 한국어"
+  - "[2026-04-22 13:44:54,110]-ERROR-[worker-4] astral: 🚀 emoji 😀 math 𝄞 CJK ext 𠀋"
+  - "[2026-04-22 13:44:54,222]-DEBUG-[worker-4] combining: éàü ﬁ ligature, RTL: مرحبا بالعالم"
+  - "[2026-04-22 13:44:54,333]-DEBUG-[worker-5] 0x0A/0x0D traps: ਊ਍ഊ഍䨊䨍૿෿"
+  - "[2026-04-22 13:44:54,444]-INFO-[worker-5] tab\tseparated\tfields\tend"
+  - "[2026-04-22 13:44:54,555]-INFO-[main] plain ascii line, no surprises"
+  - "[2026-04-22 13:44:54,666]-INFO-[main] last line without trailing newline marker"
+attachments: []

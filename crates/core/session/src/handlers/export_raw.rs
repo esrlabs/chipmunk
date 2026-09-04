@@ -1,13 +1,15 @@
 //! Module for handling exporting part or full content of files in raw format.
 
-use crate::{operations::OperationResult, state::SessionStateAPI};
+use crate::{
+    handlers::text_format::sniff_text_format, operations::OperationResult, state::SessionStateAPI,
+};
 use indexer_base::config::IndexSection;
 use log::debug;
 use parsers::{
     Parser,
     dlt::{DltParser, fmt::FormatOptions},
     someip::SomeipParser,
-    text::StringTokenizer,
+    text::{StringTokenizer, TextEncoding, Utf16Tokenizer},
 };
 use plugins_host::PluginsParser;
 use processor::{
@@ -129,7 +131,7 @@ async fn assing_source(
 async fn export<S: ByteSource>(
     dest: &Path,
     parser: &stypes::ParserType,
-    source: S,
+    mut source: S,
     sections: &Vec<IndexSection>,
     read_to_end: bool,
     cancel: &CancellationToken,
@@ -171,8 +173,22 @@ async fn export<S: ByteSource>(
             export_runner(producer, dest, sections, read_to_end, false, cancel).await
         }
         stypes::ParserType::Text(()) => {
-            let producer = MessageProducer::new(StringTokenizer {}, source);
-            export_runner(producer, dest, sections, read_to_end, true, cancel).await
+            // Sections are line indexes of the observe session, so the export has to frame the
+            // file into the same lines that session did, encoding included.
+            let Some(format) = sniff_text_format(&mut source, None, cancel).await? else {
+                return Ok(None);
+            };
+
+            match format.encoding {
+                TextEncoding::Utf8 => {
+                    let producer = MessageProducer::new(StringTokenizer {}, source);
+                    export_runner(producer, dest, sections, read_to_end, true, cancel).await
+                }
+                TextEncoding::Utf16(endianness) => {
+                    let producer = MessageProducer::new(Utf16Tokenizer::new(endianness), source);
+                    export_runner(producer, dest, sections, read_to_end, true, cancel).await
+                }
+            }
         }
     }
 }

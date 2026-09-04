@@ -129,3 +129,66 @@ async fn observe_someip_legacy_session() {
         insta::assert_yaml_snapshot!(session_files);
     });
 }
+
+/// Runs an observe session with the text parser on a UTF-16 file and snapshots its lines. The
+/// decoded text is the readable part of the snapshot: a wrong byte order, a byte order mark
+/// left in the first line or a line split inside a character all show up as garbage there.
+///
+/// `snapshot_name` has to be passed explicitly: `insta` derives an omitted name from the
+/// enclosing function, which is this helper for every one of these tests.
+async fn snapshot_utf16_session(input: &str, description: &str, snapshot_name: &str) {
+    let session_files = run_observe_session(
+        input,
+        stypes::FileFormat::Text,
+        stypes::ParserType::Text(()),
+    )
+    .await;
+
+    insta::with_settings!({
+        description => description,
+        omit_expression => true,
+        prepend_module_to_snapshot => false,
+    }, {
+        insta::assert_yaml_snapshot!(snapshot_name, session_files);
+    });
+}
+
+#[tokio::test]
+async fn observe_utf16le_bom_session() {
+    snapshot_utf16_session(
+        "../../../development/resources/utf16/utf16le-bom-lf.txt",
+        "Snapshot for a UTF-16LE file with a byte order mark.",
+        "observe_utf16le_bom_session",
+    )
+    .await;
+}
+
+#[tokio::test]
+async fn observe_utf16le_nobom_session() {
+    snapshot_utf16_session(
+        "../../../development/resources/utf16/utf16le-nobom-lf.txt",
+        "Snapshot for a UTF-16LE file without a byte order mark, recognized by its content.",
+        "observe_utf16le_nobom_session",
+    )
+    .await;
+}
+
+#[tokio::test]
+async fn observe_utf16be_bom_session() {
+    snapshot_utf16_session(
+        "../../../development/resources/utf16/utf16be-bom-lf.txt",
+        "Snapshot for a UTF-16BE file with a byte order mark.",
+        "observe_utf16be_bom_session",
+    )
+    .await;
+}
+
+#[tokio::test]
+async fn observe_utf16be_nobom_crlf_session() {
+    snapshot_utf16_session(
+        "../../../development/resources/utf16/utf16be-nobom-crlf.txt",
+        "Snapshot for a UTF-16BE file without a byte order mark, terminated by CRLF.",
+        "observe_utf16be_nobom_crlf_session",
+    )
+    .await;
+}

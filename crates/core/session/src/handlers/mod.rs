@@ -4,3 +4,4 @@ pub mod observe;
 mod observing;
 pub mod search;
 pub mod search_values;
+mod text_format;

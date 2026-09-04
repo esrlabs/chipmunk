@@ -1,27 +1,11 @@
-use crate::{Error, LogMessage, ParseOutput, ParseYield, RemainderError, SingleParser};
-use serde::Serialize;
-use std::{fmt, io::Write};
+//! Line tokenizer for UTF-8 text input, and for everything which isn't recognized as another
+//! encoding.
+
+use crate::{Error, ParseOutput, ParseYield, RemainderError, SingleParser};
+
+use super::StringMessage;
 
 pub struct StringTokenizer {}
-
-#[derive(Debug, PartialEq, Eq, Serialize)]
-pub struct StringMessage {
-    content: String,
-}
-
-impl fmt::Display for StringMessage {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.content)
-    }
-}
-
-impl LogMessage for StringMessage {
-    fn to_writer<W: Write>(&self, writer: &mut W) -> Result<usize, std::io::Error> {
-        let len = self.content.len();
-        writer.write_all(self.content.as_bytes())?;
-        Ok(len)
-    }
-}
 
 impl SingleParser for StringTokenizer {
     type Output = StringMessage;
