@@ -47,7 +47,7 @@ use searchers::{SearchRequest, SearchResponse};
 use stypes::{FilterMatch, GrabbedElement};
 
 pub use observed::is_raw_export_available_for;
-pub use session_file::{SessionFile, SessionFileOrigin, SessionFileState};
+pub use session_file::{SessionFile, SessionFileState};
 pub use values::{Values, ValuesError};
 
 /// Coordinates of a nested match across the session and its indexed projections.
@@ -358,24 +358,6 @@ impl SessionState {
         Ok(())
     }
 
-    async fn handle_update_session(
-        &mut self,
-        source_id: u16,
-        state_cancellation_token: CancellationToken,
-        tx_callback_events: UnboundedSender<stypes::CallbackEvent>,
-    ) -> Result<bool, stypes::NativeError> {
-        if let SessionFileState::Changed = self
-            .session_file
-            .update(source_id, state_cancellation_token.clone())?
-        {
-            self.update_searchers(state_cancellation_token, tx_callback_events)
-                .await?;
-            Ok(true)
-        } else {
-            Ok(false)
-        }
-    }
-
     async fn update_searchers(
         &mut self,
         state_cancellation_token: CancellationToken,
@@ -622,13 +604,14 @@ async fn handle_api_msg(
     state_cancellation_token: &CancellationToken,
 ) -> Result<HanldeOutpt, stypes::NativeError> {
     match msg {
-        Api::SetSessionFile((session_file, tx_response)) => {
-            let set_session_file_res = state.session_file.init(session_file);
-            if let (Ok(_), Ok(filename)) = (&set_session_file_res, state.session_file.filename()) {
+        Api::CreateSessionFile(tx_response) => {
+            let create_session_file_res = state.session_file.init();
+            if let (Ok(_), Ok(filename)) = (&create_session_file_res, state.session_file.filename())
+            {
                 state.attachments.set_dest_path(filename);
             }
-            tx_response.send(set_session_file_res).map_err(|_| {
-                stypes::NativeError::channel("Failed to response to Api::SetSessionFile")
+            tx_response.send(create_session_file_res).map_err(|_| {
+                stypes::NativeError::channel("Failed to response to Api::CreateSessionFile")
             })?;
         }
         Api::GetSessionFile(tx_response) => {
@@ -663,25 +646,6 @@ async fn handle_api_msg(
                 .await;
             tx_response.send(res).map_err(|_| {
                 stypes::NativeError::channel("Failed to respond to Api::FlushSessionFile")
-            })?;
-        }
-        Api::GetSessionFileOrigin(tx_response) => {
-            tx_response
-                .send(Ok(state.session_file.filename.clone()))
-                .map_err(|_| {
-                    stypes::NativeError::channel("Failed to respond to Api::GetSessionFileOrigin")
-                })?;
-        }
-        Api::UpdateSession((source_id, tx_response)) => {
-            let res = state
-                .handle_update_session(
-                    source_id,
-                    state_cancellation_token.clone(),
-                    tx_callback_events.clone(),
-                )
-                .await;
-            tx_response.send(res).map_err(|_| {
-                stypes::NativeError::channel("Failed to respond to Api::UpdateSession")
             })?;
         }
         Api::AddSource((uuid, tx_response)) => {

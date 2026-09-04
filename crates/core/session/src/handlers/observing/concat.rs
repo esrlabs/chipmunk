@@ -40,7 +40,9 @@ pub async fn concat_files(
             )),
         })?;
         match file_type {
-            stypes::FileFormat::Binary => {
+            // Text files carry no framing of their own, so they are read as raw bytes like
+            // binary ones and turned into text by the parser.
+            stypes::FileFormat::Binary | stypes::FileFormat::Text => {
                 super::run_source(
                     operation_api.clone(),
                     state.clone(),
@@ -69,18 +71,6 @@ pub async fn concat_files(
                     operation_api.clone(),
                     state.clone(),
                     PcapngByteSource::new(input_file)?,
-                    source_id,
-                    parser,
-                    None,
-                    None,
-                )
-                .await?
-            }
-            stypes::FileFormat::Text => {
-                super::run_source(
-                    operation_api.clone(),
-                    state.clone(),
-                    BinaryByteSource::new(input_file),
                     source_id,
                     parser,
                     None,

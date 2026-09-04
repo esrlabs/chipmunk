@@ -28,29 +28,7 @@ impl TextFileSource {
             path: PathBuf::from(p),
         }
     }
-}
 
-impl TextFileSource {
-    /// Check if the provided file is a text file containing text.
-    pub fn contains_text(path: &Path) -> Result<bool, GrabError> {
-        let chunk_size = 100 * 1024usize;
-        let mut f = fs::File::open(path)
-            .map_err(|_| GrabError::IoOperation(format!("Could not open file {:?}", path)))?;
-        let mut count = 0usize;
-        let mut buffer = vec![0; chunk_size];
-
-        let n = f
-            .read(&mut buffer)
-            .map_err(|_| GrabError::IoOperation(format!("Could not read from file {:?}", path)))?;
-        if n < chunk_size {
-            buffer.resize(n, 0);
-        }
-        count += bytecount::count(&buffer, b'\n');
-        Ok(count > 0)
-    }
-}
-
-impl TextFileSource {
     /// the path of the file that is the source for the content
     pub fn path(&self) -> &Path {
         &self.path
