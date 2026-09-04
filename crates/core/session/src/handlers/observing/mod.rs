@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use crate::{
-    handlers::observing::logs_writer::LogsWriter,
+    handlers::{observing::logs_writer::LogsWriter, text_format::sniff_text_format},
     operations::{OperationAPI, OperationResult},
     state::SessionStateAPI,
     tail,
@@ -10,7 +10,7 @@ use parsers::{
     Parser,
     dlt::{DltParser, fmt::FormatOptions},
     someip::{FibexMetadata as FibexSomeipMetadata, SomeipParser},
-    text::StringTokenizer,
+    text::{StringTokenizer, TextEncoding, Utf16Tokenizer},
 };
 use plugins_host::PluginsParser;
 use processor::producer::{FetchInfo, MessageProducer, ProcessError, ProcessOutcome};
@@ -140,12 +140,18 @@ pub async fn run_source<S: ByteSource>(
 async fn run_source_intern<S: ByteSource>(
     operation_api: OperationAPI,
     state: SessionStateAPI,
-    source: S,
+    mut source: S,
     source_id: u16,
     parser: &stypes::ParserType,
-    rx_sde: Option<SdeReceiver>,
+    mut rx_sde: Option<SdeReceiver>,
     rx_tail: Option<Receiver<Result<(), tail::Error>>>,
 ) -> OperationResult<()> {
+    // Done before any parser is set up: the session is expected to exist and to report progress
+    // from now on, no matter how long the setup of a parser takes or how long a source takes to
+    // deliver its first bytes.
+    state.create_session_file().await?;
+    operation_api.processing();
+
     match parser {
         stypes::ParserType::Plugin(settings) => {
             let parser = PluginsParser::initialize(
@@ -170,8 +176,26 @@ async fn run_source_intern<S: ByteSource>(
             run_producer(operation_api, state, source_id, producer, rx_tail, rx_sde).await
         }
         stypes::ParserType::Text(()) => {
-            let producer = MessageProducer::new(StringTokenizer {}, source);
-            run_producer(operation_api, state, source_id, producer, rx_tail, rx_sde).await
+            // The tokenizer has to know the encoding before the first line is framed, so the
+            // first bytes of the source are looked at here. The bytes it loads stay in the
+            // source buffer, but they are missing from the producer's own loaded-bytes
+            // counters, which serve tracing only.
+            let cancel = operation_api.cancellation_token();
+            let Some(format) = sniff_text_format(&mut source, rx_sde.as_mut(), &cancel).await?
+            else {
+                return Ok(None);
+            };
+
+            match format.encoding {
+                TextEncoding::Utf8 => {
+                    let producer = MessageProducer::new(StringTokenizer {}, source);
+                    run_producer(operation_api, state, source_id, producer, rx_tail, rx_sde).await
+                }
+                TextEncoding::Utf16(endianness) => {
+                    let producer = MessageProducer::new(Utf16Tokenizer::new(endianness), source);
+                    run_producer(operation_api, state, source_id, producer, rx_tail, rx_sde).await
+                }
+            }
         }
         stypes::ParserType::Dlt(settings) => {
             let fmt_options = Some(FormatOptions::from(settings.tz.as_ref()));
@@ -199,8 +223,6 @@ async fn run_producer<P: Parser, S: ByteSource>(
     mut rx_tail: Option<Receiver<Result<(), tail::Error>>>,
     mut rx_sde: Option<SdeReceiver>,
 ) -> OperationResult<()> {
-    state.create_session_file().await?;
-    operation_api.processing();
     let mut logs_writer = LogsWriter::new(state.clone(), source_id);
     let cancel = operation_api.cancellation_token();
     let cancel_on_tail = cancel.clone();

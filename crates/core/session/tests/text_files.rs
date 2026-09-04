@@ -154,6 +154,21 @@ async fn invalid_bytes_become_replacement_characters() {
     assert_eq!(lines[201], "after invalid byte");
 }
 
+/// The byte order mark of a UTF-8 file is not content: it used to show up as `U+FEFF` at the
+/// start of the first line.
+#[tokio::test]
+async fn utf8_byte_order_mark_is_skipped() {
+    let mut file = NamedTempFile::new().unwrap();
+    writeln!(file, "\u{FEFF}first line").unwrap();
+    file.flush().unwrap();
+
+    let (session, _receiver) = observe_text_file(file.path()).await;
+    let content = session_file_content(&session).await;
+    session.stop(Uuid::new_v4()).await.unwrap();
+
+    assert_eq!(content, "first line\n");
+}
+
 /// Content appended after the initial pass is parsed as well, so a growing file keeps the
 /// session up to date.
 #[tokio::test]
