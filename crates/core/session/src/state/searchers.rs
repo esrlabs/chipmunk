@@ -1,5 +1,5 @@
 //! Includes Definitions for searchers in sessions with their current state.
-use std::fmt::Debug;
+use std::{fmt::Debug, mem};
 
 use tokio::sync::mpsc::{self};
 use tokio_util::sync::CancellationToken;
@@ -46,9 +46,7 @@ async fn run(
                 bytes,
                 cancel,
             } => {
-                let Some(res) =
-                    tokio::task::block_in_place(|| searchers.regular.search(rows, bytes, cancel))
-                else {
+                let Some(res) = searchers.regular.search(rows, bytes, cancel).await else {
                     continue;
                 };
                 let res = response_tx
@@ -61,9 +59,7 @@ async fn run(
                 bytes,
                 cancel,
             } => {
-                let Some(res) =
-                    tokio::task::block_in_place(|| searchers.values.search(rows, bytes, cancel))
-                else {
+                let Some(res) = searchers.values.search(rows, bytes, cancel).await else {
                     continue;
                 };
                 let res = response_tx
@@ -73,63 +69,23 @@ async fn run(
                 log_if_err(res);
             }
             SearchRequest::GetSearchHolder { filename, sender } => {
-                let holder = {
-                    match searchers.regular {
-                        SearcherState::Available(_) => {
-                            use std::mem;
-                            if let SearcherState::Available(holder) =
-                                mem::replace(&mut searchers.regular, SearcherState::InUse)
-                            {
-                                Ok(holder)
-                            } else {
-                                Err(stypes::NativeError {
-                                    severity: stypes::Severity::ERROR,
-                                    kind: stypes::NativeErrorKind::Configuration,
-                                    message: Some(String::from(
-                                        "Could not replace search holder in state",
-                                    )),
-                                })
-                            }
-                        }
-                        SearcherState::InUse => {
-                            Err(stypes::NativeError::channel("Search holder is in use"))
-                        }
-                        SearcherState::NotInited => {
-                            searchers.regular.set_in_use();
-                            Ok(RegularSearchHolder::new(&filename, 0, 0))
-                        }
+                let holder = match mem::replace(&mut searchers.regular, SearcherState::InUse) {
+                    SearcherState::Available(holder) => Ok(holder),
+                    SearcherState::InUse => {
+                        Err(stypes::NativeError::channel("Search holder is in use"))
                     }
+                    SearcherState::NotInited => Ok(RegularSearchHolder::new(&filename, 0, 0)),
                 };
                 let res = sender.send(holder);
                 log_if_err(res);
             }
             SearchRequest::GetSearchValueHolder { filename, sender } => {
-                let holder = {
-                    match searchers.values {
-                        SearcherState::Available(_) => {
-                            use std::mem;
-                            if let SearcherState::Available(holder) =
-                                mem::replace(&mut searchers.values, SearcherState::InUse)
-                            {
-                                Ok(holder)
-                            } else {
-                                Err(stypes::NativeError {
-                                    severity: stypes::Severity::ERROR,
-                                    kind: stypes::NativeErrorKind::Configuration,
-                                    message: Some(String::from(
-                                        "Could not replace search values holder in state",
-                                    )),
-                                })
-                            }
-                        }
-                        SearcherState::InUse => Err(stypes::NativeError::channel(
-                            "Search values holder is in use",
-                        )),
-                        SearcherState::NotInited => {
-                            searchers.values.set_in_use();
-                            Ok(ValueSearchHolder::new(&filename, 0, 0))
-                        }
-                    }
+                let holder = match mem::replace(&mut searchers.values, SearcherState::InUse) {
+                    SearcherState::Available(holder) => Ok(holder),
+                    SearcherState::InUse => Err(stypes::NativeError::channel(
+                        "Search values holder is in use",
+                    )),
+                    SearcherState::NotInited => Ok(ValueSearchHolder::new(&filename, 0, 0)),
                 };
                 let res = sender.send(holder);
                 log_if_err(res);
@@ -207,9 +163,6 @@ impl<State: SearchState> SearcherState<State> {
     pub fn is_in_use(&self) -> bool {
         matches!(self, SearcherState::<_>::InUse)
     }
-    pub fn set_in_use(&mut self) {
-        *self = SearcherState::<_>::InUse;
-    }
     pub fn set_not_inited(&mut self) {
         *self = SearcherState::<_>::NotInited;
     }
@@ -217,42 +170,74 @@ impl<State: SearchState> SearcherState<State> {
     pub fn set_searcher(&mut self, seacher: BaseSearcher<State>) {
         *self = SearcherState::<_>::Available(seacher);
     }
+
+    /// Runs `search` on the blocking pool with the holder taken out of this state for the
+    /// duration of the call, and puts it back afterwards.
+    ///
+    /// Returns `None` when there is no holder to search with, or when the blocking task didn't
+    /// run to completion. In the latter case the searcher is reset to [`SearcherState::NotInited`].
+    async fn spawn_search_blocking<R: Send + 'static>(
+        &mut self,
+        search: impl FnOnce(&mut BaseSearcher<State>) -> R + Send + 'static,
+    ) -> Option<R>
+    where
+        State: Send + 'static,
+    {
+        // The holder owns only pointers, so handing it to the blocking task is a small memcpy
+        // and not a copy of the search state.
+        let mut holder = match mem::replace(self, SearcherState::InUse) {
+            SearcherState::Available(holder) => holder,
+            // Nothing to search with: restore the state taken above.
+            other => {
+                *self = other;
+                return None;
+            }
+        };
+        match tokio::task::spawn_blocking(move || {
+            let results = search(&mut holder);
+            (holder, results)
+        })
+        .await
+        {
+            Ok((holder, results)) => {
+                self.set_searcher(holder);
+                Some(results)
+            }
+            // The task took the holder with it, whether it panicked or was cancelled on runtime
+            // shutdown. Reset this searcher instead of letting the searchers task die with it.
+            Err(err) => {
+                log::error!("Search task failed. Error: {err}");
+                self.set_not_inited();
+                None
+            }
+        }
+    }
 }
 
 impl SearcherState<ValueSearchState> {
-    pub fn search(
+    pub async fn search(
         &mut self,
         rows_count: u64,
         read_bytes: u64,
         cancel_token: CancellationToken,
     ) -> Option<OperationResults> {
-        match self {
-            Self::Available(h) => Some(searchers::values::search(
-                h,
-                rows_count,
-                read_bytes,
-                cancel_token,
-            )),
-            _ => None,
-        }
+        self.spawn_search_blocking(move |holder| {
+            searchers::values::search(holder, rows_count, read_bytes, cancel_token)
+        })
+        .await
     }
 }
 impl SearcherState<RegularSearchState> {
-    pub fn search(
+    pub async fn search(
         &mut self,
         rows_count: u64,
         read_bytes: u64,
         cancel_token: CancellationToken,
     ) -> Option<regular::SearchResults> {
-        match self {
-            Self::Available(h) => Some(searchers::regular::search(
-                h,
-                rows_count,
-                read_bytes,
-                cancel_token,
-            )),
-            _ => None,
-        }
+        self.spawn_search_blocking(move |holder| {
+            searchers::regular::search(holder, rows_count, read_bytes, cancel_token)
+        })
+        .await
     }
 }
 
