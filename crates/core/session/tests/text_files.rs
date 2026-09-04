@@ -1,10 +1,5 @@
 //! Contract tests for text files, which are parsed by the tokenizer like any other source
 //! instead of being read as session content directly.
-//!
-//! Every test here drives a real `Session`, which spawns the searchers task, and that task runs
-//! its search with `tokio::task::block_in_place`. That call panics on a current-thread runtime,
-//! killing the task in the background, so these tests need the multi-thread flavor to exercise a
-//! working session rather than one whose searchers died silently.
 
 use std::{fs::read_to_string, io::Write, path::Path, time::Duration};
 
@@ -73,7 +68,7 @@ async fn session_file_content(session: &Session) -> String {
 /// The first file ends without a line break. Its last line must show up exactly once: a file
 /// source that stops delivering is finished, so the session loop asks the parser to close the
 /// item it is holding before it goes waiting.
-#[tokio::test(flavor = "multi_thread")]
+#[tokio::test]
 async fn line_without_trailing_break_survives_the_file_end() {
     let mut first = NamedTempFile::new().unwrap();
     write!(first, "first line\nsecond line").unwrap();
@@ -132,7 +127,7 @@ async fn line_without_trailing_break_survives_the_file_end() {
 /// Bytes which aren't valid UTF-8 are decoded lossily instead of refusing the file, and only
 /// the affected characters are lost. The invalid byte sits behind more than 10 KiB of valid
 /// content, the amount an encoding check at open time would have looked at.
-#[tokio::test(flavor = "multi_thread")]
+#[tokio::test]
 async fn invalid_bytes_become_replacement_characters() {
     let padding: String = (0..200)
         .map(|line| format!("padding line {line:0>50}\n"))
@@ -161,7 +156,7 @@ async fn invalid_bytes_become_replacement_characters() {
 
 /// Content appended after the initial pass is parsed as well, so a growing file keeps the
 /// session up to date.
-#[tokio::test(flavor = "multi_thread")]
+#[tokio::test]
 async fn appended_lines_are_picked_up() {
     let mut file = NamedTempFile::new().unwrap();
     writeln!(file, "first line").unwrap();

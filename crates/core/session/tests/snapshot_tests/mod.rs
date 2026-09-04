@@ -34,7 +34,7 @@ async fn observe_dlt_session() {
     });
 }
 
-#[tokio::test(flavor = "multi_thread")]
+#[tokio::test]
 async fn observe_dlt_with_someip_session() {
     let input = "../../../development/resources/someip/someip.dlt";
     let fibex_file = "../../../development/resources/someip/someip.xml";
@@ -66,9 +66,7 @@ async fn observe_dlt_with_someip_session() {
     });
 }
 
-// SomeIP request search in parsing session and searcher use block_in_place
-// on CPU heavy blocks.
-#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+#[tokio::test]
 async fn observe_someip_pcapng_session() {
     let input = "../../../development/resources/someip/udp/someip.pcapng";
     let fibex_file = "../../../development/resources/someip/someip.xml";
@@ -100,9 +98,7 @@ async fn observe_someip_pcapng_session() {
     });
 }
 
-// SomeIP request search in parsing session and searcher use block_in_place
-// on CPU heavy blocks.
-#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+#[tokio::test]
 async fn observe_someip_legacy_session() {
     let input = "../../../development/resources/someip/udp/someip.pcap";
     let fibex_file = "../../../development/resources/someip/someip.xml";
