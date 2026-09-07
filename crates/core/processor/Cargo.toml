@@ -65,6 +65,10 @@ name = "text_producer"
 harness = false
 
 [[bench]]
+name = "utf16_producer"
+harness = false
+
+[[bench]]
 name = "plugin_praser_producer"
 harness = false
 
