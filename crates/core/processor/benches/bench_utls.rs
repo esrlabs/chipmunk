@@ -12,7 +12,7 @@ use std::{
 
 use criterion::Criterion;
 use parsers::{LogMessage, ParseYield};
-use processor::producer::{GeneralLogCollector, MessageProducer};
+use processor::producer::{LogRecordsCollector, MessageProducer};
 use sources::binary::raw::BinaryByteSource;
 
 pub const INPUT_SOURCE_ENV_VAR: &str = "CHIPMUNK_BENCH_SOURCE";
@@ -74,62 +74,128 @@ pub struct ProducerCounter {
     pub skipped_bytes: usize,
 }
 
-/// Run producer until the end converting messages into strings too, while counting all the
-/// different types of producer outputs to avoid unwanted compiler optimizations.
+/// Byte count at which the sink of [`BenchCollector`] starts over. It bounds the memory of a
+/// benchmark run while keeping the sink free of reallocations once it is warm.
+const SINK_LIMIT: usize = 8 * 1024;
+
+/// Collector which consumes the produced items the way a session does: every message is rendered
+/// into a reusable buffer and dropped right away, instead of being kept and rendered a second
+/// time. Counting happens on append, so a benchmark measures the producer and its parser and not
+/// the bookkeeping of this harness.
+pub struct BenchCollector {
+    /// Destination of the message text. It is reused and never grows past [`SINK_LIMIT`], so no
+    /// allocation is attributed to a message.
+    sink: String,
+    counter: ProducerCounter,
+}
+
+impl Default for BenchCollector {
+    fn default() -> Self {
+        Self {
+            sink: String::with_capacity(SINK_LIMIT),
+            counter: ProducerCounter::default(),
+        }
+    }
+}
+
+impl BenchCollector {
+    /// Renders the message and counts it. Rendering rather than counting alone keeps the content
+    /// of a message observable, which is what stops the optimizer from removing the work the
+    /// parser did to produce it.
+    ///
+    /// It goes through [`fmt::Display`] because that is what the session does with a produced
+    /// message.
+    fn write_message<T: LogMessage>(&mut self, msg: &T) {
+        use std::fmt::Write;
+
+        // The barriers keep the message and the rendered bytes observable, so that no part of
+        // the work the parser did can be optimized away.
+        let msg = std::hint::black_box(msg);
+        std::hint::black_box(&self.sink);
+
+        if self.sink.len() >= SINK_LIMIT {
+            self.sink.clear();
+        }
+
+        std::hint::black_box(&self.sink);
+        let before = self.sink.len();
+        // Writing into a string never fails.
+        _ = writeln!(&mut self.sink, "{msg}");
+
+        std::hint::black_box(&self.sink);
+        self.counter.msg += 1;
+        self.counter.txt += self.sink.len() - before;
+    }
+}
+
+impl<T: LogMessage> LogRecordsCollector<T> for BenchCollector {
+    fn append(&mut self, log_record: ParseYield<T>) {
+        match log_record {
+            ParseYield::Message(msg) => self.write_message(&msg),
+            ParseYield::Attachment(att) => self.counter.att += att.size,
+            ParseYield::MessageAndAttachment((msg, att)) => {
+                self.write_message(&msg);
+                self.counter.att += att.size;
+            }
+        }
+    }
+}
+
+/// Run producer until the end, counting all the different types of producer outputs to avoid
+/// unwanted compiler optimizations.
+///
+/// This drives the producer through [`MessageProducer::produce_next()`] on purpose: mirroring the
+/// `fetch()` and `process()` loop of a session would put a copy of that loop here, which would
+/// then drift away from the original.
 pub async fn run_producer<P, B>(mut producer: MessageProducer<P, B>) -> ProducerCounter
 where
     P: parsers::Parser,
     B: sources::ByteSource,
 {
-    let mut counter = ProducerCounter::default();
-    let mut collector = GeneralLogCollector::default();
+    let mut collector = BenchCollector::default();
+    let mut items = 0;
+    let mut loaded_bytes = 0;
+    let mut skipped_bytes = 0;
 
     loop {
-        collector.get_records().clear();
         match producer.produce_next(&mut collector).await.unwrap() {
             processor::producer::ProduceSummary::Processed {
                 bytes_consumed,
                 messages_count,
-                skipped_bytes,
+                skipped_bytes: skipped,
             } => {
-                counter.items += messages_count;
-                counter.loaded_bytes += bytes_consumed;
-                counter.skipped_bytes += skipped_bytes;
+                items += messages_count;
+                loaded_bytes += bytes_consumed;
+                skipped_bytes += skipped;
             }
-            processor::producer::ProduceSummary::NoBytesAvailable { skipped_bytes }
-            | processor::producer::ProduceSummary::PendingRemainder { skipped_bytes } => {
-                counter.skipped_bytes += skipped_bytes;
+            processor::producer::ProduceSummary::NoBytesAvailable {
+                skipped_bytes: skipped,
+            }
+            | processor::producer::ProduceSummary::PendingRemainder {
+                skipped_bytes: skipped,
+            } => {
+                skipped_bytes += skipped;
                 break;
             }
             processor::producer::ProduceSummary::Done {
-                loaded_bytes,
-                skipped_bytes,
+                loaded_bytes: total_loaded,
+                skipped_bytes: total_skipped,
                 produced_messages,
             } => {
-                counter.loaded_bytes = loaded_bytes;
-                counter.skipped_bytes = skipped_bytes;
-                counter.items = produced_messages;
+                loaded_bytes = total_loaded;
+                skipped_bytes = total_skipped;
+                items = produced_messages;
                 break;
-            }
-        }
-
-        for item in collector.get_records() {
-            match item {
-                ParseYield::Message(msg) => {
-                    counter.msg += 1;
-                    counter.txt += msg.to_string().len();
-                }
-                ParseYield::Attachment(att) => counter.att += att.size,
-                ParseYield::MessageAndAttachment((msg, att)) => {
-                    counter.msg += 1;
-                    counter.txt += msg.to_string().len();
-                    counter.att += att.size;
-                }
             }
         }
     }
 
-    counter
+    ProducerCounter {
+        items,
+        loaded_bytes,
+        skipped_bytes,
+        ..collector.counter
+    }
 }
 
 /// Sensible configuration for Criterion to run reduce the noise from the overhead
