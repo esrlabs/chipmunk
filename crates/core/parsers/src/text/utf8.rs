@@ -1,44 +1,52 @@
 //! Line tokenizer for UTF-8 text input, and for everything which isn't recognized as another
 //! encoding.
 
-use crate::{Error, ParseOutput, ParseYield, RemainderError, SingleParser};
+use memchr::memchr_iter;
+
+use crate::{Error, ParseOutput, ParseYield, Parser, RemainderError};
 
 use super::StringMessage;
 
 pub struct StringTokenizer {}
 
-impl SingleParser for StringTokenizer {
+impl Parser for StringTokenizer {
     type Output = StringMessage;
 
-    fn parse_item(
+    /// Frames all complete lines of `input` with one search pass over the whole buffer.
+    ///
+    /// This is where bytes of text input become text, so line content rules like CRLF live here.
+    fn parse(
         &mut self,
         input: &[u8],
         _timestamp: Option<u64>,
-    ) -> Result<ParseOutput<StringMessage>, Error> {
-        // This is the single place where bytes of text input become text: byte sources decode
-        // nothing, so line content rules like CRLF live here as well.
-        use memchr::memchr;
-        if input.is_empty() {
-            return Ok(ParseOutput::new(input.len(), None));
-        }
+    ) -> Result<impl Iterator<Item = ParseOutput<StringMessage>>, Error> {
+        let mut line_ends = memchr_iter(b'\n', input).peekable();
+
         // Without a line break the input is the start of a line and not a line: reporting it as
         // one would split every line that straddles a source buffer boundary.
-        let Some(msg_size) = memchr(b'\n', input) else {
+        if line_ends.peek().is_none() {
             return Err(Error::Incomplete);
-        };
+        }
 
-        // The `\r` of a `\r\n` terminator belongs to the terminator, not to the line. An `\r`
-        // anywhere else is content and stays.
-        let line = &input[..msg_size];
-        let content = String::from_utf8_lossy(line.strip_suffix(b"\r").unwrap_or(line));
-        let string_msg = StringMessage {
-            content: content.into_owned(),
-        };
+        // Bytes after the last line break stay unconsumed, for `parse_remaining()` to resolve.
+        let mut start = 0;
+        let items = line_ends.map(move |line_end| {
+            let line = &input[start..line_end];
+            // The terminator is consumed with the line, but is not part of it.
+            let consumed = line_end + 1 - start;
+            start = line_end + 1;
 
-        // The terminator is consumed with the line, but is not part of it.
-        let output = ParseOutput::new(msg_size + 1, Some(string_msg.into()));
+            // The `\r` of a `\r\n` terminator belongs to the terminator, not to the line. An
+            // `\r` anywhere else is content and stays.
+            let content = String::from_utf8_lossy(line.strip_suffix(b"\r").unwrap_or(line));
+            let string_msg = StringMessage {
+                content: content.into_owned(),
+            };
 
-        Ok(output)
+            ParseOutput::new(consumed, Some(string_msg.into()))
+        });
+
+        Ok(items)
     }
 
     fn parse_remaining(
@@ -68,28 +76,19 @@ mod tests {
     use super::*;
 
     #[test]
-    fn multiple_parse_calls() {
+    fn unterminated_last_line_is_left_to_the_remainder() {
         let mut parser = StringTokenizer {};
-        let content = b"hello\nworld\n";
-        let out1 = parser.parse_item(content, None).unwrap();
-        match out1.message {
+        let content = b"hello\nworld";
+
+        let mut items_iter = parser.parse(content, None).unwrap();
+
+        let out = items_iter.next().unwrap();
+        assert_eq!(out.consumed, 6);
+        match out.message {
             Some(ParseYield::Message(StringMessage { content })) if content.eq("hello") => {}
-            _ => panic!("First message did not match"),
+            invalid => panic!("Message did not match: {invalid:?}"),
         }
-        let rest_1 = &content[out1.consumed..];
-        println!("rest_1 = {:?}", String::from_utf8_lossy(rest_1));
-        let out2 = parser.parse_item(rest_1, None).unwrap();
-        match out2.message {
-            Some(ParseYield::Message(StringMessage { content })) if content.eq("world") => {}
-            _ => panic!("Second message did not match"),
-        }
-        let rest_2 = &rest_1[out2.consumed..];
-        let out3 = parser.parse_item(rest_2, None).unwrap();
-        println!(
-            "rest_3 = {:?}",
-            String::from_utf8_lossy(&rest_2[out3.consumed..])
-        );
-        assert!(out3.message.is_none());
+        assert!(items_iter.next().is_none());
     }
 
     #[test]
@@ -137,7 +136,7 @@ mod tests {
     fn embedded_carriage_return_is_kept() {
         let mut parser = StringTokenizer {};
 
-        let out = parser.parse_item(b"a\rb\n", None).unwrap();
+        let out = parser.parse(b"a\rb\n", None).unwrap().next().unwrap();
 
         match out.message {
             Some(ParseYield::Message(StringMessage { content })) if content.eq("a\rb") => {}
@@ -162,7 +161,7 @@ mod tests {
         let mut parser = StringTokenizer {};
 
         // 0xF1 is `ñ` in the Windows-1252 sample of the user report.
-        let out = parser.parse_item(b"a\xF1b\n", None).unwrap();
+        let out = parser.parse(b"a\xF1b\n", None).unwrap().next().unwrap();
 
         match out.message {
             Some(ParseYield::Message(StringMessage { content })) if content.eq("a\u{FFFD}b") => {}
@@ -175,7 +174,21 @@ mod tests {
         let mut parser = StringTokenizer {};
         let content = b"{\"key\":\"value\"}";
 
-        let err = parser.parse_item(content, None).unwrap_err();
+        // The iterator of the success case has no `Debug`, so the error can't be unwrapped.
+        let Err(err) = parser.parse(content, None) else {
+            panic!("Input without a line break must not produce a line");
+        };
+
+        assert_matches!(err, Error::Incomplete);
+    }
+
+    #[test]
+    fn empty_input_is_incomplete() {
+        let mut parser = StringTokenizer {};
+
+        let Err(err) = parser.parse(&[], None) else {
+            panic!("Empty input must not produce a line");
+        };
 
         assert_matches!(err, Error::Incomplete);
     }
