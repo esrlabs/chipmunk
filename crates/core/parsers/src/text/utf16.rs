@@ -109,7 +109,7 @@ impl Utf16Endianness {
             // `0A 00`: the byte opens the unit, so the zero byte after it decides. A buffer
             // ending on the byte holds half a unit and therefore no terminator.
             Self::Little => (line_feed.is_multiple_of(2)
-                && input.get(line_feed + 1) == Some(&0x00))
+                && input.get(line_feed + 1).is_some_and(|b| *b == 0))
             .then_some(line_feed),
             // `00 0A`: the byte closes the unit, so the zero byte before it decides and the
             // unit starts one byte earlier.
@@ -142,10 +142,17 @@ impl Utf16Endianness {
 }
 
 /// Turns code units into text, replacing unpaired surrogates with `U+FFFD`.
-fn decode_units(units: impl Iterator<Item = u16>) -> String {
-    char::decode_utf16(units)
-        .map(|unit| unit.unwrap_or(char::REPLACEMENT_CHARACTER))
-        .collect()
+fn decode_units(units: impl ExactSizeIterator<Item = u16>) -> String {
+    // One byte per code unit is what ASCII text needs, which log lines mostly are. Collecting
+    // instead would start from the lower size hint of `DecodeUtf16`, which is half of that, and
+    // grow the string a few times per line.
+    let mut text = String::with_capacity(units.len());
+
+    for character in char::decode_utf16(units) {
+        text.push(character.unwrap_or(char::REPLACEMENT_CHARACTER));
+    }
+
+    text
 }
 
 #[cfg(test)]
