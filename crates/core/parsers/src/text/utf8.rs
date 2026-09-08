@@ -71,8 +71,6 @@ impl Parser for StringTokenizer {
 mod tests {
     use std::assert_matches;
 
-    use crate::Parser;
-
     use super::*;
 
     #[test]
@@ -148,7 +146,7 @@ mod tests {
     fn remainder_keeps_trailing_carriage_return() {
         let mut parser = StringTokenizer {};
 
-        let item = Parser::parse_remaining(&mut parser, b"a\r", None).unwrap();
+        let item = parser.parse_remaining(b"a\r", None).unwrap();
 
         match item {
             Some(ParseYield::Message(StringMessage { content })) if content.eq("a\r") => {}
@@ -197,8 +195,9 @@ mod tests {
     fn remainder_becomes_the_last_line() {
         let mut parser = StringTokenizer {};
 
-        // Both traits are in scope in this module, so the call needs disambiguating.
-        let item = Parser::parse_remaining(&mut parser, b"{\"key\":\"value\"}", None).unwrap();
+        let item = parser
+            .parse_remaining(b"{\"key\":\"value\"}", None)
+            .unwrap();
 
         match item {
             Some(ParseYield::Message(StringMessage { content }))
