@@ -1,21 +1,19 @@
 //! Line tokenizer for UTF-16 text input.
 
-use crate::{Error, ParseOutput, ParseYield, RemainderError, SingleParser};
+use memchr::memchr_iter;
+
+use crate::{Error, ParseOutput, ParseYield, Parser, RemainderError};
 
 use super::StringMessage;
 
 /// Frames and decodes UTF-16 text into lines, mirroring [`super::StringTokenizer`] for input
 /// which is not UTF-8.
 ///
-/// Framing happens on the line feed **code unit** and therefore before decoding: `0x0A` alone
-/// is not a terminator in UTF-16, it is one half of any code unit whose other half is `0x0A`.
-/// Doing it this way keeps the parser stateless, so no decoder state has to survive between
-/// calls, and the decode stays a per-line operation like it is for UTF-8.
+/// Framing happens on the line feed **code unit** and therefore before decoding: a `0x0A` byte
+/// is no terminator on its own, it can be either half of some other character.
 ///
-/// Every item covers an even number of bytes, which is what keeps the parser on code unit
-/// boundaries across calls: it never resolves a dangling half unit, it asks for its other half.
-/// Alignment is lost only where the producer takes the decision away from the parser, by
-/// dropping bytes to resync a buffer which cannot grow.
+/// Every item covers an even number of bytes, which keeps the parser on code unit boundaries
+/// across calls: it never resolves a dangling half unit, it asks for its other half.
 pub struct Utf16Tokenizer {
     endianness: Utf16Endianness,
 }
@@ -31,39 +29,114 @@ impl Utf16Tokenizer {
     pub fn new(endianness: Utf16Endianness) -> Self {
         Self { endianness }
     }
+}
 
-    /// The line feed as a code unit of this byte order.
-    fn line_feed(&self) -> [u8; 2] {
-        match self.endianness {
-            Utf16Endianness::Little => [0x0A, 0x00],
-            Utf16Endianness::Big => [0x00, 0x0A],
+impl Parser for Utf16Tokenizer {
+    type Output = StringMessage;
+
+    /// Frames all complete lines of `input` with one search pass over the whole buffer.
+    ///
+    /// The pass runs on bytes, so its matches are candidates which have to be checked against
+    /// the code unit grid. Only `0x0A` is searched for: the zero byte of a line feed sits in
+    /// every second position of ASCII text, so searching for it would match per character.
+    fn parse(
+        &mut self,
+        input: &[u8],
+        _timestamp: Option<u64>,
+    ) -> Result<impl Iterator<Item = ParseOutput<StringMessage>>, Error> {
+        let endianness = self.endianness;
+        let mut line_ends = memchr_iter(0x0A, input)
+            .filter_map(move |line_feed| endianness.line_feed_unit(input, line_feed))
+            .peekable();
+
+        // Without a terminator these bytes are the start of a line, not a line.
+        if line_ends.peek().is_none() {
+            return Err(Error::Incomplete);
+        }
+
+        // Bytes after the last terminator stay unconsumed, for `parse_remaining()` to resolve.
+        let mut start = 0;
+        let items = line_ends.map(move |line_end| {
+            let line = &input[start..line_end];
+            // The terminator is consumed with the line, but is not part of it. It is one code
+            // unit, so every offset here stays even.
+            let consumed = line_end + 2 - start;
+            start = line_end + 2;
+
+            let content = endianness.decode(
+                line.strip_suffix(&endianness.carriage_return())
+                    .unwrap_or(line),
+            );
+            let string_msg = StringMessage { content };
+
+            ParseOutput::new(consumed, Some(string_msg.into()))
+        });
+
+        Ok(items)
+    }
+
+    fn parse_remaining(
+        &mut self,
+        input: &[u8],
+        _timestamp: Option<u64>,
+    ) -> Result<Option<ParseYield<StringMessage>>, RemainderError> {
+        // Half a code unit is no line, and returning an item consumes the whole buffer with it:
+        // resolving it here would drop the dangling byte and leave every later load half a unit
+        // out of step. Keeping the bytes lets it find its partner if the source delivers more.
+        if !input.len().is_multiple_of(2) {
+            return Ok(None);
+        }
+
+        // No more bytes are coming, so the unterminated line is the last line. A trailing
+        // carriage return is kept: this line was never terminated, so nothing proves the `\r`
+        // belongs to a terminator.
+        let string_msg = StringMessage {
+            content: self.endianness.decode(input),
+        };
+
+        Ok(Some(string_msg.into()))
+    }
+}
+
+impl Utf16Endianness {
+    /// Offset of the code unit the line feed byte at `line_feed` belongs to, or `None` when
+    /// that byte is a half of some other character instead.
+    ///
+    /// `input` has to start on a code unit boundary, which is what lets the offset of a byte
+    /// tell which half of a unit it is.
+    fn line_feed_unit(self, input: &[u8], line_feed: usize) -> Option<usize> {
+        match self {
+            // `0A 00`: the byte opens the unit, so the zero byte after it decides. A buffer
+            // ending on the byte holds half a unit and therefore no terminator.
+            Self::Little => (line_feed.is_multiple_of(2)
+                && input.get(line_feed + 1) == Some(&0x00))
+            .then_some(line_feed),
+            // `00 0A`: the byte closes the unit, so the zero byte before it decides and the
+            // unit starts one byte earlier.
+            Self::Big => (!line_feed.is_multiple_of(2) && input[line_feed - 1] == 0x00)
+                .then(|| line_feed - 1),
         }
     }
 
     /// The carriage return as a code unit of this byte order.
-    fn carriage_return(&self) -> [u8; 2] {
-        match self.endianness {
-            Utf16Endianness::Little => [0x0D, 0x00],
-            Utf16Endianness::Big => [0x00, 0x0D],
+    fn carriage_return(self) -> [u8; 2] {
+        match self {
+            Self::Little => [0x0D, 0x00],
+            Self::Big => [0x00, 0x0D],
         }
     }
 
     /// Decodes `units`, replacing unpaired surrogates with `U+FFFD`.
     ///
-    /// Callers pass whole code units; a trailing odd byte would be dropped here, which is why
-    /// neither of them ever hands one over.
-    fn decode(&self, units: &[u8]) -> String {
+    /// Callers pass whole code units: a trailing odd byte is dropped here.
+    fn decode(self, units: &[u8]) -> String {
         let (units, _stray_byte) = units.as_chunks::<2>();
 
-        // The byte order is resolved once per line rather than per code unit: a function
-        // pointer picked up here would stay an indirect call inside the decoding loop.
-        match self.endianness {
-            Utf16Endianness::Little => {
-                decode_units(units.iter().map(|unit| u16::from_le_bytes(*unit)))
-            }
-            Utf16Endianness::Big => {
-                decode_units(units.iter().map(|unit| u16::from_be_bytes(*unit)))
-            }
+        // Resolving the byte order here rather than per code unit keeps the decoding loop free
+        // of an indirect call.
+        match self {
+            Self::Little => decode_units(units.iter().map(|unit| u16::from_le_bytes(*unit))),
+            Self::Big => decode_units(units.iter().map(|unit| u16::from_be_bytes(*unit))),
         }
     }
 }
@@ -75,71 +148,11 @@ fn decode_units(units: impl Iterator<Item = u16>) -> String {
         .collect()
 }
 
-impl SingleParser for Utf16Tokenizer {
-    type Output = StringMessage;
-
-    /// A line is at least its terminator, which is one code unit.
-    const MIN_MSG_LEN: usize = 2;
-
-    fn parse_item(
-        &mut self,
-        input: &[u8],
-        _timestamp: Option<u64>,
-    ) -> Result<ParseOutput<StringMessage>, Error> {
-        if input.is_empty() {
-            return Ok(ParseOutput::new(0, None));
-        }
-
-        // Searching whole code units makes every offset here a multiple of two, which is what
-        // keeps this parser aligned without tracking a position across calls.
-        let (units, _stray_byte) = input.as_chunks::<2>();
-        let line_feed = self.line_feed();
-        let Some(units_before_break) = units.iter().position(|unit| *unit == line_feed) else {
-            // Same reasoning as for UTF-8: without a terminator these bytes are the start of a
-            // line, not a line.
-            return Err(Error::Incomplete);
-        };
-
-        let line = &input[..units_before_break * 2];
-        let content = self.decode(line.strip_suffix(&self.carriage_return()).unwrap_or(line));
-        let string_msg = StringMessage { content };
-
-        // The terminator is consumed with the line, but is not part of it.
-        let consumed = units_before_break * 2 + 2;
-
-        Ok(ParseOutput::new(consumed, Some(string_msg.into())))
-    }
-
-    fn parse_remaining(
-        &mut self,
-        input: &[u8],
-        _timestamp: Option<u64>,
-    ) -> Result<Option<ParseYield<StringMessage>>, RemainderError> {
-        // Half a code unit is an incomplete item and not a line. Returning an item consumes the
-        // whole buffer with it, so resolving it here would drop the dangling byte and leave every
-        // later load half a unit out of step, silently and for good. Keeping the bytes lets the
-        // byte find its partner once the source delivers more, which is what a growing file does.
-        if !input.len().is_multiple_of(2) {
-            return Ok(None);
-        }
-
-        // No more bytes are coming, so the unterminated line is the last line. A trailing
-        // carriage return is kept for the same reason as in UTF-8: this line was never
-        // terminated, so nothing proves the `\r` belongs to a terminator.
-        let string_msg = StringMessage {
-            content: self.decode(input),
-        };
-
-        Ok(Some(string_msg.into()))
-    }
-}
-
 #[cfg(test)]
 pub(super) mod tests {
     use std::assert_matches;
 
     use super::*;
-    use crate::Parser;
 
     /// Encodes `text` the way a UTF-16 input of that byte order holds it, without a BOM. Shared
     /// with the sniffing tests of the parent module, which need the same inputs.
@@ -165,6 +178,18 @@ pub(super) mod tests {
             .collect()
     }
 
+    /// Parses `input` expecting it to hold no complete line, and hands back the reported error.
+    fn parse_error(endianness: Utf16Endianness, input: &[u8]) -> Error {
+        let mut parser = Utf16Tokenizer::new(endianness);
+
+        // The iterator of the success case has no `Debug`, so the error can't be unwrapped.
+        let Err(err) = parser.parse(input, None) else {
+            panic!("Input without a terminating code unit must not produce a line");
+        };
+
+        err
+    }
+
     #[test]
     fn multiple_lines_little_endian() {
         let input = encode("hello\nworld\n", Utf16Endianness::Little);
@@ -187,11 +212,22 @@ pub(super) mod tests {
         let input = encode("a\r\nb\r\n", Utf16Endianness::Little);
 
         let mut parser = Utf16Tokenizer::new(Utf16Endianness::Little);
-        let out = parser.parse_item(&input, None).unwrap();
+        let out = parser.parse(&input, None).unwrap().next().unwrap();
 
         // Two units of content plus terminator: `a`, `\r` and `\n`.
         assert_eq!(out.consumed, 6);
         assert_eq!(parse_all(Utf16Endianness::Little, &input), ["a", "b"]);
+    }
+
+    #[test]
+    fn crlf_terminated_lines_big_endian() {
+        let input = encode("a\r\nb\r\n", Utf16Endianness::Big);
+
+        let mut parser = Utf16Tokenizer::new(Utf16Endianness::Big);
+        let out = parser.parse(&input, None).unwrap().next().unwrap();
+
+        assert_eq!(out.consumed, 6);
+        assert_eq!(parse_all(Utf16Endianness::Big, &input), ["a", "b"]);
     }
 
     #[test]
@@ -203,7 +239,7 @@ pub(super) mod tests {
 
     #[test]
     fn non_ascii_and_surrogate_pairs_are_decoded() {
-        // `tamaño` is the accented word of the user report, the emoji needs a surrogate pair.
+        // The emoji needs a surrogate pair, the accent a two byte encoding in UTF-8.
         let input = encode("tamaño 🐿\n", Utf16Endianness::Little);
 
         assert_eq!(parse_all(Utf16Endianness::Little, &input), ["tamaño 🐿"]);
@@ -211,11 +247,26 @@ pub(super) mod tests {
 
     #[test]
     fn line_feed_byte_inside_a_code_unit_is_content() {
-        // `U+0A0A` holds the byte `0x0A` in its high half, so a byte-level search for a line
-        // break would split this line in the middle of a character.
-        let input = encode("a\u{0A0A}b\n", Utf16Endianness::Little);
+        // Both characters hold the byte `0x0A`, `U+0A0A` in both halves and `U+0D0A` next to a
+        // `0x0D`, so a byte-level search which trusted its matches would cut them in half.
+        let input = encode("a\u{0A0A}b\u{0D0A}c\n", Utf16Endianness::Little);
 
-        assert_eq!(parse_all(Utf16Endianness::Little, &input), ["a\u{0A0A}b"]);
+        assert_eq!(
+            parse_all(Utf16Endianness::Little, &input),
+            ["a\u{0A0A}b\u{0D0A}c"]
+        );
+    }
+
+    #[test]
+    fn line_feed_byte_inside_a_code_unit_is_content_big_endian() {
+        // The same characters with the halves swapped, which puts their `0x0A` on the side a
+        // big endian terminator occupies.
+        let input = encode("a\u{0A0A}b\u{0D0A}c\n", Utf16Endianness::Big);
+
+        assert_eq!(
+            parse_all(Utf16Endianness::Big, &input),
+            ["a\u{0A0A}b\u{0D0A}c"]
+        );
     }
 
     #[test]
@@ -232,19 +283,47 @@ pub(super) mod tests {
 
     #[test]
     fn line_without_terminator_is_incomplete() {
-        let mut parser = Utf16Tokenizer::new(Utf16Endianness::Little);
         let input = encode("hello", Utf16Endianness::Little);
 
-        let err = parser.parse_item(&input, None).unwrap_err();
+        let err = parse_error(Utf16Endianness::Little, &input);
+
+        assert_matches!(err, Error::Incomplete);
+    }
+
+    #[test]
+    fn empty_input_is_incomplete() {
+        let err = parse_error(Utf16Endianness::Little, &[]);
 
         assert_matches!(err, Error::Incomplete);
     }
 
     #[test]
     fn half_a_code_unit_is_incomplete() {
-        let mut parser = Utf16Tokenizer::new(Utf16Endianness::Little);
+        let err = parse_error(Utf16Endianness::Little, &[0x0A]);
 
-        let err = parser.parse_item(&[0x0A], None).unwrap_err();
+        assert_matches!(err, Error::Incomplete);
+    }
+
+    #[test]
+    fn half_a_terminator_at_the_end_is_incomplete() {
+        // `61 00 0A`: the last byte is the low half of a little endian terminator whose high
+        // half hasn't arrived, so nothing here is a line yet.
+        let mut input = encode("a", Utf16Endianness::Little);
+        input.push(0x0A);
+
+        let err = parse_error(Utf16Endianness::Little, &input);
+
+        assert_matches!(err, Error::Incomplete);
+    }
+
+    #[test]
+    fn half_a_terminator_at_the_end_is_incomplete_big_endian() {
+        // `00 61 0A`: the last byte opens a unit, which is the half a big endian terminator
+        // holds its zero byte in.
+        let mut input = encode("a", Utf16Endianness::Big);
+        input.push(0x0A);
+
+        let err = parse_error(Utf16Endianness::Big, &input);
 
         assert_matches!(err, Error::Incomplete);
     }
@@ -254,7 +333,7 @@ pub(super) mod tests {
         let mut parser = Utf16Tokenizer::new(Utf16Endianness::Little);
         let input = encode("last\r", Utf16Endianness::Little);
 
-        let item = Parser::parse_remaining(&mut parser, &input, None).unwrap();
+        let item = parser.parse_remaining(&input, None).unwrap();
 
         match item {
             Some(ParseYield::Message(StringMessage { content })) if content.eq("last\r") => {}
@@ -270,7 +349,7 @@ pub(super) mod tests {
 
         // Resolving this would consume the dangling byte and misalign everything the source
         // delivers afterwards, so the bytes stay with the producer instead.
-        let item = Parser::parse_remaining(&mut parser, &input, None).unwrap();
+        let item = parser.parse_remaining(&input, None).unwrap();
 
         assert!(item.is_none());
     }
