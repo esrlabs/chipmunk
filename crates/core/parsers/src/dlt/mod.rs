@@ -173,7 +173,10 @@ impl<'m> SingleParser for DltParser<'m> {
                 let item = ParseOutput::new(
                     consumed,
                     if let Some(attachment) = attachment {
-                        Some(ParseYield::MessageAndAttachment((msg, attachment)))
+                        Some(ParseYield::MessageAndAttachment((
+                            msg,
+                            Box::new(attachment),
+                        )))
                     } else {
                         Some(ParseYield::Message(msg))
                     },

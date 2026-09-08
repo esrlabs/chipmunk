@@ -47,9 +47,9 @@ impl From<ParseYield> for p::ParseYield<PluginParseMessage> {
     fn from(yld: ParseYield) -> Self {
         match yld {
             ParseYield::Message(msg) => p::ParseYield::Message(msg.into()),
-            ParseYield::Attachment(att) => p::ParseYield::Attachment(att.into()),
+            ParseYield::Attachment(att) => p::ParseYield::Attachment(Box::new(att.into())),
             ParseYield::MessageAndAttachment((msg, att)) => {
-                p::ParseYield::MessageAndAttachment((msg.into(), att.into()))
+                p::ParseYield::MessageAndAttachment((msg.into(), Box::new(att.into())))
             }
         }
     }

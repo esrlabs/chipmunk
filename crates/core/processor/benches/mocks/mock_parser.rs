@@ -118,14 +118,14 @@ impl<T> MockParser<T> {
         } else if black_box(20) > black_box(30) {
             Ok(ParseOutput::new(
                 black_box(input.len()),
-                Some(parsers::ParseYield::Attachment(Attachment {
+                Some(parsers::ParseYield::Attachment(Box::new(Attachment {
                     size: black_box(10),
                     name: String::from(black_box(MSG)),
                     data: Vec::new(),
                     messages: Vec::new(),
                     created_date: None,
                     modified_date: None,
-                })),
+                }))),
             ))
         } else {
             Ok(ParseOutput::new(
@@ -134,14 +134,14 @@ impl<T> MockParser<T> {
                     MockMessage {
                         content: black_box(MSG).into(),
                     },
-                    Attachment {
+                    Box::new(Attachment {
                         size: black_box(10),
                         name: String::from(black_box(MSG)),
                         data: Vec::new(),
                         messages: Vec::new(),
                         created_date: None,
                         modified_date: None,
-                    },
+                    }),
                 ))),
             ))
         }

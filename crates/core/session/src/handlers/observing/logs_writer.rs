@@ -75,11 +75,11 @@ impl<T: LogMessage> LogRecordsCollector<T> for LogsWriter {
                 _ = writeln!(&mut self.text_buffer, "{msg}");
             }
             parsers::ParseYield::Attachment(attachment) => {
-                self.attachments.push(attachment);
+                self.attachments.push(*attachment);
             }
             parsers::ParseYield::MessageAndAttachment((msg, attachment)) => {
                 _ = writeln!(&mut self.text_buffer, "{msg}");
-                self.attachments.push(attachment);
+                self.attachments.push(*attachment);
             }
         }
     }

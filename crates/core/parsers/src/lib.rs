@@ -58,8 +58,8 @@ impl<T> ParseOutput<T> {
 #[derive(Debug)]
 pub enum ParseYield<T> {
     Message(T),
-    Attachment(Attachment),
-    MessageAndAttachment((T, Attachment)),
+    Attachment(Box<Attachment>),
+    MessageAndAttachment((T, Box<Attachment>)),
 }
 
 impl<T> From<T> for ParseYield<T> {
