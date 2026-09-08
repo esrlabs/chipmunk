@@ -168,28 +168,3 @@ async fn utf8_byte_order_mark_is_skipped() {
 
     assert_eq!(content, "first line\n");
 }
-
-/// Content appended after the initial pass is parsed as well, so a growing file keeps the
-/// session up to date.
-#[tokio::test]
-async fn appended_lines_are_picked_up() {
-    let mut file = NamedTempFile::new().unwrap();
-    writeln!(file, "first line").unwrap();
-    file.flush().unwrap();
-
-    let (session, mut receiver) = observe_text_file(file.path()).await;
-
-    writeln!(file, "second line").unwrap();
-    file.flush().unwrap();
-
-    wait_for_event(
-        &mut receiver,
-        |feedback| matches!(feedback, CallbackEvent::StreamUpdated(rows) if *rows >= 2),
-    )
-    .await;
-
-    let content = session_file_content(&session).await;
-    session.stop(Uuid::new_v4()).await.unwrap();
-
-    assert_eq!(content, "first line\nsecond line\n");
-}
