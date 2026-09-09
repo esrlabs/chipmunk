@@ -18,6 +18,7 @@ use std::{
     io::{BufWriter, Write},
     ops::RangeInclusive,
     path::PathBuf,
+    sync::Arc,
 };
 use tokio::sync::{
     mpsc::{self, UnboundedReceiver, UnboundedSender},
@@ -37,6 +38,7 @@ mod source_ids;
 mod tests_nested;
 pub(crate) mod values;
 
+use crate::temp_dir::InstanceTempDir;
 pub use api::{Api, SessionStateAPI};
 pub use attachments::{Attachments, AttachmentsError};
 pub use indexes::{
@@ -89,9 +91,10 @@ impl SessionState {
     fn new(
         tx_callback_events: UnboundedSender<stypes::CallbackEvent>,
         searcher_tx: mpsc::Sender<SearchRequest>,
+        temp_dir: Arc<InstanceTempDir>,
     ) -> Self {
         Self {
-            session_file: SessionFile::new(),
+            session_file: SessionFile::new(temp_dir),
             observed: Observed::new(),
             search_map: SearchMap::new(),
             attachments: Attachments::new(),
@@ -550,9 +553,10 @@ impl SessionState {
 pub async fn run(
     mut rx_api: UnboundedReceiver<Api>,
     tx_callback_events: UnboundedSender<stypes::CallbackEvent>,
+    temp_dir: Arc<InstanceTempDir>,
 ) -> Result<(), stypes::NativeError> {
     let (search_req_tx, mut search_res_rx) = searchers::spawn();
-    let mut state = SessionState::new(tx_callback_events.clone(), search_req_tx);
+    let mut state = SessionState::new(tx_callback_events.clone(), search_req_tx, temp_dir);
     let state_cancellation_token = CancellationToken::new();
     debug!("task is started");
     loop {

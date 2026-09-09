@@ -3,7 +3,7 @@
 //! during the session.
 
 use super::source_ids::SourceIDs;
-use crate::paths;
+use crate::temp_dir::InstanceTempDir;
 use log::debug;
 use processor::{
     grabber::{Grabber, LineRange},
@@ -13,6 +13,7 @@ use std::{
     fs::File,
     io::{BufWriter, Write},
     path::PathBuf,
+    sync::Arc,
     time::Instant,
 };
 use stypes::GrabbedElement;
@@ -36,16 +37,20 @@ pub struct SessionFile {
     pub writer: Option<BufWriter<File>>,
     pub last_message_timestamp: Instant,
     pub sources: SourceIDs,
+    /// Temp directory the session file is created in. Holding it keeps that directory alive for
+    /// as long as this session needs its files.
+    temp_dir: Arc<InstanceTempDir>,
 }
 
 impl SessionFile {
-    pub fn new() -> Self {
+    pub fn new(temp_dir: Arc<InstanceTempDir>) -> Self {
         SessionFile {
             grabber: None,
             filename: None,
             writer: None,
             last_message_timestamp: Instant::now(),
             sources: SourceIDs::new(),
+            temp_dir,
         }
     }
 
@@ -55,8 +60,10 @@ impl SessionFile {
         if self.grabber.is_some() {
             return Ok(());
         }
-        let streams = paths::get_streams_dir()?;
-        let filename = streams.join(format!("{}.{SESSION_FILE_EXTENSION}", Uuid::new_v4()));
+        let filename = self
+            .temp_dir
+            .path()
+            .join(format!("{}.{SESSION_FILE_EXTENSION}", Uuid::new_v4()));
         debug!("Session file setup: {}", filename.to_string_lossy());
         self.writer = Some(BufWriter::new(File::create(&filename).map_err(|e| {
             stypes::NativeError {
@@ -300,18 +307,15 @@ impl SessionFile {
     }
 }
 
-impl Default for SessionFile {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use std::{
         fs::{self, File},
         io::BufWriter,
+        sync::Arc,
     };
+
+    use crate::temp_dir::InstanceTempDir;
 
     use super::SessionFile;
 
@@ -323,7 +327,7 @@ mod tests {
         fs::create_dir(&attachments_dir).unwrap();
         fs::write(attachments_dir.join("attachment.txt"), "content").unwrap();
 
-        let mut session_file = SessionFile::new();
+        let mut session_file = SessionFile::new(Arc::new(InstanceTempDir::claim(temp_dir.path())));
         session_file.filename = Some(session_path.clone());
         session_file.writer = Some(BufWriter::new(File::create(&session_path).unwrap()));
 

@@ -1,6 +1,9 @@
 use serde::{Deserialize, Serialize};
-use session::session::Session;
-use std::path::{Path, PathBuf};
+use session::{session::Session, temp_dir::InstanceTempDir};
+use std::{
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 use uuid::Uuid;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -102,7 +105,12 @@ pub async fn run_observe_session<P: Into<PathBuf>>(
     );
 
     let uuid = Uuid::new_v4();
-    let (session, mut receiver) = Session::new(uuid).await.expect("Session should be created");
+    // Session files go to a throwaway instance directory instead of the user's Chipmunk home.
+    let streams_dir = tempfile::tempdir().unwrap();
+    let temp_dir = Arc::new(InstanceTempDir::claim(streams_dir.path()));
+    let (session, mut receiver) = Session::new(uuid, temp_dir)
+        .await
+        .expect("Session should be created");
 
     session
         .observe(

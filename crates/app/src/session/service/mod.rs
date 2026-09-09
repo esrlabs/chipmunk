@@ -12,7 +12,7 @@ use tokio::{select, sync::mpsc, task};
 use uuid::Uuid;
 
 use processor::{grabber::LineRange, search::filter};
-use session_core::session::Session;
+use session_core::{session::Session, temp_dir::InstanceTempDir};
 use stypes::{
     CallbackEvent, ComputationError, NativeError, NativeErrorKind, ObserveOptions, ObserveOrigin,
     SdeRequest, Severity, Transport,
@@ -74,6 +74,9 @@ pub struct SessionService {
     tracker: OperationTracker,
     /// Temp sources owned and cleaned up when this service closes.
     owned_temp_sources: Vec<PathBuf>,
+    /// Temp directory of the running instance, holding it alive while this service owns files in
+    /// it, and used for the sources it generates.
+    temp_dir: Arc<InstanceTempDir>,
     /// Optional shutdown confirmation sent after service-owned cleanup runs.
     shutdown_ack: Option<StdSender<()>>,
 }
@@ -97,6 +100,8 @@ struct SessionStartup {
     restore_state: Option<RecentSessionStateSnapshot>,
     /// Temp sources owned and cleaned up by this service.
     owned_temp_sources: Vec<PathBuf>,
+    /// Temp directory of the running instance the session writes its files into.
+    temp_dir: Arc<InstanceTempDir>,
     /// Whether this session participates in recent-session storage.
     recent_session_policy: RecentSessionPolicy,
 }
@@ -115,15 +120,17 @@ impl SessionService {
     /// * `schema_spec`: Schema data used to render log rows.
     /// * `additional_sources`: Additional sources to be attached to session during startup.
     /// * `restore_state`: State to be restored once session is loaded.
+    /// * `temp_dir`: Temp directory of the running instance to write session files into.
     pub async fn spawn(
         shared_senders: SharedSenders,
         options: ObserveOptions,
         schema_spec: LogSchemaSpec,
         additional_sources: Vec<ObserveOrigin>,
         restore_state: Option<RecentSessionStateSnapshot>,
+        temp_dir: Arc<InstanceTempDir>,
     ) -> Result<SpawnedSession, InitSessionError> {
         let session_id = Uuid::new_v4();
-        let (session, callback_rx) = Session::new(session_id).await?;
+        let (session, callback_rx) = Session::new(session_id, Arc::clone(&temp_dir)).await?;
 
         let startup = SessionStartup::new(
             shared_senders,
@@ -132,6 +139,7 @@ impl SessionService {
             options,
             schema_spec,
             additional_sources,
+            temp_dir,
         )
         .with_restore_state(restore_state);
 
@@ -148,6 +156,7 @@ impl SessionService {
             additional_sources,
             restore_state,
             owned_temp_sources,
+            temp_dir,
             recent_session_policy,
         } = startup;
 
@@ -205,6 +214,7 @@ impl SessionService {
             callback_rx,
             tracker: OperationTracker::default(),
             owned_temp_sources,
+            temp_dir,
             shutdown_ack: None,
         };
 
@@ -945,6 +955,7 @@ impl SessionStartup {
         options: ObserveOptions,
         schema_spec: LogSchemaSpec,
         additional_sources: Vec<ObserveOrigin>,
+        temp_dir: Arc<InstanceTempDir>,
     ) -> Self {
         Self {
             shared_senders,
@@ -955,6 +966,7 @@ impl SessionStartup {
             additional_sources,
             restore_state: None,
             owned_temp_sources: Vec::new(),
+            temp_dir,
             recent_session_policy: RecentSessionPolicy::Register,
         }
     }

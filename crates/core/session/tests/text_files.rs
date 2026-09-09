@@ -1,11 +1,11 @@
 //! Contract tests for text files, which are parsed by the tokenizer like any other source
 //! instead of being read as session content directly.
 
-use std::{fs::read_to_string, io::Write, path::Path, time::Duration};
+use std::{fs::read_to_string, io::Write, path::Path, sync::Arc, time::Duration};
 
-use session::session::Session;
+use session::{session::Session, temp_dir::InstanceTempDir};
 use stypes::{CallbackEvent, FileFormat, ObserveOptions, ObserveOrigin, ParserType};
-use tempfile::NamedTempFile;
+use tempfile::{NamedTempFile, TempDir};
 use tokio::sync::mpsc::UnboundedReceiver;
 use uuid::Uuid;
 
@@ -33,11 +33,23 @@ async fn wait_for_event(
         .expect("Expected event must arrive");
 }
 
+/// Throwaway streams directory with the instance directory of one test session in it, so tests
+/// never write into the user's Chipmunk home. The guard must outlive the session.
+fn test_temp_dir() -> (TempDir, Arc<InstanceTempDir>) {
+    let streams_dir = tempfile::tempdir().unwrap();
+    let temp_dir = Arc::new(InstanceTempDir::claim(streams_dir.path()));
+
+    (streams_dir, temp_dir)
+}
+
 /// Observes `path` with the text parser and waits until its content has been read into the
-/// session file.
-async fn observe_text_file(path: &Path) -> (Session, UnboundedReceiver<CallbackEvent>) {
+/// session file. The streams directory is returned first, so it outlives the session.
+async fn observe_text_file(path: &Path) -> (TempDir, Session, UnboundedReceiver<CallbackEvent>) {
     let uuid = Uuid::new_v4();
-    let (session, mut receiver) = Session::new(uuid).await.expect("Session should be created");
+    let (streams_dir, temp_dir) = test_temp_dir();
+    let (session, mut receiver) = Session::new(uuid, temp_dir)
+        .await
+        .expect("Session should be created");
 
     session
         .observe(
@@ -51,7 +63,7 @@ async fn observe_text_file(path: &Path) -> (Session, UnboundedReceiver<CallbackE
     })
     .await;
 
-    (session, receiver)
+    (streams_dir, session, receiver)
 }
 
 /// Content of the session file, which holds the parsed content of all sources of the session.
@@ -79,7 +91,10 @@ async fn line_without_trailing_break_survives_the_file_end() {
     second.flush().unwrap();
 
     let uuid = Uuid::new_v4();
-    let (session, mut receiver) = Session::new(uuid).await.expect("Session should be created");
+    let (_streams_dir, temp_dir) = test_temp_dir();
+    let (session, mut receiver) = Session::new(uuid, temp_dir)
+        .await
+        .expect("Session should be created");
 
     let files = vec![
         (
@@ -140,7 +155,7 @@ async fn invalid_bytes_become_replacement_characters() {
     file.write_all(b"after invalid byte\n").unwrap();
     file.flush().unwrap();
 
-    let (session, _receiver) = observe_text_file(file.path()).await;
+    let (_streams_dir, session, _receiver) = observe_text_file(file.path()).await;
     let content = session_file_content(&session).await;
     session.stop(Uuid::new_v4()).await.unwrap();
 
@@ -162,7 +177,7 @@ async fn utf8_byte_order_mark_is_skipped() {
     writeln!(file, "\u{FEFF}first line").unwrap();
     file.flush().unwrap();
 
-    let (session, _receiver) = observe_text_file(file.path()).await;
+    let (_streams_dir, session, _receiver) = observe_text_file(file.path()).await;
     let content = session_file_content(&session).await;
     session.stop(Uuid::new_v4()).await.unwrap();
 

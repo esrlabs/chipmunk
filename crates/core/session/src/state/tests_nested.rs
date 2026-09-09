@@ -1,13 +1,20 @@
 //! Nested-search state contract tests.
 
+use std::sync::Arc;
+
 use processor::search::filter::SearchFilter;
+use tempfile::TempDir;
 use tokio::sync::mpsc::{channel, unbounded_channel};
 use tokio_util::sync::CancellationToken;
+
+use crate::temp_dir::InstanceTempDir;
 
 use super::{IndexedNavigation, NestedMatch, SessionState};
 
 struct Fixture {
     state: SessionState,
+    /// Streams directory of this fixture, dropped after the state that writes into it.
+    _streams_dir: TempDir,
 }
 
 impl Fixture {
@@ -16,7 +23,9 @@ impl Fixture {
     fn new(lines: &[&str]) -> Self {
         let (callback_tx, _callback_rx) = unbounded_channel();
         let (search_tx, _search_rx) = channel(1);
-        let mut state = SessionState::new(callback_tx, search_tx);
+        let streams_dir = tempfile::tempdir().unwrap();
+        let temp_dir = Arc::new(InstanceTempDir::claim(streams_dir.path()));
+        let mut state = SessionState::new(callback_tx, search_tx, temp_dir);
         state.session_file.init().unwrap();
         let content = lines.iter().map(|line| format!("{line}\n")).collect();
         state
@@ -28,7 +37,10 @@ impl Fixture {
             .flush(CancellationToken::new(), true)
             .unwrap();
 
-        Self { state }
+        Self {
+            state,
+            _streams_dir: streams_dir,
+        }
     }
 
     fn set_primary(&mut self, rows: &[u64]) {

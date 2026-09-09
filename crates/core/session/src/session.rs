@@ -6,13 +6,14 @@ use crate::{
     operations::Operation,
     state,
     state::{IndexedNavigation, NestedMatch, SessionStateAPI},
+    temp_dir::InstanceTempDir,
     tracker,
     tracker::OperationTrackerAPI,
 };
 use futures::Future;
 use log::{debug, error, warn};
 use processor::{grabber::LineRange, search::filter::SearchFilter};
-use std::{ops::RangeInclusive, path::PathBuf};
+use std::{ops::RangeInclusive, path::PathBuf, sync::Arc};
 use tokio::{
     join,
     sync::{
@@ -48,8 +49,11 @@ impl Session {
     /// The operations loop is the entry point to pass operations requests from an outside thread.
     /// The state loop is responsible for all state manipulations of the session.
     ///
+    /// The session writes its files into `temp_dir` and keeps that directory alive until it is
+    /// closed.
     pub async fn new(
         uuid: Uuid,
+        temp_dir: Arc<InstanceTempDir>,
     ) -> Result<(Self, UnboundedReceiver<stypes::CallbackEvent>), stypes::ComputationError> {
         let (tx_operations, rx_operations): OperationsChannel = unbounded_channel();
         let (tracker_api, rx_tracker_api) = OperationTrackerAPI::new();
@@ -109,7 +113,7 @@ impl Session {
                             &tx_operations,
                             &destroying,
                             "state",
-                            state::run(rx_state_api, tx_callback_events_state)
+                            state::run(rx_state_api, tx_callback_events_state, temp_dir)
                         ),
                         Self::run(
                             &tx_operations,
