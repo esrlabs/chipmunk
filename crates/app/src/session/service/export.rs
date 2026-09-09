@@ -1,11 +1,12 @@
 //! Session export command handling and generated search-results tab flow.
 
-use std::{ops::RangeInclusive, path::PathBuf};
+use std::{ops::RangeInclusive, path::PathBuf, sync::Arc};
 
 use itertools::Itertools;
 use uuid::Uuid;
 
 use parsers::COLUMN_SEPARATOR;
+use session_core::temp_dir::InstanceTempDir;
 use stypes::{ComputationError, FileFormat, ObserveOptions, ObserveOrigin, ParserType};
 
 use super::{SessionService, SessionStartup, cleanup_temp_source};
@@ -126,7 +127,7 @@ impl SessionService {
             .map_err(SessionError::NativeError)?
             .executed;
         let mode = resolve_mode_from_executed(&executed);
-        let destination = new_search_results_path(operation_id, mode)?;
+        let destination = new_search_results_path(operation_id, mode, &self.temp_dir);
 
         // Track ownership until the backend confirms export completion. On success the
         // generated path is transferred to the newly spawned session service.
@@ -280,7 +281,9 @@ impl SessionService {
 
         let child_session_id = Uuid::new_v4();
         let (child_session, child_callback_rx) =
-            match session_core::session::Session::new(child_session_id).await {
+            match session_core::session::Session::new(child_session_id, Arc::clone(&self.temp_dir))
+                .await
+            {
                 Ok(session_parts) => session_parts,
                 Err(error) => {
                     cleanup_temp_source(&operation.destination);
@@ -302,6 +305,7 @@ impl SessionService {
             options,
             schema_spec,
             additional_sources,
+            Arc::clone(&self.temp_dir),
         )
         .with_restore_state(Some(restore_state))
         .with_temp_source(temp_source)
@@ -391,17 +395,16 @@ fn resolve_mode_from_executed(executed: &[ObserveOptions]) -> SearchResultsTabMo
 fn new_search_results_path(
     operation_id: Uuid,
     mode: SearchResultsTabMode,
-) -> Result<PathBuf, SessionError> {
+    temp_dir: &InstanceTempDir,
+) -> PathBuf {
     let extension = match mode {
         SearchResultsTabMode::PreserveDltBinary => "dlt",
         SearchResultsTabMode::PreserveText | SearchResultsTabMode::Text => "txt",
     };
 
-    let path = session_core::paths::get_streams_dir()
-        .map_err(SessionError::NativeError)?
-        .join(format!("search-results-{operation_id}.{extension}"));
-
-    Ok(path)
+    temp_dir
+        .path()
+        .join(format!("search-results-{operation_id}.{extension}"))
 }
 
 /// Converts startup failures into the session error channel used by live sessions.

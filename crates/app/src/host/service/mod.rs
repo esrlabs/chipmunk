@@ -2,16 +2,18 @@ use std::{
     collections::HashMap,
     ops::Not,
     path::{Path, PathBuf},
+    sync::Arc,
     thread,
 };
 
 use anyhow::Result;
 use itertools::Itertools;
-use log::trace;
+use log::{error, trace};
 use tokio::{runtime::Handle, select, sync::mpsc};
 use uuid::Uuid;
 
 use parsers::dlt::DltFilterConfig;
+use session_core::temp_dir::InstanceTempDir;
 use stypes::{
     DltParserSettings, FileFormat, NativeError, NativeErrorKind, ObserveOptions, ObserveOrigin,
     ParserType, Severity, SomeIpParserSettings, SomeipFilterConfig, Transport,
@@ -72,6 +74,9 @@ pub struct HostService {
     async_event_rx: mpsc::Receiver<HostAsyncEvent>,
     storage: StorageService,
     plugins: PluginService,
+    /// Temp directory of this instance, shared with every spawned session. Taken on shutdown so
+    /// its content is removed once the last session released it.
+    temp_dir: Option<Arc<InstanceTempDir>>,
 }
 
 /// Startup data returned after the host service runtime has initialized.
@@ -143,14 +148,27 @@ impl HostService {
                 let storage = StorageService::init(async_event_tx.clone());
                 let plugins = PluginService::init(async_event_tx);
 
+                let temp_dir = match InstanceTempDir::in_streams_dir() {
+                    Ok(temp_dir) => Some(Arc::new(temp_dir)),
+                    Err(err) => {
+                        error!(
+                            "Claiming a temp directory for this instance failed. Error: {err:?}"
+                        );
+                        None
+                    }
+                };
+
                 let host = Self {
                     communication,
                     async_event_rx,
                     storage,
                     plugins,
+                    temp_dir: temp_dir.clone(),
                 };
 
-                tokio::task::spawn_blocking(cleanup::cleanup_temp_files);
+                tokio::task::spawn_blocking(move || {
+                    cleanup::cleanup_temp_files(temp_dir.as_deref())
+                });
                 let previous_version = storage::app_version::sync_current_version();
                 update::spawn_check(
                     host.communication.senders.clone(),
@@ -288,7 +306,9 @@ impl HostService {
                     .await;
             }
             HostCommand::OnShutdown { confirm_tx } => {
-                // Cleanup on shutdown goes here.
+                // Releasing the last reference removes the instance directory. Sessions are closed
+                // before this command arrives, so this is usually the last one.
+                self.temp_dir.take();
                 let _ = confirm_tx.send(());
             }
             HostCommand::CopyFiles { copy_file_infos } => file::copy_files(copy_file_infos).await?,
@@ -370,6 +390,15 @@ impl HostService {
             .await;
     }
 
+    /// Temp directory of this instance, shared with every session it spawns.
+    fn temp_dir(&self) -> Result<Arc<InstanceTempDir>, HostError> {
+        self.temp_dir.clone().ok_or_else(|| {
+            HostError::InitSessionError(InitSessionError::Other(String::from(
+                "No temp directory available for session files",
+            )))
+        })
+    }
+
     async fn send_plugins_state(&self, state: PluginsState) {
         self.communication
             .senders
@@ -395,6 +424,7 @@ impl HostService {
                     schema_spec,
                     additional_sources,
                     restore_state,
+                    self.temp_dir()?,
                 )
                 .await?;
 
@@ -475,6 +505,7 @@ impl HostService {
                 LogSchemaSpec::Text,
                 Vec::new(),
                 None,
+                self.temp_dir()?,
             )
             .await?;
 
@@ -698,6 +729,7 @@ impl HostService {
                         LogSchemaSpec::Text,
                         Vec::new(),
                         None,
+                        self.temp_dir()?,
                     )
                     .await
                     {
@@ -1077,6 +1109,7 @@ impl HostService {
             schema_spec,
             Vec::new(),
             None,
+            self.temp_dir()?,
         )
         .await?;
 
