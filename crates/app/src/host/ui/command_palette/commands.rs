@@ -100,6 +100,18 @@ const COMMANDS: &[CommandDefinition] = &[
         action: CommandAction::SetTheme(Theme::Light),
     },
     CommandDefinition {
+        title: "Zoom In",
+        action: CommandAction::ZoomIn,
+    },
+    CommandDefinition {
+        title: "Zoom Out",
+        action: CommandAction::ZoomOut,
+    },
+    CommandDefinition {
+        title: "Reset Zoom",
+        action: CommandAction::ResetZoom,
+    },
+    CommandDefinition {
         title: "Toggle Right Panel",
         action: CommandAction::ToggleRightPanel,
     },
@@ -221,6 +233,9 @@ pub enum CommandAction {
     ShowShortcuts,
     ShowAbout,
     SetTheme(Theme),
+    ZoomIn,
+    ZoomOut,
+    ResetZoom,
     ToggleRightPanel,
     ToggleBottomPanel,
     ToggleSdeBar,
@@ -256,6 +271,9 @@ impl CommandAction {
             | Self::ShowShortcuts
             | Self::ShowAbout
             | Self::SetTheme(_)
+            | Self::ZoomIn
+            | Self::ZoomOut
+            | Self::ResetZoom
             | Self::ToggleRightPanel
             | Self::ToggleBottomPanel
             | Self::ToggleSdeBar
@@ -372,6 +390,18 @@ pub fn execute_action(
         }
         CommandAction::SetTheme(theme) => {
             ui.ctx().set_theme(theme);
+            true
+        }
+        CommandAction::ZoomIn => {
+            egui::gui_zoom::zoom_in(ui.ctx());
+            true
+        }
+        CommandAction::ZoomOut => {
+            egui::gui_zoom::zoom_out(ui.ctx());
+            true
+        }
+        CommandAction::ResetZoom => {
+            ui.ctx().set_zoom_factor(1.0);
             true
         }
         CommandAction::ToggleRightPanel => {
