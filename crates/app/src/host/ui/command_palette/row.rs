@@ -125,6 +125,9 @@ fn action_icon(action: CommandAction) -> &'static str {
         CommandAction::ShowAbout => icons::regular::INFO,
         CommandAction::SetTheme(Theme::Dark) => icons::regular::MOON,
         CommandAction::SetTheme(Theme::Light) => icons::regular::SUN,
+        CommandAction::ZoomIn => icons::regular::MAGNIFYING_GLASS_PLUS,
+        CommandAction::ZoomOut => icons::regular::MAGNIFYING_GLASS_MINUS,
+        CommandAction::ResetZoom => icons::regular::ARROW_COUNTER_CLOCKWISE,
         CommandAction::ToggleRightPanel | CommandAction::ToggleBottomPanel => {
             icons::regular::SIDEBAR
         }

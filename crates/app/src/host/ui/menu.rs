@@ -185,6 +185,10 @@ impl MainMenuBar {
             ui.menu_button("View", |ui| {
                 ui.set_min_size(MENU_MIN_SIZE);
 
+                egui::gui_zoom::zoom_menu_buttons(ui);
+
+                ui.separator();
+
                 if ui.button("Dark Theme").clicked() {
                     ui.set_theme(Theme::Dark);
                 }
