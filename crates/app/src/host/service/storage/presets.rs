@@ -101,10 +101,11 @@ mod tests {
         storage_path_from_home(home_dir).map(|storage_dir| storage_dir.join(PRESETS_FILE))
     }
 
-    fn preset(name: &str) -> Preset {
+    fn preset(name: &str, pinned: bool) -> Preset {
         Preset {
             id: Uuid::new_v4(),
             name: name.to_owned(),
+            pinned,
             filters: vec![PresetFilterEntry::new(
                 SearchFilter::plain("error").ignore_case(true),
                 false,
@@ -137,7 +138,7 @@ mod tests {
     fn save_and_load_round_trip() {
         let home_dir = tempdir().expect("temp home dir should be created");
         let path = presets_path(home_dir.path()).expect("presets path should be resolved");
-        let presets = vec![preset("Errors"), preset("Durations")];
+        let presets = vec![preset("Errors", true), preset("Durations", false)];
         let data = PresetsData::new(presets);
 
         save_to_path(&path, &data).expect("presets should save");
@@ -146,6 +147,7 @@ mod tests {
         assert_eq!(loaded.presets.len(), 2);
         for (loaded, saved) in loaded.presets.iter().zip(data.presets.iter()) {
             assert_eq!(loaded.name, saved.name);
+            assert_eq!(loaded.pinned, saved.pinned);
             assert_eq!(loaded.filters, saved.filters);
             assert_eq!(loaded.search_values, saved.search_values);
         }

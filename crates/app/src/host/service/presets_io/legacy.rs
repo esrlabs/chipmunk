@@ -249,6 +249,7 @@ fn parse_legacy_collection(content: &str) -> Result<LegacyCollectionOutcome, Jso
     let preset = Preset {
         id: Uuid::new_v4(),
         name,
+        pinned: false,
         filters,
         search_values,
     };

@@ -2,6 +2,9 @@
 //!
 //! Version 2 documents store named filter and search-value row snapshots,
 //! including enabled state and colors.
+//!
+//! Fields added after the initial version 2 shape default on import instead of
+//! raising the document version, so older builds keep reading newer documents.
 
 use processor::search::filter::SearchFilter;
 use serde::{Deserialize, Serialize};
@@ -22,6 +25,8 @@ use super::{
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 struct DocumentPreset {
     name: String,
+    #[serde(default)]
+    pinned: bool,
     filters: Vec<DocumentFilterEntry>,
     search_values: Vec<DocumentSearchValueEntry>,
 }
@@ -52,8 +57,6 @@ struct PresetDocument {
 
 /// Serializes runtime presets into the v2 document format.
 pub fn serialize_presets(presets: Vec<Preset>) -> Result<String, String> {
-    // Runtime preset ids are intentionally ignored here because the file format
-    // stores only named row snapshots.
     let presets = presets.into_iter().map(DocumentPreset::from).collect();
 
     serialize_document(presets)
@@ -84,6 +87,7 @@ pub fn parse_document(root: serde_json::Map<String, Value>) -> Result<Vec<Preset
 fn validate_preset(preset: &DocumentPreset) -> Result<(), String> {
     let DocumentPreset {
         name,
+        pinned: _,
         filters,
         search_values,
     } = preset;
@@ -113,15 +117,22 @@ fn validate_preset(preset: &DocumentPreset) -> Result<(), String> {
 
 impl From<Preset> for DocumentPreset {
     fn from(value: Preset) -> Self {
+        // Destructured so new preset fields must be handled in the stored document.
+        let Preset {
+            // Runtime ids are intentionally dropped: the file format stores only
+            // named row snapshots.
+            id: _,
+            name,
+            pinned,
+            filters,
+            search_values,
+        } = value;
+
         Self {
-            name: value.name,
-            filters: value
-                .filters
-                .into_iter()
-                .map(DocumentFilterEntry::from)
-                .collect(),
-            search_values: value
-                .search_values
+            name,
+            pinned,
+            filters: filters.into_iter().map(DocumentFilterEntry::from).collect(),
+            search_values: search_values
                 .into_iter()
                 .map(DocumentSearchValueEntry::from)
                 .collect(),
@@ -151,18 +162,22 @@ impl From<PresetSearchValueEntry> for DocumentSearchValueEntry {
 
 impl From<DocumentPreset> for Preset {
     fn from(value: DocumentPreset) -> Self {
+        // Destructured so new stored fields must be mapped into the runtime preset.
+        let DocumentPreset {
+            name,
+            pinned,
+            filters,
+            search_values,
+        } = value;
+
         Self {
             // Import always creates fresh runtime ids. Name collision handling is
             // deferred to the UI registry import path.
             id: Uuid::new_v4(),
-            name: value.name,
-            filters: value
-                .filters
-                .into_iter()
-                .map(PresetFilterEntry::from)
-                .collect(),
-            search_values: value
-                .search_values
+            name,
+            pinned,
+            filters: filters.into_iter().map(PresetFilterEntry::from).collect(),
+            search_values: search_values
                 .into_iter()
                 .map(PresetSearchValueEntry::from)
                 .collect(),
@@ -242,6 +257,7 @@ mod tests {
         let source = vec![Preset {
             id: Uuid::new_v4(),
             name: "Errors".to_owned(),
+            pinned: true,
             filters: vec![PresetFilterEntry::new(
                 plain("error"),
                 false,
@@ -263,6 +279,7 @@ mod tests {
         assert!(json.contains("\"version\": 2"));
         assert_eq!(parsed.format, ImportFormat::Version2);
         assert_eq!(preset_snapshot(&parsed.presets), preset_snapshot(&source));
+        assert!(parsed.presets[0].pinned);
         assert!(!parsed.presets[0].filters[0].enabled);
         assert_eq!(
             parsed.presets[0].filters[0].colors,
@@ -273,6 +290,16 @@ mod tests {
             parsed.presets[0].search_values[0].color,
             source[0].search_values[0].color
         );
+    }
+
+    #[test]
+    fn documents_without_pinned_import_unpinned() {
+        let report = import_named_presets(
+            r#"{"kind":"chipmunk_named_presets","version":2,"presets":[{"name":"Errors","filters":[],"search_values":[]}]}"#,
+        )
+        .unwrap();
+
+        assert!(!report.presets[0].pinned);
     }
 
     #[test]

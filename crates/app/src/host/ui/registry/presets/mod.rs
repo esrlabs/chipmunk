@@ -4,5 +4,5 @@ mod capture;
 mod catalog;
 mod model;
 
-pub use catalog::{PresetRegistry, PresetUpdateOutcome};
+pub use catalog::{MAX_PERSISTED_PRESETS, PresetRegistry, PresetUpdateOutcome};
 pub use model::{Preset, PresetFilterEntry, PresetSearchValueEntry};

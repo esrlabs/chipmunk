@@ -64,6 +64,8 @@ pub enum PresetAction {
     Apply(Uuid),
     /// Delete a preset.
     Delete(Uuid),
+    /// Keep a preset in storage regardless of the recency budget, or release it.
+    SetPinned(Uuid, bool),
     /// Toggle whether a preset is included in the export selection.
     ToggleExportSelection(Uuid),
     /// Add a filter to a preset edit draft.
@@ -264,6 +266,9 @@ impl PresetsUI {
             }
             PresetAction::Delete(id) => {
                 self.delete_preset(registry, id);
+            }
+            PresetAction::SetPinned(id, pinned) => {
+                registry.presets.set_pinned(id, pinned);
             }
             PresetAction::ToggleExportSelection(id) => self.toggle_export_selection(id),
             PresetAction::AddFilter(id, filter) => {
