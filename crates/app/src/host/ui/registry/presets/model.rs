@@ -13,6 +13,8 @@ pub struct Preset {
     pub id: Uuid,
     /// User-visible preset name.
     pub name: String,
+    /// Whether the preset is kept in storage regardless of the recency budget.
+    pub pinned: bool,
     /// Stored filter rows.
     pub filters: Vec<PresetFilterEntry>,
     /// Stored chart/search-value rows.
@@ -113,6 +115,7 @@ impl Preset {
         Self {
             id,
             name,
+            pinned: false,
             filters,
             search_values,
         }

@@ -8,8 +8,9 @@ use crate::host::ui::storage::presets::PresetsData;
 
 use super::{Preset, PresetFilterEntry, PresetSearchValueEntry};
 
-/// Number of presets kept in storage, selected by create/update recency.
-const MAX_PERSISTED_PRESETS: usize = 10;
+/// Number of unpinned presets kept in storage, selected by create/update recency.
+/// Pinned presets are kept in addition to this budget.
+pub const MAX_PERSISTED_PRESETS: usize = 10;
 
 /// Host-level registry for named preset snapshots captured from session filters and charts.
 #[derive(Debug, Default, Clone)]
@@ -17,7 +18,9 @@ pub struct PresetRegistry {
     presets: Vec<Preset>,
     /// Monotonic catalog revision used by UI caches keyed on preset structure.
     definitions_revision: u64,
-    /// Preset ids ordered newest-first by creation and update, used to pick the persisted subset.
+    /// Preset ids ordered newest-first by creation and update, used to pick the persisted
+    /// unpinned subset. Pinning does not change this order, so unpinning restores the
+    /// preset to its previous recency position.
     touch_order: Vec<Uuid>,
     /// True while the persisted presets no longer match the catalog content.
     dirty: bool,
@@ -77,12 +80,17 @@ impl PresetRegistry {
     }
 
     fn persisted_presets(&self) -> Vec<Preset> {
-        let recent_count = self.touch_order.len().min(MAX_PERSISTED_PRESETS);
-        let recent_ids = &self.touch_order[..recent_count];
+        let recent_ids = self
+            .touch_order
+            .iter()
+            .copied()
+            .filter(|id| self.get(id).is_some_and(|preset| !preset.pinned))
+            .take(MAX_PERSISTED_PRESETS)
+            .collect::<Vec<_>>();
 
         self.presets
             .iter()
-            .filter(|preset| recent_ids.contains(&preset.id))
+            .filter(|preset| preset.pinned || recent_ids.contains(&preset.id))
             .cloned()
             .collect()
     }
@@ -111,6 +119,7 @@ impl PresetRegistry {
             let Preset {
                 id,
                 name,
+                pinned: _,
                 filters: _,
                 search_values: _,
             } = preset;
@@ -126,6 +135,7 @@ impl PresetRegistry {
                 let Preset {
                     id,
                     name,
+                    pinned: _,
                     filters: _,
                     search_values: _,
                 } = preset;
@@ -154,6 +164,7 @@ impl PresetRegistry {
         let preset = Preset {
             id: Uuid::new_v4(),
             name,
+            pinned: false,
             filters,
             search_values,
         };
@@ -210,6 +221,8 @@ impl PresetRegistry {
         let Preset {
             id: _,
             name,
+            // Pinning is tracked outside preset edits, so it never makes an edit a change.
+            pinned: _,
             filters: stored_filters,
             search_values: stored_search_values,
         } = preset;
@@ -229,6 +242,24 @@ impl PresetRegistry {
         self.mark_changed();
 
         PresetUpdateOutcome::Updated { name: next_name }
+    }
+
+    /// Keeps a preset in storage regardless of the recency budget, or releases it back to
+    /// the budget, and reports whether the state changed.
+    ///
+    /// Pinning is not a content change: display order and recency order both stay intact.
+    pub fn set_pinned(&mut self, id: Uuid, pinned: bool) -> bool {
+        let Some(preset) = self.presets.iter_mut().find(|preset| preset.id == id) else {
+            return false;
+        };
+
+        if preset.pinned == pinned {
+            return false;
+        }
+
+        preset.pinned = pinned;
+        self.mark_changed();
+        true
     }
 
     /// Removes a preset by id and reports whether anything was removed.
@@ -852,6 +883,120 @@ mod tests {
         let mut expected_ids = vec![oldest_id];
         expected_ids.extend_from_slice(&newer_ids[1..]);
         assert_eq!(preset_ids(&saved.presets), expected_ids);
+    }
+
+    #[test]
+    fn pinned_presets_are_kept_outside_the_budget() {
+        let mut registry = PresetRegistry::default();
+        let pinned_id =
+            add_preset_with_default_state(&mut registry, "Pinned", vec![plain("one")], vec![]);
+        assert!(registry.set_pinned(pinned_id, true));
+        let recent_ids = (0..MAX_PERSISTED_PRESETS)
+            .map(|index| {
+                add_preset_with_default_state(
+                    &mut registry,
+                    &format!("preset-{index}"),
+                    vec![plain("one")],
+                    vec![],
+                )
+            })
+            .collect::<Vec<_>>();
+
+        let saved = registry.take_save_data().expect("adds should mark changed");
+
+        // The pinned preset keeps its display position and costs no recency slot.
+        let mut expected_ids = vec![pinned_id];
+        expected_ids.extend_from_slice(&recent_ids);
+        assert_eq!(preset_ids(&saved.presets), expected_ids);
+    }
+
+    #[test]
+    fn unpinning_restores_budget_position() {
+        let mut registry = PresetRegistry::default();
+        let pinned_id =
+            add_preset_with_default_state(&mut registry, "Pinned", vec![plain("one")], vec![]);
+        assert!(registry.set_pinned(pinned_id, true));
+        let recent_ids = (0..MAX_PERSISTED_PRESETS)
+            .map(|index| {
+                add_preset_with_default_state(
+                    &mut registry,
+                    &format!("preset-{index}"),
+                    vec![plain("one")],
+                    vec![],
+                )
+            })
+            .collect::<Vec<_>>();
+
+        assert!(registry.set_pinned(pinned_id, false));
+        let saved = registry.take_save_data().expect("adds should mark changed");
+
+        // Pinning never touched the recency order, so the oldest preset drops out again.
+        assert_eq!(preset_ids(&saved.presets), recent_ids);
+    }
+
+    #[test]
+    fn set_pinned_marks_change_without_reordering() {
+        let mut registry = PresetRegistry::default();
+        let first_id =
+            add_preset_with_default_state(&mut registry, "First", vec![plain("one")], vec![]);
+        let second_id =
+            add_preset_with_default_state(&mut registry, "Second", vec![plain("two")], vec![]);
+        registry.take_save_data().expect("adds should mark changed");
+        let revision = registry.definitions_revision();
+
+        assert!(registry.set_pinned(first_id, true));
+
+        assert!(registry.get(&first_id).unwrap().pinned);
+        assert_eq!(registry.definitions_revision(), revision + 1);
+        assert_eq!(preset_ids(registry.presets()), vec![first_id, second_id]);
+        assert!(registry.take_save_data().is_some());
+    }
+
+    #[test]
+    fn set_pinned_keeps_unchanged_state_clean() {
+        let mut registry = PresetRegistry::default();
+        let preset_id =
+            add_preset_with_default_state(&mut registry, "Errors", vec![plain("one")], vec![]);
+        registry.take_save_data().expect("add should mark changed");
+
+        assert!(!registry.set_pinned(preset_id, false));
+        assert!(!registry.set_pinned(Uuid::new_v4(), true));
+
+        assert!(registry.take_save_data().is_none());
+    }
+
+    #[test]
+    fn pinned_edits_keep_pin_state() {
+        let mut registry = PresetRegistry::default();
+        let preset_id =
+            add_preset_with_default_state(&mut registry, "Errors", vec![plain("one")], vec![]);
+        registry.set_pinned(preset_id, true);
+
+        let outcome = registry.update_preset(
+            preset_id,
+            "Errors",
+            filter_entries(vec![plain("one")]),
+            vec![],
+        );
+
+        // Pin state lives outside preset content, so it neither changes nor blocks edits.
+        assert_eq!(outcome, PresetUpdateOutcome::Unchanged);
+        assert!(registry.get(&preset_id).unwrap().pinned);
+    }
+
+    #[test]
+    fn restored_presets_keep_pin_state() {
+        let mut pinned = runtime_preset(Uuid::new_v4(), "Pinned", vec![plain("one")], vec![]);
+        pinned.pinned = true;
+        let restored = vec![
+            pinned,
+            runtime_preset(Uuid::new_v4(), "Loose", vec![plain("two")], vec![]),
+        ];
+
+        let registry = PresetRegistry::restored(PresetsData::new(restored));
+
+        assert!(registry.presets()[0].pinned);
+        assert!(!registry.presets()[1].pinned);
     }
 
     #[test]

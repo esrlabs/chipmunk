@@ -1,8 +1,8 @@
 //! Preset card rendering for browse and edit modes.
 
 use egui::{
-    Align, Color32, Frame, Key, Layout, Margin, Response, RichText, ScrollArea, Sense, Sides,
-    StrokeKind, TextEdit, Ui, UiBuilder, vec2,
+    Align, Button, Color32, Frame, Key, Layout, Margin, Response, RichText, ScrollArea, Sense,
+    Sides, StrokeKind, TextEdit, Ui, UiBuilder, vec2,
 };
 use uuid::Uuid;
 
@@ -12,7 +12,7 @@ use crate::{
     common::{phosphor::icons, ui::buttons},
     host::ui::registry::{
         HostRegistry,
-        presets::{Preset, PresetFilterEntry, PresetSearchValueEntry},
+        presets::{MAX_PERSISTED_PRESETS, Preset, PresetFilterEntry, PresetSearchValueEntry},
     },
 };
 
@@ -151,6 +151,7 @@ impl PresetsUI {
         pending_action: &mut Option<PresetAction>,
     ) {
         ui.horizontal(|ui| {
+            render_pin_indicator(preset.pinned, ui);
             ui.label(RichText::new(preset.name.as_str()).strong());
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                 let mut selected = self.is_selected_for_export(preset.id);
@@ -174,6 +175,7 @@ impl PresetsUI {
         pending_action: &mut Option<PresetAction>,
     ) {
         ui.horizontal(|ui| {
+            render_pin_toggle(preset, ui, pending_action);
             ui.label(RichText::new(preset.name.as_str()).strong());
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                 if ui
@@ -726,6 +728,54 @@ impl PresetBrowseSection {
             Self::SearchValue => "No charts in this preset",
         }
     }
+}
+
+/// Renders the pin toggle, whose pressed state shows whether the preset is pinned.
+fn render_pin_toggle(preset: &Preset, ui: &mut Ui, pending_action: &mut Option<PresetAction>) {
+    if ui
+        .add(pin_button(preset.pinned))
+        .on_hover_ui(|ui| render_pin_hint(preset.pinned, ui))
+        .clicked()
+    {
+        let action = PresetAction::SetPinned(preset.id, !preset.pinned);
+        *pending_action = Some(action);
+    }
+}
+
+/// Renders the pin state in the same shape as the toggle, without offering it.
+fn render_pin_indicator(pinned: bool, ui: &mut Ui) {
+    ui.add_enabled(false, pin_button(pinned))
+        .on_disabled_hover_ui(|ui| render_pin_hint(pinned, ui));
+}
+
+/// Builds the pin control, where the selected state carries the pinned state.
+fn pin_button(pinned: bool) -> Button<'static> {
+    const PIN_ICON_SIZE: f32 = 14.0;
+
+    // Kept framed in both states so the control lines up with the sibling card actions.
+    buttons::bottom_panel_icon(RichText::new(icons::regular::PUSH_PIN).size(PIN_ICON_SIZE))
+        .selected(pinned)
+}
+
+/// Explains the storage rules behind the pin state so they stay discoverable in the panel.
+fn render_pin_hint(pinned: bool, ui: &mut Ui) {
+    ui.set_max_width(ui.spacing().tooltip_width);
+
+    let hint = if pinned {
+        format!(
+            "Pinned: this preset is always kept after restart.\n\
+            Unpin it to keep it only while it stays among the {MAX_PERSISTED_PRESETS} \
+            most recently added or edited unpinned presets."
+        )
+    } else {
+        format!(
+            "Not pinned: only the {MAX_PERSISTED_PRESETS} most recently added or edited \
+            unpinned presets are kept after restart.\n\
+            Pin this preset to always keep it."
+        )
+    };
+
+    ui.label(hint);
 }
 
 /// Formats a section header with its current item count.
