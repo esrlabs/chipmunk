@@ -4,7 +4,12 @@ use std::borrow::Cow;
 
 use uuid::Uuid;
 
+use crate::host::ui::storage::presets::PresetsData;
+
 use super::{Preset, PresetFilterEntry, PresetSearchValueEntry};
+
+/// Number of presets kept in storage, selected by create/update recency.
+const MAX_PERSISTED_PRESETS: usize = 10;
 
 /// Host-level registry for named preset snapshots captured from session filters and charts.
 #[derive(Debug, Default, Clone)]
@@ -12,6 +17,10 @@ pub struct PresetRegistry {
     presets: Vec<Preset>,
     /// Monotonic catalog revision used by UI caches keyed on preset structure.
     definitions_revision: u64,
+    /// Preset ids ordered newest-first by creation and update, used to pick the persisted subset.
+    touch_order: Vec<Uuid>,
+    /// True while the persisted presets no longer match the catalog content.
+    dirty: bool,
 }
 
 /// Result of applying a preset edit request.
@@ -36,9 +45,60 @@ pub struct PresetImportSummary {
 }
 
 impl PresetRegistry {
+    /// Creates a registry from presets restored from storage.
+    pub fn restored(stored: PresetsData) -> Self {
+        // Stored presets are in display order, which is also their recency order.
+        let PresetsData { presets } = stored;
+
+        let mut registry = Self::default();
+        registry.import_presets(presets);
+        // Restoring is not a change, so the loaded content is already persisted.
+        registry.dirty = false;
+
+        registry
+    }
+
     /// Returns stored presets in display order.
     pub fn presets(&self) -> &[Preset] {
         &self.presets
+    }
+
+    /// Returns the presets to persist, in display order, only when the catalog changed.
+    pub fn take_save_data(&mut self) -> Option<PresetsData> {
+        if !self.dirty {
+            return None;
+        }
+
+        self.dirty = false;
+
+        let presets = self.persisted_presets();
+
+        Some(PresetsData::new(presets))
+    }
+
+    fn persisted_presets(&self) -> Vec<Preset> {
+        let recent_count = self.touch_order.len().min(MAX_PERSISTED_PRESETS);
+        let recent_ids = &self.touch_order[..recent_count];
+
+        self.presets
+            .iter()
+            .filter(|preset| recent_ids.contains(&preset.id))
+            .cloned()
+            .collect()
+    }
+
+    fn mark_changed(&mut self) {
+        self.definitions_revision += 1;
+        self.dirty = true;
+    }
+
+    /// Moves a preset to the front of the create/update recency order.
+    fn touch(&mut self, id: Uuid) {
+        if let Some(index) = self.touch_order.iter().position(|entry| *entry == id) {
+            self.touch_order.remove(index);
+        }
+
+        self.touch_order.insert(0, id);
     }
 
     /// Monotonic catalog revision used by UI caches keyed on preset structure.
@@ -99,7 +159,8 @@ impl PresetRegistry {
         };
         let id = preset.id;
         self.presets.push(preset);
-        self.definitions_revision += 1;
+        self.touch(id);
+        self.mark_changed();
         id
     }
 
@@ -113,8 +174,10 @@ impl PresetRegistry {
         let was_renamed = preset.name != stored_name.as_ref();
         preset.name = stored_name.into_owned();
 
+        let id = preset.id;
         self.presets.push(preset);
-        self.definitions_revision += 1;
+        self.touch(id);
+        self.mark_changed();
 
         was_renamed
     }
@@ -162,7 +225,8 @@ impl PresetRegistry {
         preset.name = next_name.clone();
         preset.filters = filters;
         preset.search_values = search_values;
-        self.definitions_revision += 1;
+        self.touch(id);
+        self.mark_changed();
 
         PresetUpdateOutcome::Updated { name: next_name }
     }
@@ -174,14 +238,15 @@ impl PresetRegistry {
         };
 
         self.presets.remove(index);
-        self.definitions_revision += 1;
+        self.touch_order.retain(|entry| *entry != id);
+        self.mark_changed();
         true
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
+    use std::{assert_matches, path::PathBuf};
 
     use processor::search::filter::SearchFilter;
     use stypes::{FileFormat, ObserveOrigin};
@@ -254,6 +319,10 @@ mod tests {
             .iter()
             .map(|entry| entry.filter.clone())
             .collect()
+    }
+
+    fn preset_ids(presets: &[Preset]) -> Vec<Uuid> {
+        presets.iter().map(|preset| preset.id).collect()
     }
 
     fn new_shared() -> SessionShared {
@@ -680,6 +749,146 @@ mod tests {
 
         assert_eq!(outcome, PresetUpdateOutcome::NotFound);
         assert_eq!(registry.definitions_revision(), 0);
+    }
+
+    #[test]
+    fn save_data_requires_change() {
+        let mut registry = PresetRegistry::default();
+
+        assert!(registry.take_save_data().is_none());
+
+        let preset_id =
+            add_preset_with_default_state(&mut registry, "Errors", vec![plain("one")], vec![]);
+
+        let saved = registry.take_save_data().expect("add should mark changed");
+
+        assert_eq!(preset_ids(&saved.presets), vec![preset_id]);
+        assert!(registry.take_save_data().is_none());
+    }
+
+    #[test]
+    fn unchanged_update_keeps_save_data_clean() {
+        let mut registry = PresetRegistry::default();
+        let preset_id =
+            add_preset_with_default_state(&mut registry, "Errors", vec![plain("one")], vec![]);
+        registry.take_save_data().expect("add should mark changed");
+
+        let outcome = registry.update_preset(
+            preset_id,
+            "Errors",
+            filter_entries(vec![plain("one")]),
+            vec![],
+        );
+
+        assert_eq!(outcome, PresetUpdateOutcome::Unchanged);
+        assert!(registry.take_save_data().is_none());
+    }
+
+    #[test]
+    fn remove_marks_change_and_drops_preset() {
+        let mut registry = PresetRegistry::default();
+        let kept_id =
+            add_preset_with_default_state(&mut registry, "Kept", vec![plain("one")], vec![]);
+        let removed_id =
+            add_preset_with_default_state(&mut registry, "Removed", vec![plain("two")], vec![]);
+        registry.take_save_data().expect("adds should mark changed");
+
+        assert!(registry.remove_preset(removed_id));
+
+        let saved = registry
+            .take_save_data()
+            .expect("remove should mark changed");
+
+        assert_eq!(preset_ids(&saved.presets), vec![kept_id]);
+    }
+
+    #[test]
+    fn save_data_keeps_recent_presets_in_display_order() {
+        let mut registry = PresetRegistry::default();
+        let ids = (0..MAX_PERSISTED_PRESETS + 2)
+            .map(|index| {
+                add_preset_with_default_state(
+                    &mut registry,
+                    &format!("preset-{index}"),
+                    vec![plain("one")],
+                    vec![],
+                )
+            })
+            .collect::<Vec<_>>();
+
+        let saved = registry.take_save_data().expect("adds should mark changed");
+
+        assert_eq!(preset_ids(&saved.presets), ids[2..]);
+    }
+
+    #[test]
+    fn update_makes_preset_recent_without_reordering() {
+        let mut registry = PresetRegistry::default();
+        let oldest_id =
+            add_preset_with_default_state(&mut registry, "Oldest", vec![plain("one")], vec![]);
+        let newer_ids = (0..MAX_PERSISTED_PRESETS)
+            .map(|index| {
+                add_preset_with_default_state(
+                    &mut registry,
+                    &format!("preset-{index}"),
+                    vec![plain("one")],
+                    vec![],
+                )
+            })
+            .collect::<Vec<_>>();
+
+        let outcome = registry.update_preset(
+            oldest_id,
+            "Oldest",
+            filter_entries(vec![plain("two")]),
+            vec![],
+        );
+        let saved = registry
+            .take_save_data()
+            .expect("update should mark changed");
+
+        assert_matches!(outcome, PresetUpdateOutcome::Updated { .. });
+        assert_eq!(registry.presets()[0].id, oldest_id);
+        let mut expected_ids = vec![oldest_id];
+        expected_ids.extend_from_slice(&newer_ids[1..]);
+        assert_eq!(preset_ids(&saved.presets), expected_ids);
+    }
+
+    #[test]
+    fn restored_presets_need_no_save() {
+        let restored = vec![
+            runtime_preset(Uuid::new_v4(), "First", vec![plain("one")], vec![]),
+            runtime_preset(Uuid::new_v4(), "Second", vec![plain("two")], vec![]),
+        ];
+
+        let mut registry = PresetRegistry::restored(PresetsData::new(restored.clone()));
+
+        assert_eq!(preset_ids(registry.presets()), preset_ids(&restored));
+        assert!(registry.take_save_data().is_none());
+    }
+
+    #[test]
+    fn restored_presets_keep_file_recency_order() {
+        let restored = (0..MAX_PERSISTED_PRESETS + 1)
+            .map(|index| {
+                runtime_preset(
+                    Uuid::new_v4(),
+                    &format!("preset-{index}"),
+                    vec![plain("one")],
+                    vec![],
+                )
+            })
+            .collect::<Vec<_>>();
+        let mut registry = PresetRegistry::restored(PresetsData::new(restored.clone()));
+
+        let new_id =
+            add_preset_with_default_state(&mut registry, "Newest", vec![plain("two")], vec![]);
+        let saved = registry.take_save_data().expect("add should mark changed");
+
+        // Restored file order is the recency order, so the first entries are dropped first.
+        let mut expected_ids = preset_ids(&restored[2..]);
+        expected_ids.push(new_id);
+        assert_eq!(preset_ids(&saved.presets), expected_ids);
     }
 
     #[test]

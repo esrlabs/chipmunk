@@ -101,7 +101,7 @@ impl Host {
                 fonts::setup(&ctx.egui_ctx);
 
                 let menu = MainMenuBar::new(cmd_tx.clone());
-                let state = HostState::default();
+                let state = HostState::new(service_init.presets);
                 let mut host = Self {
                     menu,
                     receivers: ui_comm.receivers,
@@ -641,7 +641,8 @@ impl eframe::App for Host {
 
     fn save(&mut self, storage: &mut dyn eframe::Storage) {
         persist::save(storage, self);
-        self.storage.schedule_save(&mut self.ui_actions);
+        self.storage
+            .schedule_save(&mut self.state.registry, &mut self.ui_actions);
     }
 
     fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
@@ -651,7 +652,8 @@ impl eframe::App for Host {
             Duration::from_millis(session_core::session::SHUTDOWN_TIMEOUT_IN_MS + 500);
         self.tabs
             .close_sessions_for_shutdown(SESSION_SHUTDOWN_GRACE);
-        self.storage.wait_until_save(&mut self.ui_actions);
+        self.storage
+            .wait_until_save(&mut self.state.registry, &mut self.ui_actions);
 
         let (confirm_tx, confirm_rx) = std::sync::mpsc::channel();
         let cmd = HostCommand::OnShutdown { confirm_tx };

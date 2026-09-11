@@ -43,7 +43,7 @@ It owns the desktop application shell and integrates directly with the core runt
 - `Host` is the `eframe::App` and owns top-level rendering, message polling, tabs, storage, notifications, and global UI actions.
 - `HostState` owns active tabs, open sessions, setup tabs, preferences, shortcuts, app info, top-level modals, plugin UI state, and `HostRegistry`.
 - `HostRegistry` owns global filter/search-value definitions and presets.
-- `HostStorage` owns UI-facing service-backed storage domains: recent sessions and file explorer/favorite folders.
+- `HostStorage` owns UI-facing service-backed storage domains: recent sessions, file explorer/favorite folders, app settings, and staged preset snapshots.
 - `persist` owns only lightweight host UI preferences saved through `eframe` storage.
 - `PluginService` owns `PluginsManager`; UI code consumes published `PluginsState` and must not load or mutate plugin runtime state directly.
 - `Session` owns one live session UI shell and its component UIs.
@@ -63,7 +63,7 @@ It owns the desktop application shell and integrates directly with the core runt
 ## Change Entry Points
 
 - For filter/search/chart behavior, start from `SessionShared` and `crates/app/src/session/ui/shared/searching/`.
-- For global filter or preset definitions, start from `HostRegistry`.
+- For global filter or preset definitions, start from `HostRegistry`; for preset persistence, `crates/app/src/host/ui/storage/presets.rs`.
 - For plugin behavior, keep runtime work in `crates/app/src/host/service/plugin/` and host UI state in `HostState.plugins`.
 - For export behavior, start from `crates/app/src/session/ui/shared/export/` and `crates/app/src/session/service/export.rs`.
 - For recent-session persistence, keep changes flowing through `SessionShared` revision tracking, `RecentSessionRuntime`, and `crates/app/src/host/ui/storage/recent/`.

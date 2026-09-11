@@ -47,20 +47,20 @@ use crate::{
                 },
             },
             state::plugin::PluginsState,
-            storage::{
-                recent::storage::RecentSessionsStorage, settings::AppSettings, types::StorageEvent,
-            },
+            storage::types::StorageEvent,
         },
     },
     session::{InitSessionError, service::SessionService, ui::definitions::schema::LogSchemaSpec},
 };
 
+use init::HostServiceInit;
 use plugin::{PluginEvent, PluginService};
 use presets_io::{import_named_presets, serialize_named_presets};
 use storage::StorageService;
 
 mod cleanup;
 pub mod file;
+pub mod init;
 mod plugin;
 mod presets_io;
 mod storage;
@@ -77,17 +77,6 @@ pub struct HostService {
     /// Temp directory of this instance, shared with every spawned session. Taken on shutdown so
     /// its content is removed once the last session released it.
     temp_dir: Option<Arc<InstanceTempDir>>,
-}
-
-/// Startup data returned after the host service runtime has initialized.
-#[derive(Debug)]
-pub struct HostServiceInit {
-    /// Tokio runtime handle used by UI actions that spawn async work.
-    pub tokio_handle: Handle,
-    /// Recent sessions loaded synchronously for initial UI state.
-    pub recent_sessions: RecentSessionsStorage,
-    /// Application settings loaded synchronously before startup tasks run.
-    pub app_settings: AppSettings,
 }
 
 /// Results from host-owned background work, grouped by service domain.
@@ -113,35 +102,11 @@ impl HostService {
             let tokio_handle = rt.handle().clone();
 
             rt.block_on(async move {
-                let recent_sessions = match storage::recent::load_sessions() {
-                    Ok(data) => data,
-                    Err(err) => {
-                        communication
-                            .senders
-                            .send_notification(AppNotification::Error(err.to_string()))
-                            .await;
-                        RecentSessionsStorage::default()
-                    }
-                };
-
-                let app_settings = match storage::settings::load_settings() {
-                    Ok(settings) => settings,
-                    Err(err) => {
-                        communication
-                            .senders
-                            .send_notification(AppNotification::Error(err.to_string()))
-                            .await;
-                        AppSettings::default()
-                    }
-                };
-                let update_settings = app_settings.updates.clone();
+                let init = HostServiceInit::load(tokio_handle, &communication.senders).await;
+                let update_settings = init.app_settings.updates.clone();
 
                 handle_tx
-                    .send(HostServiceInit {
-                        tokio_handle,
-                        recent_sessions,
-                        app_settings,
-                    })
+                    .send(init)
                     .expect("Sending startup state should never fail");
 
                 let (async_event_tx, async_event_rx) = mpsc::channel(ASYNC_EVENT_CHANNEL_CAPACITY);
