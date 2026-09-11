@@ -7,7 +7,10 @@ pub mod preferences;
 mod presets;
 
 use crate::host::ui::{
-    registry::HostRegistry, shortcuts::state::ShortcutState, state::plugin::PluginsState,
+    registry::{HostRegistry, presets::PresetRegistry},
+    shortcuts::state::ShortcutState,
+    state::plugin::PluginsState,
+    storage::presets::PresetsData,
 };
 
 use self::{info::AppInfoState, modal::HostModalState};
@@ -28,4 +31,17 @@ pub struct HostState {
     pub shortcuts: ShortcutState,
     /// Tracks the exclusive top-level dialog and pending confirmation answers.
     pub modals: HostModalState,
+}
+
+impl HostState {
+    /// Creates host state with presets restored from storage.
+    pub fn new(stored_presets: PresetsData) -> Self {
+        Self {
+            registry: HostRegistry {
+                presets: PresetRegistry::restored(stored_presets),
+                ..Default::default()
+            },
+            ..Default::default()
+        }
+    }
 }

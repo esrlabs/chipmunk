@@ -4,6 +4,7 @@ use thiserror::Error;
 
 use super::{
     file_explorer::{FavoriteFolder, FileExplorerData},
+    presets::PresetsData,
     recent::storage::RecentSessionsStorage,
     settings::AppSettings,
 };
@@ -43,6 +44,8 @@ pub struct StorageSaveData {
     pub file_explorer: Option<FileExplorerData>,
     /// Dirty application settings snapshot to persist.
     pub app_settings: Option<AppSettings>,
+    /// Presets snapshot to persist, already reduced to the presets kept in storage.
+    pub presets: Option<PresetsData>,
 }
 
 /// Typed storage failure used across storage.

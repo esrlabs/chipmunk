@@ -18,6 +18,7 @@ use crate::host::{
 
 pub mod app_version;
 mod file_explorer;
+pub mod presets;
 pub mod recent;
 pub mod settings;
 
@@ -80,6 +81,7 @@ fn save_storage(data: &StorageSaveData) -> Result<(), StorageError> {
         recent_sessions,
         file_explorer,
         app_settings,
+        presets,
     } = data;
 
     if let Some(file_explorer) = file_explorer {
@@ -92,6 +94,10 @@ fn save_storage(data: &StorageSaveData) -> Result<(), StorageError> {
 
     if let Some(app_settings) = app_settings {
         settings::save_settings(app_settings)?;
+    }
+
+    if let Some(presets) = presets {
+        presets::save(presets)?;
     }
 
     Ok(())
