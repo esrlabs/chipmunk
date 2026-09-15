@@ -322,6 +322,7 @@ dependencies = [
  "tokio",
  "unicode-segmentation",
  "uuid",
+ "walkdir",
  "winit",
 ]
 

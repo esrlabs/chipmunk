@@ -3,34 +3,34 @@ resolver = "3"
 default-members = ["crates/app"]
 
 members = [
-    "crates/app",
-    "crates/cli",
-    "crates/plugins_api",
+  "crates/app",
+  "crates/cli",
+  "crates/plugins_api",
 
-    "crates/stypes",
-    "crates/bufread",
-    "crates/dir_checksum",
-    "crates/file_tools",
-    "crates/shell_tools",
+  "crates/stypes",
+  "crates/bufread",
+  "crates/dir_checksum",
+  "crates/file_tools",
+  "crates/shell_tools",
 
-    "crates/core/dlt_tools",
-    "crates/core/someip_tools",
-    "crates/core/text_grep",
-    "crates/core/indexer_base",
-    "crates/core/merging",
-    "crates/core/parsers",
-    "crates/core/plugins_host",
-    "crates/core/processor",
-    "crates/core/session",
-    "crates/core/sources",
+  "crates/core/dlt_tools",
+  "crates/core/someip_tools",
+  "crates/core/text_grep",
+  "crates/core/indexer_base",
+  "crates/core/merging",
+  "crates/core/parsers",
+  "crates/core/plugins_host",
+  "crates/core/processor",
+  "crates/core/session",
+  "crates/core/sources",
 ]
 
 exclude = [
-    "plugins/examples/rust/dlt_parser",
-    "plugins/examples/rust/file_source",
-    "plugins/examples/rust/protobuf",
-    "plugins/examples/rust/string_parser",
-    "plugins/templates/rust/parser",
+  "plugins/examples/rust/dlt_parser",
+  "plugins/examples/rust/file_source",
+  "plugins/examples/rust/protobuf",
+  "plugins/examples/rust/string_parser",
+  "plugins/templates/rust/parser",
 ]
 
 [workspace.package]
@@ -120,6 +120,7 @@ wasmtime = "33.0"
 wasmtime-wasi = "33.0"
 wit-bindgen = "0.42"
 clap = { version = "4.5", features = ["derive"] }
+walkdir = "2.5"
 
 egui = "0.34"
 eframe = { version = "0.34", default-features = false }
