@@ -58,6 +58,7 @@ pcap-parser.workspace = true
 someip-messages.workspace = true
 
 log4rs.workspace = true
+walkdir.workspace = true
 
 winit.workspace = true
 egui = { workspace = true, features = ["rayon"] }

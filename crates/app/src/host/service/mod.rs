@@ -596,9 +596,9 @@ impl HostService {
         Ok(())
     }
 
-    /// Scan the files in directory and open the files of the given type
+    /// Scan the files in directory tree and open the files of the given type
     async fn files_in_dir(&self, dir_path: PathBuf, format: FileFormat) -> Result<(), HostError> {
-        let files = tokio::task::spawn_blocking(move || file::scan_dir(&dir_path, format))
+        let scan = tokio::task::spawn_blocking(move || file::scan_dir(&dir_path, format))
             .await
             .map_err(|_| {
                 HostError::InitSessionError(InitSessionError::Other(
@@ -606,6 +606,15 @@ impl HostService {
                 ))
             })?
             .map_err(|err| HostError::InitSessionError(InitSessionError::IO(err)))?;
+
+        if let Some(message) = scan.limits_message() {
+            self.communication
+                .senders
+                .send_notification(AppNotification::Warning(message))
+                .await;
+        }
+
+        let files = scan.files;
 
         if files.is_empty() {
             self.communication
