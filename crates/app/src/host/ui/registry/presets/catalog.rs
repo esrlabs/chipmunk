@@ -8,10 +8,6 @@ use crate::host::ui::storage::presets::PresetsData;
 
 use super::{Preset, PresetFilterEntry, PresetSearchValueEntry};
 
-/// Number of unpinned presets kept in storage, selected by create/update recency.
-/// Pinned presets are kept in addition to this budget.
-pub const MAX_PERSISTED_PRESETS: usize = 10;
-
 /// Host-level registry for named preset snapshots captured from session filters and charts.
 #[derive(Debug, Default, Clone)]
 pub struct PresetRegistry {
@@ -67,25 +63,32 @@ impl PresetRegistry {
     }
 
     /// Returns the presets to persist, in insertion order, only when the catalog changed.
-    pub fn take_save_data(&mut self) -> Option<PresetsData> {
+    ///
+    /// `unpinned_limit` is the configured budget of unpinned presets kept in storage.
+    pub fn take_save_data(&mut self, unpinned_limit: usize) -> Option<PresetsData> {
         if !self.dirty {
             return None;
         }
 
         self.dirty = false;
 
-        let presets = self.persisted_presets();
+        let presets = self.persisted_presets(unpinned_limit);
 
         Some(PresetsData::new(presets))
     }
 
-    fn persisted_presets(&self) -> Vec<Preset> {
+    /// Marks the catalog for a rewrite without changing preset content.
+    pub fn mark_dirty(&mut self) {
+        self.dirty = true;
+    }
+
+    fn persisted_presets(&self, unpinned_limit: usize) -> Vec<Preset> {
         let recent_ids = self
             .touch_order
             .iter()
             .copied()
             .filter(|id| self.get(id).is_some_and(|preset| !preset.pinned))
-            .take(MAX_PERSISTED_PRESETS)
+            .take(unpinned_limit)
             .collect::<Vec<_>>();
 
         self.presets
@@ -296,6 +299,9 @@ mod tests {
 
     use super::*;
     use crate::session::ui::definitions::schema::LogSchemaSpec;
+
+    /// Unpinned storage budget used by the save tests.
+    const UNPINNED_LIMIT: usize = 3;
 
     fn plain(value: &str) -> SearchFilter {
         SearchFilter::plain(value).ignore_case(true)
@@ -786,15 +792,17 @@ mod tests {
     fn save_data_requires_change() {
         let mut registry = PresetRegistry::default();
 
-        assert!(registry.take_save_data().is_none());
+        assert!(registry.take_save_data(UNPINNED_LIMIT).is_none());
 
         let preset_id =
             add_preset_with_default_state(&mut registry, "Errors", vec![plain("one")], vec![]);
 
-        let saved = registry.take_save_data().expect("add should mark changed");
+        let saved = registry
+            .take_save_data(UNPINNED_LIMIT)
+            .expect("add should mark changed");
 
         assert_eq!(preset_ids(&saved.presets), vec![preset_id]);
-        assert!(registry.take_save_data().is_none());
+        assert!(registry.take_save_data(UNPINNED_LIMIT).is_none());
     }
 
     #[test]
@@ -802,7 +810,9 @@ mod tests {
         let mut registry = PresetRegistry::default();
         let preset_id =
             add_preset_with_default_state(&mut registry, "Errors", vec![plain("one")], vec![]);
-        registry.take_save_data().expect("add should mark changed");
+        registry
+            .take_save_data(UNPINNED_LIMIT)
+            .expect("add should mark changed");
 
         let outcome = registry.update_preset(
             preset_id,
@@ -812,7 +822,7 @@ mod tests {
         );
 
         assert_eq!(outcome, PresetUpdateOutcome::Unchanged);
-        assert!(registry.take_save_data().is_none());
+        assert!(registry.take_save_data(UNPINNED_LIMIT).is_none());
     }
 
     #[test]
@@ -822,12 +832,14 @@ mod tests {
             add_preset_with_default_state(&mut registry, "Kept", vec![plain("one")], vec![]);
         let removed_id =
             add_preset_with_default_state(&mut registry, "Removed", vec![plain("two")], vec![]);
-        registry.take_save_data().expect("adds should mark changed");
+        registry
+            .take_save_data(UNPINNED_LIMIT)
+            .expect("adds should mark changed");
 
         assert!(registry.remove_preset(removed_id));
 
         let saved = registry
-            .take_save_data()
+            .take_save_data(UNPINNED_LIMIT)
             .expect("remove should mark changed");
 
         assert_eq!(preset_ids(&saved.presets), vec![kept_id]);
@@ -836,7 +848,7 @@ mod tests {
     #[test]
     fn save_data_keeps_recent_presets_in_display_order() {
         let mut registry = PresetRegistry::default();
-        let ids = (0..MAX_PERSISTED_PRESETS + 2)
+        let ids = (0..UNPINNED_LIMIT + 2)
             .map(|index| {
                 add_preset_with_default_state(
                     &mut registry,
@@ -847,7 +859,9 @@ mod tests {
             })
             .collect::<Vec<_>>();
 
-        let saved = registry.take_save_data().expect("adds should mark changed");
+        let saved = registry
+            .take_save_data(UNPINNED_LIMIT)
+            .expect("adds should mark changed");
 
         assert_eq!(preset_ids(&saved.presets), ids[2..]);
     }
@@ -857,7 +871,7 @@ mod tests {
         let mut registry = PresetRegistry::default();
         let oldest_id =
             add_preset_with_default_state(&mut registry, "Oldest", vec![plain("one")], vec![]);
-        let newer_ids = (0..MAX_PERSISTED_PRESETS)
+        let newer_ids = (0..UNPINNED_LIMIT)
             .map(|index| {
                 add_preset_with_default_state(
                     &mut registry,
@@ -875,7 +889,7 @@ mod tests {
             vec![],
         );
         let saved = registry
-            .take_save_data()
+            .take_save_data(UNPINNED_LIMIT)
             .expect("update should mark changed");
 
         assert_matches!(outcome, PresetUpdateOutcome::Updated { .. });
@@ -891,7 +905,7 @@ mod tests {
         let pinned_id =
             add_preset_with_default_state(&mut registry, "Pinned", vec![plain("one")], vec![]);
         assert!(registry.set_pinned(pinned_id, true));
-        let recent_ids = (0..MAX_PERSISTED_PRESETS)
+        let recent_ids = (0..UNPINNED_LIMIT)
             .map(|index| {
                 add_preset_with_default_state(
                     &mut registry,
@@ -902,7 +916,9 @@ mod tests {
             })
             .collect::<Vec<_>>();
 
-        let saved = registry.take_save_data().expect("adds should mark changed");
+        let saved = registry
+            .take_save_data(UNPINNED_LIMIT)
+            .expect("adds should mark changed");
 
         // The pinned preset keeps its display position and costs no recency slot.
         let mut expected_ids = vec![pinned_id];
@@ -911,12 +927,39 @@ mod tests {
     }
 
     #[test]
+    fn dirty_catalog_saves_with_requested_budget() {
+        let mut registry = PresetRegistry::default();
+        let ids = (0..UNPINNED_LIMIT)
+            .map(|index| {
+                add_preset_with_default_state(
+                    &mut registry,
+                    &format!("preset-{index}"),
+                    vec![plain("one")],
+                    vec![],
+                )
+            })
+            .collect::<Vec<_>>();
+        registry
+            .take_save_data(UNPINNED_LIMIT)
+            .expect("adds should mark changed");
+
+        registry.mark_dirty();
+        let saved = registry
+            .take_save_data(1)
+            .expect("marked catalog should save");
+
+        // Presets stay in the catalog; only the persisted subset follows the budget.
+        assert_eq!(preset_ids(&saved.presets), vec![ids[UNPINNED_LIMIT - 1]]);
+        assert_eq!(registry.presets().len(), UNPINNED_LIMIT);
+    }
+
+    #[test]
     fn unpinning_restores_budget_position() {
         let mut registry = PresetRegistry::default();
         let pinned_id =
             add_preset_with_default_state(&mut registry, "Pinned", vec![plain("one")], vec![]);
         assert!(registry.set_pinned(pinned_id, true));
-        let recent_ids = (0..MAX_PERSISTED_PRESETS)
+        let recent_ids = (0..UNPINNED_LIMIT)
             .map(|index| {
                 add_preset_with_default_state(
                     &mut registry,
@@ -928,7 +971,9 @@ mod tests {
             .collect::<Vec<_>>();
 
         assert!(registry.set_pinned(pinned_id, false));
-        let saved = registry.take_save_data().expect("adds should mark changed");
+        let saved = registry
+            .take_save_data(UNPINNED_LIMIT)
+            .expect("adds should mark changed");
 
         // Pinning never touched the recency order, so the oldest preset drops out again.
         assert_eq!(preset_ids(&saved.presets), recent_ids);
@@ -941,7 +986,9 @@ mod tests {
             add_preset_with_default_state(&mut registry, "First", vec![plain("one")], vec![]);
         let second_id =
             add_preset_with_default_state(&mut registry, "Second", vec![plain("two")], vec![]);
-        registry.take_save_data().expect("adds should mark changed");
+        registry
+            .take_save_data(UNPINNED_LIMIT)
+            .expect("adds should mark changed");
         let revision = registry.definitions_revision();
 
         assert!(registry.set_pinned(first_id, true));
@@ -949,7 +996,7 @@ mod tests {
         assert!(registry.get(&first_id).unwrap().pinned);
         assert_eq!(registry.definitions_revision(), revision + 1);
         assert_eq!(preset_ids(registry.presets()), vec![first_id, second_id]);
-        assert!(registry.take_save_data().is_some());
+        assert!(registry.take_save_data(UNPINNED_LIMIT).is_some());
     }
 
     #[test]
@@ -957,12 +1004,14 @@ mod tests {
         let mut registry = PresetRegistry::default();
         let preset_id =
             add_preset_with_default_state(&mut registry, "Errors", vec![plain("one")], vec![]);
-        registry.take_save_data().expect("add should mark changed");
+        registry
+            .take_save_data(UNPINNED_LIMIT)
+            .expect("add should mark changed");
 
         assert!(!registry.set_pinned(preset_id, false));
         assert!(!registry.set_pinned(Uuid::new_v4(), true));
 
-        assert!(registry.take_save_data().is_none());
+        assert!(registry.take_save_data(UNPINNED_LIMIT).is_none());
     }
 
     #[test]
@@ -1009,12 +1058,12 @@ mod tests {
         let mut registry = PresetRegistry::restored(PresetsData::new(restored.clone()));
 
         assert_eq!(preset_ids(registry.presets()), preset_ids(&restored));
-        assert!(registry.take_save_data().is_none());
+        assert!(registry.take_save_data(UNPINNED_LIMIT).is_none());
     }
 
     #[test]
     fn restored_presets_keep_file_recency_order() {
-        let restored = (0..MAX_PERSISTED_PRESETS + 1)
+        let restored = (0..UNPINNED_LIMIT + 1)
             .map(|index| {
                 runtime_preset(
                     Uuid::new_v4(),
@@ -1028,7 +1077,9 @@ mod tests {
 
         let new_id =
             add_preset_with_default_state(&mut registry, "Newest", vec![plain("two")], vec![]);
-        let saved = registry.take_save_data().expect("add should mark changed");
+        let saved = registry
+            .take_save_data(UNPINNED_LIMIT)
+            .expect("add should mark changed");
 
         // Restored file order is the recency order, so the first entries are dropped first.
         let mut expected_ids = preset_ids(&restored[2..]);

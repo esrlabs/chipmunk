@@ -116,7 +116,8 @@ impl HostStorage {
     }
 
     fn collect_save_data(&mut self, registry: &mut HostRegistry) -> Option<Box<StorageSaveData>> {
-        self.presets.stage(&mut registry.presets);
+        self.presets
+            .stage(&mut registry.presets, self.settings.current());
 
         let data = StorageSaveData {
             file_explorer: self.file_explorer.get_save_data(),
@@ -266,7 +267,7 @@ mod tests {
                     },
                     storage::RecentSessionsStorage,
                 },
-                settings::{AppSettings, UpdateSettings},
+                settings::{AppSettings, PresetSettings, UpdateSettings},
                 types::{LoadState, StorageError, StorageErrorKind, StorageEvent, StorageSaveData},
             },
         },
@@ -345,6 +346,7 @@ mod tests {
                 check_for_updates: false,
                 check_pre_releases: true,
             },
+            presets: PresetSettings::default(),
         });
     }
 

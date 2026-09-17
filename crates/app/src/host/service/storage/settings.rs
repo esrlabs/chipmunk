@@ -87,7 +87,7 @@ mod tests {
 
     use crate::host::{
         service::storage::storage_path_from_home,
-        ui::storage::settings::{AppSettings, UpdateSettings},
+        ui::storage::settings::{AppSettings, PresetSettings, UpdateSettings},
     };
 
     use super::*;
@@ -116,11 +116,25 @@ mod tests {
                 check_for_updates: false,
                 check_pre_releases: true,
             },
+            presets: PresetSettings { unpinned_limit: 3 },
         };
 
         save_to_path(&path, &settings).expect("settings should save");
         let loaded = load(&path).expect("settings should load");
 
         assert_eq!(loaded, settings);
+    }
+
+    #[test]
+    fn missing_fields_load_defaults() {
+        let home_dir = tempdir().expect("temp home dir should be created");
+        let path = test_settings_path(home_dir.path()).expect("settings path should be resolved");
+        std::fs::write(&path, r#"{"updates":{"check_for_updates":false}}"#)
+            .expect("settings file should be written");
+
+        let loaded = load(&path).expect("partial settings should load");
+
+        assert!(!loaded.updates.check_for_updates);
+        assert_eq!(loaded.presets, PresetSettings::default());
     }
 }
