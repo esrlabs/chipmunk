@@ -16,7 +16,7 @@ pub struct PresetsStorage {
 /// Preset data kept in storage.
 #[derive(Debug, Clone, Default)]
 pub struct PresetsData {
-    /// Stored presets in display order.
+    /// Stored presets in catalog order.
     pub presets: Vec<Preset>,
 }
 
@@ -48,7 +48,7 @@ impl PresetsStorage {
 }
 
 impl PresetsData {
-    /// Wraps stored presets in display order.
+    /// Wraps stored presets in catalog order.
     pub fn new(presets: Vec<Preset>) -> Self {
         Self { presets }
     }

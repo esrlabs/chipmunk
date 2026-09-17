@@ -50,7 +50,7 @@ pub struct PresetImportSummary {
 impl PresetRegistry {
     /// Creates a registry from presets restored from storage.
     pub fn restored(stored: PresetsData) -> Self {
-        // Stored presets are in display order, which is also their recency order.
+        // Stored presets are in insertion order, which is also their recency order.
         let PresetsData { presets } = stored;
 
         let mut registry = Self::default();
@@ -61,12 +61,12 @@ impl PresetRegistry {
         registry
     }
 
-    /// Returns stored presets in display order.
+    /// Returns stored presets in insertion order.
     pub fn presets(&self) -> &[Preset] {
         &self.presets
     }
 
-    /// Returns the presets to persist, in display order, only when the catalog changed.
+    /// Returns the presets to persist, in insertion order, only when the catalog changed.
     pub fn take_save_data(&mut self) -> Option<PresetsData> {
         if !self.dirty {
             return None;
@@ -247,7 +247,7 @@ impl PresetRegistry {
     /// Keeps a preset in storage regardless of the recency budget, or releases it back to
     /// the budget, and reports whether the state changed.
     ///
-    /// Pinning is not a content change: display order and recency order both stay intact.
+    /// Pinning is not a content change: catalog order and recency order both stay intact.
     pub fn set_pinned(&mut self, id: Uuid, pinned: bool) -> bool {
         let Some(preset) = self.presets.iter_mut().find(|preset| preset.id == id) else {
             return false;
