@@ -595,7 +595,8 @@ impl eframe::App for Host {
             self.notifications.add(notification);
         }
 
-        self.storage.poll_pending_save(&mut self.ui_actions);
+        self.storage
+            .poll_pending_save(&mut self.state.registry, &mut self.ui_actions);
 
         let registry = &self.state.registry;
         for tab in self.tabs.tabs_mut() {

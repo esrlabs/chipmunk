@@ -24,7 +24,6 @@ use crate::host::{
 
 use self::{
     file_explorer::FileExplorerStorage,
-    presets::PresetsStorage,
     recent::storage::RecentSessionsStorage,
     settings::{AppSettings, AppSettingsStorage},
     types::{StorageError, StorageErrorKind, StorageEvent, StorageSaveData},
@@ -48,8 +47,6 @@ pub struct HostStorage {
     pub recent_sessions: RecentSessionsStorage,
     /// Loaded application settings.
     pub settings: AppSettingsStorage,
-    /// Presets staged for persistence from the host registry during save collection.
-    presets: PresetsStorage,
     /// Save completion for the aggregate storage snapshot currently in flight.
     pending_save: Option<SaveConfirmationRx>,
 }
@@ -66,7 +63,6 @@ impl HostStorage {
             file_explorer: FileExplorerStorage::new(),
             recent_sessions,
             settings: AppSettingsStorage::new(settings),
-            presets: PresetsStorage::default(),
             pending_save: None,
         }
     }
@@ -84,16 +80,18 @@ impl HostStorage {
             return;
         };
 
-        self.send_save_cmd(data, ui_actions);
+        self.send_save_cmd(data, registry, ui_actions);
     }
 
     /// Applies any completed save result without blocking the UI thread.
-    pub fn poll_pending_save(&mut self, ui_actions: &mut UiActions) {
+    ///
+    /// A failed save re-marks every domain, so registry-owned domains are re-requested too.
+    pub fn poll_pending_save(&mut self, registry: &mut HostRegistry, ui_actions: &mut UiActions) {
         let Some(result) = self.take_pending_save_result() else {
             return;
         };
 
-        self.handle_save_result(result, ui_actions);
+        self.handle_save_result(result, registry, ui_actions);
     }
 
     /// Waits for the current save, or starts one first if data is still dirty.
@@ -103,7 +101,7 @@ impl HostStorage {
                 return;
             };
 
-            if !self.send_save_cmd(data, ui_actions) {
+            if !self.send_save_cmd(data, registry, ui_actions) {
                 return;
             }
         }
@@ -112,18 +110,16 @@ impl HostStorage {
             return;
         };
 
-        self.handle_save_result(result, ui_actions);
+        self.handle_save_result(result, registry, ui_actions);
     }
 
     fn collect_save_data(&mut self, registry: &mut HostRegistry) -> Option<Box<StorageSaveData>> {
-        self.presets
-            .stage(&mut registry.presets, self.settings.current());
-
+        let unpinned_limit = self.settings.current().presets.unpinned_limit;
         let data = StorageSaveData {
             file_explorer: self.file_explorer.get_save_data(),
             recent_sessions: self.recent_sessions.get_save_data(),
             app_settings: self.settings.get_save_data(),
-            presets: self.presets.get_save_data(),
+            presets: registry.presets.take_save_data(unpinned_limit),
         };
         let StorageSaveData {
             file_explorer,
@@ -139,28 +135,33 @@ impl HostStorage {
         .then_some(Box::new(data))
     }
 
-    fn mark_all_dirty(&mut self) {
+    /// Requests a new save of every domain, including the registry-owned presets.
+    fn mark_all_dirty(&mut self, registry: &mut HostRegistry) {
         let Self {
             cmd_tx: _,
             file_explorer,
             recent_sessions,
             settings,
-            presets,
             pending_save: _,
         } = self;
 
         file_explorer.mark_dirty();
         recent_sessions.mark_dirty();
         settings.mark_dirty();
-        presets.mark_dirty();
+        registry.presets.mark_dirty();
     }
 
-    fn send_save_cmd(&mut self, data: Box<StorageSaveData>, ui_actions: &mut UiActions) -> bool {
+    fn send_save_cmd(
+        &mut self,
+        data: Box<StorageSaveData>,
+        registry: &mut HostRegistry,
+        ui_actions: &mut UiActions,
+    ) -> bool {
         let (confirm_tx, confirm_rx) = std_mpsc::channel();
         let cmd = HostCommand::SaveStorage { data, confirm_tx };
 
         if !ui_actions.try_send_command(&self.cmd_tx, cmd) {
-            self.mark_all_dirty();
+            self.mark_all_dirty(registry);
             ui_actions.add_notification(AppNotification::Error(
                 "Failed to queue storage save.".into(),
             ));
@@ -208,9 +209,14 @@ impl HostStorage {
         })
     }
 
-    fn handle_save_result(&mut self, result: Result<(), StorageError>, ui_actions: &mut UiActions) {
+    fn handle_save_result(
+        &mut self,
+        result: Result<(), StorageError>,
+        registry: &mut HostRegistry,
+        ui_actions: &mut UiActions,
+    ) {
         if let Err(err) = result {
-            self.mark_all_dirty();
+            self.mark_all_dirty(registry);
             ui_actions.add_notification(AppNotification::Error(err.to_string()));
         }
     }
@@ -268,7 +274,7 @@ mod tests {
                     storage::RecentSessionsStorage,
                 },
                 settings::{AppSettings, PresetSettings, UpdateSettings},
-                types::{LoadState, StorageError, StorageErrorKind, StorageEvent, StorageSaveData},
+                types::{LoadState, StorageError, StorageErrorKind, StorageEvent},
             },
         },
     };
@@ -293,10 +299,6 @@ mod tests {
         let ui_actions = UiActions::new(runtime.handle().clone());
 
         (runtime, ui_actions)
-    }
-
-    fn collect_save_data(storage: &mut HostStorage) -> Option<Box<StorageSaveData>> {
-        storage.collect_save_data(&mut HostRegistry::default())
     }
 
     fn snapshot_from_observe_options(options: stypes::ObserveOptions) -> RecentSessionSnapshot {
@@ -353,12 +355,13 @@ mod tests {
     #[test]
     fn save_data_requires_dirty_storage() {
         let (mut storage, _) = test_storage();
+        let mut registry = HostRegistry::default();
 
-        assert!(collect_save_data(&mut storage).is_none());
+        assert!(storage.collect_save_data(&mut registry).is_none());
 
         make_dirty(&mut storage);
 
-        let data = collect_save_data(&mut storage);
+        let data = storage.collect_save_data(&mut registry);
 
         assert!(matches!(
             data,
@@ -367,7 +370,7 @@ mod tests {
     }
 
     #[test]
-    fn staged_presets_are_saved_and_retried_on_failure() {
+    fn presets_are_saved_and_retried_on_failure() {
         let (mut storage, mut cmd_rx) = test_storage();
         let (_runtime, mut ui_actions) = test_ui_actions();
         let mut registry = registry_with_preset();
@@ -390,9 +393,13 @@ mod tests {
                 message: "disk full".into(),
             }))
             .expect("save confirmation should be sent");
-        storage.poll_pending_save(&mut ui_actions);
+        storage.poll_pending_save(&mut registry, &mut ui_actions);
 
-        assert!(collect_save_data(&mut storage).is_some_and(|data| data.presets.is_some()));
+        assert!(
+            storage
+                .collect_save_data(&mut registry)
+                .is_some_and(|data| data.presets.is_some())
+        );
     }
 
     #[test]
@@ -401,7 +408,7 @@ mod tests {
 
         make_file_explorer_dirty(&mut storage);
 
-        let data = collect_save_data(&mut storage);
+        let data = storage.collect_save_data(&mut HostRegistry::default());
 
         assert!(matches!(
             data,
@@ -433,10 +440,11 @@ mod tests {
     fn poll_save_success_clears_dirty() {
         let (mut storage, mut cmd_rx) = test_storage();
         let (_runtime, mut ui_actions) = test_ui_actions();
+        let mut registry = HostRegistry::default();
 
         make_dirty(&mut storage);
         make_file_explorer_dirty(&mut storage);
-        storage.schedule_save(&mut HostRegistry::default(), &mut ui_actions);
+        storage.schedule_save(&mut registry, &mut ui_actions);
 
         let HostCommand::SaveStorage { confirm_tx, .. } =
             cmd_rx.try_recv().expect("save command should be queued")
@@ -447,7 +455,7 @@ mod tests {
             .send(Ok(()))
             .expect("save confirmation should be sent");
 
-        storage.poll_pending_save(&mut ui_actions);
+        storage.poll_pending_save(&mut registry, &mut ui_actions);
 
         assert!(storage.pending_save.is_none());
         assert!(storage.file_explorer.get_save_data().is_none());
@@ -458,9 +466,10 @@ mod tests {
     fn poll_save_success_clears_settings_dirty() {
         let (mut storage, mut cmd_rx) = test_storage();
         let (_runtime, mut ui_actions) = test_ui_actions();
+        let mut registry = HostRegistry::default();
 
         make_settings_dirty(&mut storage);
-        storage.schedule_save(&mut HostRegistry::default(), &mut ui_actions);
+        storage.schedule_save(&mut registry, &mut ui_actions);
 
         let HostCommand::SaveStorage { confirm_tx, data } =
             cmd_rx.try_recv().expect("save command should be queued")
@@ -472,18 +481,19 @@ mod tests {
             .send(Ok(()))
             .expect("save confirmation should be sent");
 
-        storage.poll_pending_save(&mut ui_actions);
+        storage.poll_pending_save(&mut registry, &mut ui_actions);
 
-        assert!(collect_save_data(&mut storage).is_none());
+        assert!(storage.collect_save_data(&mut registry).is_none());
     }
 
     #[test]
     fn poll_save_error_keeps_settings_dirty() {
         let (mut storage, mut cmd_rx) = test_storage();
         let (_runtime, mut ui_actions) = test_ui_actions();
+        let mut registry = HostRegistry::default();
 
         make_settings_dirty(&mut storage);
-        storage.schedule_save(&mut HostRegistry::default(), &mut ui_actions);
+        storage.schedule_save(&mut registry, &mut ui_actions);
 
         let HostCommand::SaveStorage { confirm_tx, .. } =
             cmd_rx.try_recv().expect("save command should be queued")
@@ -497,10 +507,10 @@ mod tests {
             }))
             .expect("save confirmation should be sent");
 
-        storage.poll_pending_save(&mut ui_actions);
+        storage.poll_pending_save(&mut registry, &mut ui_actions);
 
         assert!(matches!(
-            collect_save_data(&mut storage),
+            storage.collect_save_data(&mut registry),
             Some(data) if data.app_settings.is_some()
         ));
     }
@@ -509,10 +519,11 @@ mod tests {
     fn poll_save_error_notifies() {
         let (mut storage, mut cmd_rx) = test_storage();
         let (_runtime, mut ui_actions) = test_ui_actions();
+        let mut registry = HostRegistry::default();
 
         make_dirty(&mut storage);
         make_file_explorer_dirty(&mut storage);
-        storage.schedule_save(&mut HostRegistry::default(), &mut ui_actions);
+        storage.schedule_save(&mut registry, &mut ui_actions);
 
         let HostCommand::SaveStorage { confirm_tx, .. } =
             cmd_rx.try_recv().expect("save command should be queued")
@@ -526,7 +537,7 @@ mod tests {
             }))
             .expect("save confirmation should be sent");
 
-        storage.poll_pending_save(&mut ui_actions);
+        storage.poll_pending_save(&mut registry, &mut ui_actions);
 
         assert!(storage.pending_save.is_none());
         assert!(storage.file_explorer.get_save_data().is_some());

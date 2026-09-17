@@ -261,7 +261,9 @@ impl PresetRegistry {
         }
 
         preset.pinned = pinned;
-        self.mark_changed();
+        // Pin state is not part of preset definitions, so UI caches keyed on the
+        // catalog revision stay valid and only persistence is affected.
+        self.mark_dirty();
         true
     }
 
@@ -980,7 +982,7 @@ mod tests {
     }
 
     #[test]
-    fn set_pinned_marks_change_without_reordering() {
+    fn set_pinned_needs_save_without_definition_change() {
         let mut registry = PresetRegistry::default();
         let first_id =
             add_preset_with_default_state(&mut registry, "First", vec![plain("one")], vec![]);
@@ -994,7 +996,7 @@ mod tests {
         assert!(registry.set_pinned(first_id, true));
 
         assert!(registry.get(&first_id).unwrap().pinned);
-        assert_eq!(registry.definitions_revision(), revision + 1);
+        assert_eq!(registry.definitions_revision(), revision);
         assert_eq!(preset_ids(registry.presets()), vec![first_id, second_id]);
         assert!(registry.take_save_data(UNPINNED_LIMIT).is_some());
     }
