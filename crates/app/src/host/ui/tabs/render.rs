@@ -165,7 +165,7 @@ impl HostTabs {
             HostTab::PluginManager(plugin_manager) => {
                 plugin_manager.render_content(ui, plugins, actions, preferences, modals)
             }
-            HostTab::AppSettings(settings) => settings.render_content(storage, ui),
+            HostTab::AppSettings(settings) => settings.render_content(storage, registry, ui),
         }
     }
 }

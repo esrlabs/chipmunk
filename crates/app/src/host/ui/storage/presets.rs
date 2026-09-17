@@ -4,7 +4,10 @@
 //! preset state. It stages the snapshot that must be persisted and keeps it for
 //! retries until an aggregate save succeeds.
 
-use crate::host::ui::registry::presets::{Preset, PresetRegistry};
+use crate::host::ui::{
+    registry::presets::{Preset, PresetRegistry},
+    storage::settings::AppSettings,
+};
 
 /// UI-side storage state for presets.
 #[derive(Debug, Default)]
@@ -22,8 +25,8 @@ pub struct PresetsData {
 
 impl PresetsStorage {
     /// Takes the presets to persist from the registry when it has unsaved changes.
-    pub fn stage(&mut self, presets: &mut PresetRegistry) {
-        let Some(changed) = presets.take_save_data() else {
+    pub fn stage(&mut self, presets: &mut PresetRegistry, settings: &AppSettings) {
+        let Some(changed) = presets.take_save_data(settings.presets.unpinned_limit) else {
             return;
         };
 
@@ -81,7 +84,7 @@ mod tests {
         let mut storage = PresetsStorage::default();
         let mut registry = registry_with_preset();
 
-        storage.stage(&mut registry);
+        storage.stage(&mut registry, &AppSettings::default());
 
         assert!(
             storage
@@ -90,7 +93,7 @@ mod tests {
         );
         assert!(storage.get_save_data().is_none());
 
-        storage.stage(&mut registry);
+        storage.stage(&mut registry, &AppSettings::default());
 
         assert!(storage.get_save_data().is_none());
     }
@@ -99,7 +102,7 @@ mod tests {
     fn mark_dirty_retries_staged_presets() {
         let mut storage = PresetsStorage::default();
         let mut registry = registry_with_preset();
-        storage.stage(&mut registry);
+        storage.stage(&mut registry, &AppSettings::default());
         storage.get_save_data().expect("staged presets should save");
 
         storage.mark_dirty();

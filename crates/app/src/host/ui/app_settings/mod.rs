@@ -1,14 +1,20 @@
 //! Application settings host-tab UI.
 
-use egui::{Align, CentralPanel, Checkbox, Layout, Panel, RichText, ScrollArea, Sense, Ui, vec2};
+use egui::{
+    Align, CentralPanel, Checkbox, DragValue, Layout, Panel, RichText, ScrollArea, Sense, Ui, vec2,
+};
 
 use crate::{
     common::ui::buttons,
     host::{
         common::ui_utls::main_panel_group_frame,
         ui::{
+            registry::HostRegistry,
             state::modal::{ConfirmationAnswer, ConfirmationDialog, HostModalState},
-            storage::{HostStorage, settings::AppSettings},
+            storage::{
+                HostStorage,
+                settings::{AppSettings, PresetSettings},
+            },
         },
     },
 };
@@ -34,7 +40,12 @@ impl AppSettingsView {
     }
 
     /// Renders the settings form and applies accepted changes to host storage.
-    pub fn render_content(&mut self, storage: &mut HostStorage, ui: &mut Ui) {
+    pub fn render_content(
+        &mut self,
+        storage: &mut HostStorage,
+        registry: &mut HostRegistry,
+        ui: &mut Ui,
+    ) {
         let mut apply_clicked = false;
         let mut discard_clicked = false;
 
@@ -98,6 +109,34 @@ impl AppSettingsView {
                                         );
                                     });
                                 });
+
+                                ui.add_space(8.0);
+                                main_panel_group_frame(ui).show(ui, |ui| {
+                                    ui.take_available_width();
+                                    ui.label(RichText::new("Presets").heading().size(16.0));
+                                    ui.add_space(8.0);
+
+                                    let unpinned_limit =
+                                        &mut self.draft.presets.unpinned_limit;
+                                    ui.horizontal(|ui| {
+                                        ui.label("Max persisted unpinned presets");
+                                        ui.add(DragValue::new(unpinned_limit).speed(0.25));
+                                    })
+                                    .response
+                                    .on_hover_ui(|ui| {
+                                        ui.set_max_width(ui.spacing().tooltip_width);
+                                        let default_limit =
+                                            PresetSettings::DEFAULT_UNPINNED_LIMIT;
+                                        let tooltip = format!(
+                                            "Maximum number of unpinned presets persisted \
+                                            between sessions, picked by most recently added \
+                                            or edited. Pinned presets are always persisted, \
+                                            so 0 persists pinned presets only.\n\
+                                            Default: {default_limit}."
+                                        );
+                                        ui.label(tooltip);
+                                    });
+                                });
                             });
                     },
                 );
@@ -132,6 +171,10 @@ impl AppSettingsView {
 
         if apply_clicked {
             let settings = self.draft.clone();
+            // A changed budget only takes effect when the presets file is rewritten.
+            if settings.presets != self.original.presets {
+                registry.presets.mark_dirty();
+            }
             storage.settings.apply(settings.clone());
             self.original = settings;
         }

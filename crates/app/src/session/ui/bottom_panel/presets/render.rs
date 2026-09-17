@@ -15,7 +15,7 @@ use crate::{
     },
     host::ui::registry::{
         HostRegistry,
-        presets::{MAX_PERSISTED_PRESETS, Preset, PresetFilterEntry, PresetSearchValueEntry},
+        presets::{Preset, PresetFilterEntry, PresetSearchValueEntry},
     },
 };
 
@@ -821,17 +821,13 @@ fn render_pin_hint(pinned: bool, ui: &mut Ui) {
     ui.set_max_width(ui.spacing().tooltip_width);
 
     let hint = if pinned {
-        format!(
-            "Pinned: this preset is always kept after restart.\n\
-            Unpin it to keep it only while it stays among the {MAX_PERSISTED_PRESETS} \
-            most recently added or edited unpinned presets."
-        )
+        "Pinned: this preset is always kept after restart.\n\
+        Unpin it to keep it only while it stays among the most recently added or edited \
+        unpinned presets."
     } else {
-        format!(
-            "Not pinned: only the {MAX_PERSISTED_PRESETS} most recently added or edited \
-            unpinned presets are kept after restart.\n\
-            Pin this preset to always keep it."
-        )
+        "Not pinned: only the most recently added or edited unpinned presets are kept after \
+        restart, up to the limit configured in App Settings.\n\
+        Pin this preset to always keep it."
     };
 
     ui.label(hint);

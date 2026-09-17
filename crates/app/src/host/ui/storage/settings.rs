@@ -8,6 +8,8 @@ use serde::{Deserialize, Serialize};
 pub struct AppSettings {
     /// Update-check settings.
     pub updates: UpdateSettings,
+    /// Preset persistence settings.
+    pub presets: PresetSettings,
 }
 
 /// UI-side storage state for application settings.
@@ -25,6 +27,19 @@ pub struct UpdateSettings {
     pub check_for_updates: bool,
     /// Whether pre-release versions should be considered during update checks.
     pub check_pre_releases: bool,
+}
+
+/// Persistent settings for preset storage.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct PresetSettings {
+    /// Number of unpinned presets kept in storage, selected by create/update recency.
+    /// Pinned presets are kept in addition to this budget.
+    pub unpinned_limit: usize,
+}
+
+impl PresetSettings {
+    pub const DEFAULT_UNPINNED_LIMIT: usize = 25;
 }
 
 impl AppSettingsStorage {
@@ -68,6 +83,14 @@ impl Default for UpdateSettings {
         Self {
             check_for_updates: true,
             check_pre_releases: false,
+        }
+    }
+}
+
+impl Default for PresetSettings {
+    fn default() -> Self {
+        Self {
+            unpinned_limit: Self::DEFAULT_UNPINNED_LIMIT,
         }
     }
 }
