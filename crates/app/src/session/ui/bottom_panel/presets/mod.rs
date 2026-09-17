@@ -56,6 +56,8 @@ pub struct PresetsUI {
 /// Deferred UI intents emitted while rendering preset cards.
 #[derive(Debug, Clone)]
 pub enum PresetAction {
+    /// Open an edit draft for a preset.
+    StartEdit(Uuid),
     /// Save the active edit draft for a preset.
     SaveEdit(Uuid),
     /// Cancel the active edit draft for a preset.
@@ -246,6 +248,11 @@ impl PresetsUI {
         registry: &mut HostRegistry,
     ) {
         match action {
+            PresetAction::StartEdit(id) => {
+                if let Some(preset) = registry.presets.get(&id) {
+                    self.start_edit_from_preset(preset);
+                }
+            }
             PresetAction::SaveEdit(id) => self.save_edit(registry, id),
             PresetAction::CancelEdit(id) => self.cancel_edit(id),
             PresetAction::Apply(id) => {
