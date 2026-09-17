@@ -1,15 +1,18 @@
 //! Preset card rendering for browse and edit modes.
 
 use egui::{
-    Align, Button, Color32, Frame, Key, Layout, Margin, Response, RichText, ScrollArea, Sense,
-    Sides, StrokeKind, TextEdit, Ui, UiBuilder, vec2,
+    Align, Color32, Frame, Key, Layout, Margin, Rect, Response, RichText, ScrollArea, Sense, Sides,
+    StrokeKind, TextEdit, Ui, UiBuilder, containers::menu::MenuButton, vec2,
 };
 use uuid::Uuid;
 
 use processor::search::filter::SearchFilter;
 
 use crate::{
-    common::{phosphor::icons, ui::buttons},
+    common::{
+        phosphor::{self, icons},
+        ui::buttons,
+    },
     host::ui::registry::{
         HostRegistry,
         presets::{MAX_PERSISTED_PRESETS, Preset, PresetFilterEntry, PresetSearchValueEntry},
@@ -67,13 +70,13 @@ impl PresetsUI {
             }
 
             any_visible = true;
-            let card_response = self.render_preset_card(preset, registry, ui, pending_action);
+            let card_rect = self.render_preset_card(preset, registry, ui, pending_action);
             if self
                 .scroll_to_preset
                 .take_if(|target| *target == preset.id)
                 .is_some()
             {
-                ui.scroll_to_rect(card_response.rect, None);
+                ui.scroll_to_rect(card_rect, None);
             }
             ui.add_space(8.0);
         }
@@ -81,97 +84,114 @@ impl PresetsUI {
         any_visible
     }
 
-    /// Renders a single fixed-size preset card and returns its container response.
+    /// Renders a single fixed-size preset card and returns the rect it occupies.
     pub fn render_preset_card(
         &mut self,
         preset: &Preset,
         registry: &HostRegistry,
         ui: &mut Ui,
         pending_action: &mut Option<PresetAction>,
-    ) -> Response {
+    ) -> Rect {
         let is_editing = self.is_editing(preset.id);
         let is_export_selected = self.is_selected_for_export(preset.id);
+        let is_browsing = !is_editing && !self.is_exporting();
         let card_size = vec2(
             card_metrics::PRESET_CARD_WIDTH,
             card_metrics::PRESET_CARD_HEIGHT,
         );
-        ui.allocate_ui_with_layout(card_size, Layout::top_down(Align::Min), |ui| {
-            let visuals = ui.visuals();
-            let mut frame = Frame::group(ui.style())
-                .fill(visuals.faint_bg_color)
-                .inner_margin(Margin::symmetric(
-                    card_metrics::PRESET_CARD_INNER_MARGIN_X,
-                    card_metrics::PRESET_CARD_INNER_MARGIN_Y,
-                ))
-                .outer_margin(Margin::symmetric(
-                    0,
-                    card_metrics::PRESET_CARD_OUTER_MARGIN_Y,
-                ));
-            if is_editing {
-                frame = frame
-                    .fill(visuals.widgets.open.bg_fill)
-                    .stroke(visuals.selection.stroke);
-            } else if is_export_selected {
-                frame = frame.stroke(visuals.selection.stroke);
-            }
 
-            frame.show(ui, |ui| {
-                // Lock the inner card size so long content cannot widen or
-                // stretch cards inside the wrapped layout.
-                ui.set_width(card_metrics::PRESET_CARD_CONTENT_WIDTH);
-                ui.set_height(card_metrics::PRESET_CARD_CONTENT_HEIGHT);
-                if is_editing {
-                    self.render_edit_header(preset.id, ui, pending_action);
-                    if let Some(edit_state) = self
-                        .edit_state
-                        .as_ref()
-                        .filter(|state| state.preset_id == preset.id)
-                    {
-                        let summary = entries_summary(
-                            &edit_state.draft_filters,
-                            &edit_state.draft_search_values,
-                        );
-                        ui.label(RichText::new(summary).weak().size(11.0));
-                    }
-                } else if self.is_exporting() {
-                    self.render_export_header(preset, ui, pending_action);
-                    let summary = entries_summary(&preset.filters, &preset.search_values);
-                    ui.label(RichText::new(summary).weak().size(11.0));
-                } else {
-                    self.render_browse_header(preset, ui, pending_action);
-                    let summary = entries_summary(&preset.filters, &preset.search_values);
+        let (_, card_rect) = ui.allocate_space(card_size);
+        if is_browsing {
+            // Registering the card before its content keeps inner widgets on top in
+            // hit-testing, and the preset-keyed id keeps the menu with its card while
+            // pinning regroups the list.
+            ui.interact(
+                card_rect,
+                ui.id().with(("preset_card", preset.id)),
+                Sense::click(),
+            )
+            .context_menu(|ui| render_card_menu(preset, ui, pending_action));
+        }
+
+        // Space for the card is already allocated, so its content renders into a
+        // child ui that does not allocate again.
+        let mut card_ui = ui.new_child(
+            UiBuilder::new()
+                .max_rect(card_rect)
+                .layout(Layout::top_down(Align::Min))
+                .id_salt(preset.id),
+        );
+        let ui = &mut card_ui;
+
+        let visuals = ui.visuals();
+        let mut frame = Frame::group(ui.style())
+            .fill(visuals.faint_bg_color)
+            .inner_margin(Margin::symmetric(
+                card_metrics::PRESET_CARD_INNER_MARGIN_X,
+                card_metrics::PRESET_CARD_INNER_MARGIN_Y,
+            ))
+            .outer_margin(Margin::symmetric(
+                0,
+                card_metrics::PRESET_CARD_OUTER_MARGIN_Y,
+            ));
+        if is_editing {
+            frame = frame
+                .fill(visuals.widgets.open.bg_fill)
+                .stroke(visuals.selection.stroke);
+        } else if is_export_selected {
+            frame = frame.stroke(visuals.selection.stroke);
+        }
+
+        frame.show(ui, |ui| {
+            // Lock the inner card size so long content cannot widen or
+            // stretch cards inside the wrapped layout.
+            ui.set_width(card_metrics::PRESET_CARD_CONTENT_WIDTH);
+            ui.set_height(card_metrics::PRESET_CARD_CONTENT_HEIGHT);
+            if is_editing {
+                self.render_edit_header(preset.id, ui, pending_action);
+                if let Some(edit_state) = self
+                    .edit_state
+                    .as_ref()
+                    .filter(|state| state.preset_id == preset.id)
+                {
+                    let summary =
+                        entries_summary(&edit_state.draft_filters, &edit_state.draft_search_values);
                     ui.label(RichText::new(summary).weak().size(11.0));
                 }
+            } else if self.is_exporting() {
+                self.render_export_header(preset, ui, pending_action);
+                let summary = entries_summary(&preset.filters, &preset.search_values);
+                ui.label(RichText::new(summary).weak().size(11.0));
+            } else {
+                render_browse_header(preset, ui, pending_action);
+                let summary = entries_summary(&preset.filters, &preset.search_values);
+                ui.label(RichText::new(summary).weak().size(11.0));
+            }
 
-                ui.add_space(card_metrics::PRESET_CARD_HEADER_GAP);
+            ui.add_space(card_metrics::PRESET_CARD_HEADER_GAP);
 
-                ScrollArea::vertical()
-                    .id_salt(("preset_card_body", preset.id))
-                    .auto_shrink(false)
-                    .show(ui, |ui| {
-                        Frame::NONE
-                            .inner_margin(Margin {
-                                left: 1,
-                                right: 6,
-                                top: 0,
-                                bottom: 0,
-                            })
-                            .show(ui, |ui| {
-                                if is_editing {
-                                    self.render_editing_body(
-                                        preset.id,
-                                        registry,
-                                        ui,
-                                        pending_action,
-                                    );
-                                } else {
-                                    self.render_browse_body(preset, ui);
-                                }
-                            });
-                    });
-            });
-        })
-        .response
+            ScrollArea::vertical()
+                .id_salt("preset_card_body")
+                .auto_shrink(false)
+                .show(ui, |ui| {
+                    Frame::NONE
+                        .inner_margin(Margin {
+                            left: 1,
+                            right: 6,
+                            top: 0,
+                            bottom: 0,
+                        })
+                        .show(ui, |ui| {
+                            if is_editing {
+                                self.render_editing_body(preset.id, registry, ui, pending_action);
+                            } else {
+                                self.render_browse_body(preset, ui);
+                            }
+                        });
+                });
+        });
+
+        card_rect
     }
 
     /// Renders the export-mode header with a single inclusion checkbox.
@@ -182,7 +202,7 @@ impl PresetsUI {
         pending_action: &mut Option<PresetAction>,
     ) {
         ui.horizontal(|ui| {
-            render_pin_indicator(preset.pinned, ui);
+            render_pin_badge(preset.pinned, ui);
             ui.label(RichText::new(preset.name.as_str()).strong());
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                 let mut selected = self.is_selected_for_export(preset.id);
@@ -192,50 +212,6 @@ impl PresetsUI {
                     .changed()
                 {
                     let action = PresetAction::ToggleExportSelection(preset.id);
-                    *pending_action = Some(action);
-                }
-            });
-        });
-    }
-
-    /// Renders the browse-mode header actions for a preset card.
-    fn render_browse_header(
-        &mut self,
-        preset: &Preset,
-        ui: &mut Ui,
-        pending_action: &mut Option<PresetAction>,
-    ) {
-        ui.horizontal(|ui| {
-            render_pin_toggle(preset, ui, pending_action);
-            ui.label(RichText::new(preset.name.as_str()).strong());
-            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                if ui
-                    .add(buttons::bottom_panel_icon(
-                        RichText::new(icons::regular::TRASH).size(14.0),
-                    ))
-                    .on_hover_text("Delete preset")
-                    .clicked()
-                {
-                    let action = PresetAction::Delete(preset.id);
-                    *pending_action = Some(action);
-                }
-                if ui
-                    .add(buttons::bottom_panel_icon(
-                        RichText::new(icons::regular::PENCIL_SIMPLE).size(14.0),
-                    ))
-                    .on_hover_text("Edit preset")
-                    .clicked()
-                {
-                    self.start_edit_from_preset(preset);
-                }
-                if ui
-                    .add(buttons::bottom_panel_icon(
-                        RichText::new(icons::regular::PLAY).size(14.0),
-                    ))
-                    .on_hover_text("Apply preset")
-                    .clicked()
-                {
-                    let action = PresetAction::Apply(preset.id);
                     *pending_action = Some(action);
                 }
             });
@@ -761,31 +737,83 @@ impl PresetBrowseSection {
     }
 }
 
-/// Renders the pin toggle, whose pressed state shows whether the preset is pinned.
-fn render_pin_toggle(preset: &Preset, ui: &mut Ui, pending_action: &mut Option<PresetAction>) {
+/// Renders the browse-mode header of a preset card.
+fn render_browse_header(preset: &Preset, ui: &mut Ui, pending_action: &mut Option<PresetAction>) {
+    const HEADER_ICON_SIZE: f32 = 14.0;
+
+    ui.horizontal(|ui| {
+        render_pin_badge(preset.pinned, ui);
+        ui.label(RichText::new(preset.name.as_str()).strong());
+        ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+            let menu_button = MenuButton::from_button(buttons::bottom_panel_icon(
+                RichText::new(icons::regular::DOTS_THREE_VERTICAL).size(HEADER_ICON_SIZE),
+            ));
+            let (menu_response, _) =
+                menu_button.ui(ui, |ui| render_card_menu(preset, ui, pending_action));
+            menu_response.on_hover_text("More preset actions");
+
+            if ui
+                .add(buttons::bottom_panel_icon(
+                    RichText::new(icons::regular::PLAY).size(HEADER_ICON_SIZE),
+                ))
+                .on_hover_text("Apply preset")
+                .clicked()
+            {
+                let action = PresetAction::Apply(preset.id);
+                *pending_action = Some(action);
+            }
+        });
+    });
+}
+
+/// Renders the browse-mode preset actions shared by the card menu button and its context menu.
+fn render_card_menu(preset: &Preset, ui: &mut Ui, pending_action: &mut Option<PresetAction>) {
+    const MENU_MIN_SIZE: egui::Vec2 = egui::vec2(100.0, 0.0);
+    ui.set_min_size(MENU_MIN_SIZE);
+
+    let mut action = None;
+
+    if ui.button("Apply").clicked() {
+        action = Some(PresetAction::Apply(preset.id));
+    }
+    if ui.button("Edit").clicked() {
+        action = Some(PresetAction::StartEdit(preset.id));
+    }
+
+    let pin_label = if preset.pinned { "Unpin" } else { "Pin" };
     if ui
-        .add(pin_button(preset.pinned))
+        .button(pin_label)
         .on_hover_ui(|ui| render_pin_hint(preset.pinned, ui))
         .clicked()
     {
-        let action = PresetAction::SetPinned(preset.id, !preset.pinned);
-        *pending_action = Some(action);
+        action = Some(PresetAction::SetPinned(preset.id, !preset.pinned));
+    }
+
+    ui.separator();
+
+    if ui.button("Delete").clicked() {
+        action = Some(PresetAction::Delete(preset.id));
+    }
+
+    if action.is_some() {
+        *pending_action = action;
+        ui.close();
     }
 }
 
-/// Renders the pin state in the same shape as the toggle, without offering it.
-fn render_pin_indicator(pinned: bool, ui: &mut Ui) {
-    ui.add_enabled(false, pin_button(pinned))
-        .on_disabled_hover_ui(|ui| render_pin_hint(pinned, ui));
-}
-
-/// Builds the pin control, where the selected state carries the pinned state.
-fn pin_button(pinned: bool) -> Button<'static> {
+/// Marks a pinned preset, leaving unpinned presets unmarked.
+fn render_pin_badge(pinned: bool, ui: &mut Ui) {
     const PIN_ICON_SIZE: f32 = 14.0;
 
-    // Kept framed in both states so the control lines up with the sibling card actions.
-    buttons::bottom_panel_icon(RichText::new(icons::regular::PUSH_PIN).size(PIN_ICON_SIZE))
-        .selected(pinned)
+    if !pinned {
+        return;
+    }
+
+    let badge = RichText::new(icons::fill::PUSH_PIN)
+        .family(phosphor::fill_font_family())
+        .size(PIN_ICON_SIZE);
+    ui.label(badge)
+        .on_hover_ui(|ui| render_pin_hint(pinned, ui));
 }
 
 /// Explains the storage rules behind the pin state so they stay discoverable in the panel.
