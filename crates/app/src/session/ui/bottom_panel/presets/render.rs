@@ -50,6 +50,37 @@ enum PresetBrowseSection {
 }
 
 impl PresetsUI {
+    /// Renders the cards of one pin group and reports whether any card passed the name filter.
+    ///
+    /// Called once per pin state so pinned presets lead the list without reordering the catalog.
+    pub fn render_preset_block(
+        &mut self,
+        pinned: bool,
+        registry: &HostRegistry,
+        ui: &mut Ui,
+        pending_action: &mut Option<PresetAction>,
+    ) -> bool {
+        let mut any_visible = false;
+        for preset in registry.presets.presets() {
+            if preset.pinned != pinned || !self.query_state.matches(&preset.id) {
+                continue;
+            }
+
+            any_visible = true;
+            let card_response = self.render_preset_card(preset, registry, ui, pending_action);
+            if self
+                .scroll_to_preset
+                .take_if(|target| *target == preset.id)
+                .is_some()
+            {
+                ui.scroll_to_rect(card_response.rect, None);
+            }
+            ui.add_space(8.0);
+        }
+
+        any_visible
+    }
+
     /// Renders a single fixed-size preset card and returns its container response.
     pub fn render_preset_card(
         &mut self,

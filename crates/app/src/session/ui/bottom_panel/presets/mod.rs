@@ -49,7 +49,7 @@ pub struct PresetsUI {
     query_visibility: VisibilityTracker,
     edit_state: Option<PresetEditState>,
     export_state: Option<ExportSelectionState>,
-    /// Newly captured preset card that should be brought into view once rendered.
+    /// Preset card that should be brought into view once rendered.
     scroll_to_preset: Option<Uuid>,
 }
 
@@ -218,22 +218,9 @@ impl PresetsUI {
             .auto_shrink([false, true])
             .show(ui, |ui| {
                 ui.horizontal_wrapped(|ui| {
-                    for preset in registry.presets.presets() {
-                        if !self.query_state.matches(&preset.id) {
-                            continue;
-                        }
-
-                        any_visible = true;
-                        let card_response =
-                            self.render_preset_card(preset, registry, ui, &mut pending_action);
-                        if self
-                            .scroll_to_preset
-                            .take_if(|target| *target == preset.id)
-                            .is_some()
-                        {
-                            ui.scroll_to_rect(card_response.rect, Some(Align::BOTTOM));
-                        }
-                        ui.add_space(8.0);
+                    for pinned in [true, false] {
+                        any_visible |=
+                            self.render_preset_block(pinned, registry, ui, &mut pending_action);
                     }
                 });
             });
@@ -268,7 +255,10 @@ impl PresetsUI {
                 self.delete_preset(registry, id);
             }
             PresetAction::SetPinned(id, pinned) => {
-                registry.presets.set_pinned(id, pinned);
+                // Pinning moves the card between blocks, so keep it in view.
+                if registry.presets.set_pinned(id, pinned) {
+                    self.scroll_to_preset = Some(id);
+                }
             }
             PresetAction::ToggleExportSelection(id) => self.toggle_export_selection(id),
             PresetAction::AddFilter(id, filter) => {
