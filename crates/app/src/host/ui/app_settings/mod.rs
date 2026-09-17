@@ -120,7 +120,7 @@ impl AppSettingsView {
                                         &mut self.draft.presets.unpinned_limit;
                                     ui.horizontal(|ui| {
                                         ui.label("Max persisted unpinned presets");
-                                        ui.add(DragValue::new(unpinned_limit).speed(0.25));
+                                        ui.add(DragValue::new(unpinned_limit));
                                     })
                                     .response
                                     .on_hover_ui(|ui| {

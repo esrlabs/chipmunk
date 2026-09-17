@@ -85,7 +85,7 @@ impl PresetsUI {
     }
 
     /// Renders a single fixed-size preset card and returns the rect it occupies.
-    pub fn render_preset_card(
+    fn render_preset_card(
         &mut self,
         preset: &Preset,
         registry: &HostRegistry,
