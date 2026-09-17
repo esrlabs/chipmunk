@@ -32,3 +32,7 @@ Presets let you save filter and chart collections for reuse across sessions. The
   <video src="../assets/filters/filter_preset.mp4" controls muted loop playsinline width="100%"></video>
 </p>
 
+Presets are kept after restart. Since the most recently added or edited presets are usually the relevant ones, only a limited number of them is stored. This limit can be changed with "Max persisted unpinned presets" in App Settings, and setting it to zero keeps pinned presets only.
+
+Presets that should always survive a restart can be pinned from the preset card menu. Pinned presets are kept regardless of that limit and are listed first, marked with a pin.
+
