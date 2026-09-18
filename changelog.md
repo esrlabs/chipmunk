@@ -1,6 +1,33 @@
+# 4.3.0 (18.09.2026)
+
+## Features
+
+- Added a dedicated parser for UTF-16 text files (LE/BE, with or without BOM), detected automatically from the file's content.
+- Text with other non-UTF-8 encodings is now converted to valid UTF-8 instead of causing hard errors during search.
+- Added automatic persisting of the most recently used presets across sessions.
+- Added pinning presets to persist them explicitly, regardless of usage limits.
+- Added a setting to control how many unpinned presets are persisted automatically.
+- Added recursive folder search to the "Select files from folder" commands and drag-and-drop, in both the menu and the command palette.
+- Added standard zoom commands to the View menu and command palette.
+
+## Changes
+
+- Improved text file parsing performance by up to 1.35x (measured on a 1.5 GB file).
+- Improved parsing performance for DLT files with heavy attachment use by up to 1.18x.
+- Preset actions are now grouped in a menu instead of separate buttons.
+- Improved leftover session temp files cleanup using operating system lock-files.
+
+## Fixes
+
+- Fixed data loss on lines longer than the internal read buffer from process and serial data sources.
+- Fixed parsed items losing or splitting data at reader buffer boundaries when a data source stalls.
+- Fixed CLI socket sessions repeatedly resending previously sent messages instead of only new ones.
+- Fixed exports not writing all records when reading a session to the end.
+
 # 4.2.0 (18.08.2026)
 
 ## Features
+
 - Added "Find in Search Results" to find matches within the current search results, with the shortcut `Ctrl/Cmd+Shift+F`.
 - Added a "Jump to Log" overlay to jump directly to a log line number, with the shortcut `Ctrl/Cmd+G`.
 - Added copying selected rows to the clipboard, via context menu or `Ctrl/Cmd+Shift+C`.
@@ -11,6 +38,7 @@
 - Added support for OS "Open with" calls on Windows and Linux, and passing file paths directly to the CLI.
 
 ## Changes
+
 - Temporary search now overrides persistent filters while the search is active.
 - Improved manual selection for logs in logs and search tables.
 - Transient notifications are shown for actions like copying, without adding entries to the notifications history.
@@ -21,12 +49,14 @@
 - Moved the filters shortcut to `Ctrl/Cmd+Shift+S`.
 
 ## Fixes
+
 - Fixed memory growth in long-running sessions caused by unused progress tracking messages piling up.
 - Fixed jumping to the nearest row when search results and bookmarks are both present.
 
 # 4.1.0 (14.07.2026)
 
 ## Features
+
 - Added a SOME/IP statistics view to session setup, with summaries and counts by service/method ID and message type.
 - Added file sorting to multi-file session setup.
 - Added drag-and-drop file reordering to multi-file session setup.
@@ -34,11 +64,13 @@
 - Added context-menu actions to remove all filters or charts at once.
 
 ## Changes
+
 - Improved application logging reliability.
 - Limited notification banners to four lines.
 - Changed overlapping filter highlights so the last matching filter determines the color.
 
 ## Fixes
+
 - Fixed Windows installer architecture and installation path issues.
 - Fixed Windows release builds showing an extra console window.
 - Added the missing Chipmunk executable icon on Windows.
@@ -47,8 +79,9 @@
 # 4.0.1 (12.06.2026)
 
 # Changes:
-* Improve graphics backend reliability on older devices and some Linux systems.
-* Improve unsupported file detection and related notification messages.
+
+- Improve graphics backend reliability on older devices and some Linux systems.
+- Improve unsupported file detection and related notification messages.
 
 # 4.0.0 (10.06.2026)
 
@@ -73,12 +106,14 @@ This rewrite also gives us a stronger base for future development, helping us de
 # 3.19.6 (30.04.2026)
 
 ## Added
+
 - Chipmunk 4 alpha release announcement.
 - Notifications for Chipmunk 4 alpha releases.
 
 # 3.19.5 (20.04.2026)
 
 ## Fixes
+
 - Fix construction of arguments for DLT non-verbose messages.
 - Fix missing DLT timestamps when importing legacy PCAP files.
 - Fix text parser skipping the last line when available bytes do not end with a newline.
@@ -87,21 +122,25 @@ This rewrite also gives us a stronger base for future development, helping us de
 # 3.19.4 (13.01.2026)
 
 ## Changes
+
 - Performance improvements: Offloaded search to a separate task, reducing UI lag and making parsing with active filters up to **1.4X faster**.
 
 # 3.19.3 (12.12.2025)
 
 ## Changes
+
 - Use PowerShell as default shell on Windows when available.
 - List built-in PowerShell on Windows in the available shells.
 
 # 3.19.2 (10.12.2025)
 
 ## Features
+
 - Add Templates and Example plugins development with C/C++.
 - Enabled support for complex shell commands, including piping and inline environment variables.
 
 ## Changes
+
 - Resolved Antivirus false positives by checking for well-known shells without execution, instead of executing all installed shells at startup.
 - Improved error reporting to display native shell errors instead of generic IO failures.
 - Fix used counter in filter presets view
@@ -109,22 +148,26 @@ This rewrite also gives us a stronger base for future development, helping us de
 # 3.19.1 (13.10.2025)
 
 ## Fixes
+
 - Fixed issue where export as table for binary sources (DLT, SomeIP, etc.) was exporting empty content.
 - Prevented duplicating filter presets when applying them.
 
 ## Changes
+
 - Remove all remaining automatic update artifacts on startup.
 - Dropdown texts changed to Title Case.
 
 # 3.19.0 (26.09.2025)
 
 ## Features
+
 - Significant performance improvements: Binary file processing is now up to **3X faster**.
 - Add Tailing support for binary files (now supports both text and binary).
 
 # 3.18.7 (11.09.2025)
 
 ## Changes
+
 - CLI arguments for multiple files now open a multi-file view instead of concatenating.
 - CLI: Glob matches are now sorted alphabetically.
 - CLI: Multiple glob patterns now append results instead of overwriting.
@@ -132,17 +175,20 @@ This rewrite also gives us a stronger base for future development, helping us de
 # 3.18.6 (10.09.2025)
 
 ## Fixes
+
 - Consider Parser-type CLI argument for launching with file paths.
 - Fix starting file concatenation sessions via command-line arguments.
 
 # 3.18.5 (05.09.2025)
 
 ## Fixes
+
 - Stop file tailing on file truncate.
 
 # 3.18.4 (29.08.2025)
 
 ## Changes
+
 - Fixes empty filters after opening files from a quick navigation prompt.
 - Tab "Presets/history" now automatically activates after importing filters.
 - "Recently added" filters now shows previous imports on duplicate imports.
@@ -150,22 +196,26 @@ This rewrite also gives us a stronger base for future development, helping us de
 # 3.18.3 (21.08.2025)
 
 ## Fixes
+
 - Switch to native clipboard API.
 
 # 3.18.2 (19.08.2025)
 
 ## Add
+
 - Support for `Ubuntu 20.04` in release and updater.
 - Confirmation dialog on remove plugin in plugins manager.
 
 ## Fixes
+
 - Include logs from all Rust core components by default.
 - Show correct filter name in file picker dialog (for Linux).
-- Fix preview attachments issue on Windows.  
+- Fix preview attachments issue on Windows.
 
 # 3.18.1 (02.06.2025)
 
 ## Fixes
+
 - Fix application menu (for macos)
 - Allow open external links in changelogs overview
 - Fix listing of parsers
@@ -174,43 +224,52 @@ This rewrite also gives us a stronger base for future development, helping us de
 # 3.18.0 (30.05.2025)
 
 ## Add
+
 - Add support of wasm plugins for custom parsers/sources
 
 # 3.17.2 (26.05.2025)
 
 ## Changes
+
 - Update inner dependencies in Cargo.lock files
 
 # 3.17.1 (23.05.2025)
 
 ## Fixes
+
 - Fix for loading corrupted DLT files (statistics collecting)
 - Fix for error reporting during DLT statistics collecting
 
 ## Changes
-- Update documentation 
+
+- Update documentation
 
 # 3.17.0 (12.04.2025)
 
 ## Fixes
+
 - Fix the scrollbar issue (disappeared on tab switch)
 - Fix local storage (on save)
 
 ## Features
+
 - Add support of multiple themes
 - Add Light Theme
 
 # 3.16.6 (06.04.2025)
 
 ## Fixes
+
 - Fix sticky scrolling issue
 
 ## Changes
+
 - Refactoring an infrastructure of parsers
 
 # 3.16.5 (28.03.2025)
 
 ## Changes
+
 - Upgrade DLT parser version
 - Add TCP reconnection support
 - Refactoring to fit cancel safe requirements
