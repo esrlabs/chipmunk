@@ -271,7 +271,7 @@ checksum = "7f202df86484c868dbad7eaa557ef785d5c66295e41b460ef922eca0723b842c"
 
 [[package]]
 name = "app"
-version = "4.2.0"
+version = "4.3.0"
 dependencies = [
  "anstyle-parse",
  "anyhow",
@@ -696,7 +696,7 @@ dependencies = [
 
 [[package]]
 name = "bufread"
-version = "4.2.0"
+version = "4.3.0"
 dependencies = [
  "criterion",
  "proptest",
@@ -1022,7 +1022,7 @@ checksum = "c8d4a3bb8b1e0c1050499d1815f5ab16d04f0959b233085fb31653fbfc9d98f9"
 
 [[package]]
 name = "cli"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "anyhow",
  "clap",
@@ -1660,7 +1660,7 @@ dependencies = [
 
 [[package]]
 name = "dlt_tools"
-version = "4.2.0"
+version = "4.3.0"
 dependencies = [
  "dlt-core",
  "indexer_base",
@@ -2174,7 +2174,7 @@ dependencies = [
 
 [[package]]
 name = "file_tools"
-version = "4.2.0"
+version = "4.3.0"
 
 [[package]]
 name = "filetime"
@@ -3034,7 +3034,7 @@ dependencies = [
 
 [[package]]
 name = "indexer_base"
-version = "4.2.0"
+version = "4.3.0"
 dependencies = [
  "log",
  "serde",
@@ -3480,7 +3480,7 @@ dependencies = [
 
 [[package]]
 name = "merging"
-version = "4.2.0"
+version = "4.3.0"
 dependencies = [
  "log",
  "serde",
@@ -4168,7 +4168,7 @@ dependencies = [
 
 [[package]]
 name = "parsers"
-version = "4.2.0"
+version = "4.3.0"
 dependencies = [
  "byteorder",
  "chrono",
@@ -4410,7 +4410,7 @@ dependencies = [
 
 [[package]]
 name = "plugins_host"
-version = "4.2.0"
+version = "4.3.0"
 dependencies = [
  "anyhow",
  "blake3",
@@ -4557,7 +4557,7 @@ dependencies = [
 
 [[package]]
 name = "processor"
-version = "4.2.0"
+version = "4.3.0"
 dependencies = [
  "anstyle-parse",
  "bincode",
@@ -5348,7 +5348,7 @@ dependencies = [
 
 [[package]]
 name = "session"
-version = "4.2.0"
+version = "4.3.0"
 dependencies = [
  "bincode",
  "dirs",
@@ -5594,7 +5594,7 @@ dependencies = [
 
 [[package]]
 name = "someip_tools"
-version = "4.2.0"
+version = "4.3.0"
 dependencies = [
  "nom",
  "thiserror 2.0.18",
@@ -5602,7 +5602,7 @@ dependencies = [
 
 [[package]]
 name = "sources"
-version = "4.2.0"
+version = "4.3.0"
 dependencies = [
  "bufread",
  "env_logger",
@@ -5663,7 +5663,7 @@ checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
 
 [[package]]
 name = "stypes"
-version = "4.2.0"
+version = "4.3.0"
 dependencies = [
  "anyhow",
  "dlt-core",
@@ -5794,7 +5794,7 @@ dependencies = [
 
 [[package]]
 name = "text_grep"
-version = "4.2.0"
+version = "4.3.0"
 dependencies = [
  "bufread",
  "grep-regex",
