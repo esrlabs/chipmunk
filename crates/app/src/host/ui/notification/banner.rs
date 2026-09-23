@@ -8,6 +8,7 @@ use egui::{
 };
 
 use super::NotificationEntry;
+use crate::host::ui::Host;
 
 /// State for the currently visible temporal notification banner.
 #[derive(Debug, Clone)]
@@ -32,7 +33,7 @@ impl NotificationBanner {
     pub fn new(entry: NotificationEntry, history_backed: bool) -> Self {
         const BANNER_TTL: Duration = Duration::from_secs(4);
 
-        let now = Instant::now();
+        let now = Host::frame_now();
         Self {
             entry,
             history_backed,
@@ -73,7 +74,7 @@ impl NotificationBanner {
             button_rect.bottom() + BANNER_GAP,
         );
 
-        let now = Instant::now();
+        let now = Host::frame_now();
         const FADE_IN: Duration = Duration::from_millis(120);
         const FADE_OUT: Duration = Duration::from_millis(400);
         let age_alpha = (now.saturating_duration_since(self.created_at).as_secs_f32()

@@ -2,6 +2,8 @@ use std::time::{Duration, Instant};
 
 use itertools::Itertools;
 
+use crate::host::ui::Host;
+
 const REGULAR_RESCAN_PORTS_DURATION: Duration = Duration::from_secs(10);
 const NOPORTS_RESCAN_PORTS_DURATION: Duration = Duration::from_secs(5);
 
@@ -106,7 +108,7 @@ impl SerialConfig {
             path: String::new(),
             path_err: None,
             available_ports,
-            last_ports_scan: Instant::now(),
+            last_ports_scan: Host::frame_now(),
 
             baud_rate: BaudRate::default(),
             available_bauds,
@@ -184,9 +186,10 @@ impl SerialConfig {
             REGULAR_RESCAN_PORTS_DURATION
         };
 
-        if self.last_ports_scan.elapsed() > check_duration {
+        let now = Host::frame_now();
+        if now.saturating_duration_since(self.last_ports_scan) > check_duration {
             self.available_ports = Self::scan_ports();
-            self.last_ports_scan = Instant::now();
+            self.last_ports_scan = now;
         }
     }
 

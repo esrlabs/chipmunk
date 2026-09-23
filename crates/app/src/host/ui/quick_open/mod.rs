@@ -17,7 +17,7 @@ use crate::{
     },
 };
 
-use super::UiActions;
+use super::{Host, UiActions};
 
 mod row;
 mod search;
@@ -194,7 +194,7 @@ impl QuickOpen {
                         if self.query.is_empty() {
                             self.throttle.reset();
                         } else {
-                            self.throttle.delay_next();
+                            self.throttle.delay_next(Host::frame_now());
                         }
                     }
 
@@ -291,7 +291,7 @@ impl QuickOpen {
     }
 
     fn refresh_results(&mut self, storage: &HostStorage, ctx: &Context) {
-        if !self.needs_recompute || !self.throttle.ready(Some(ctx)) {
+        if !self.needs_recompute || !self.throttle.ready(Host::frame_now(), Some(ctx)) {
             return;
         }
 

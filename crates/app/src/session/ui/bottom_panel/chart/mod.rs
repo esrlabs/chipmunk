@@ -6,7 +6,7 @@ use tokio::sync::mpsc::Sender;
 
 use crate::{
     common::action_throttle::ActionThrottle,
-    host::ui::{UiActions, registry::filters::FilterRegistry},
+    host::ui::{Host, UiActions, registry::filters::FilterRegistry},
     session::{
         command::SessionCommand,
         ui::shared::{SearchTableSync, SessionShared},
@@ -353,7 +353,7 @@ impl ChartUI {
                 self.pending_request_range = None;
                 let retry_range = bound_x.clone();
 
-                if !self.throttle.ready(Some(ui.ctx())) {
+                if !self.throttle.ready(Host::frame_now(), Some(ui.ctx())) {
                     self.pending_request_range = Some(bound_x);
                     return;
                 }
@@ -515,7 +515,7 @@ impl ChartUI {
 
 #[cfg(test)]
 mod tests {
-    use std::path::PathBuf;
+    use std::{path::PathBuf, time::Instant};
 
     use egui_plot::PlotBounds;
     use tokio::sync::mpsc;
@@ -693,8 +693,9 @@ mod tests {
         chart.data.set_histogram(vec![vec![ChartBar::new(0, 3)]]);
         chart.data.line_plots.insert(0, vec![point(1, 5.0)]);
 
-        assert!(chart.throttle.ready(None));
-        assert!(!chart.throttle.ready(None));
+        let now = Instant::now();
+        assert!(chart.throttle.ready(now, None));
+        assert!(!chart.throttle.ready(now, None));
 
         chart.reset();
 
@@ -704,7 +705,7 @@ mod tests {
         assert!(!chart.reset_full_range);
         assert!(chart.data.bars.is_empty());
         assert!(chart.data.line_plots.is_empty());
-        assert!(chart.throttle.ready(None));
+        assert!(chart.throttle.ready(now, None));
     }
 
     #[test]

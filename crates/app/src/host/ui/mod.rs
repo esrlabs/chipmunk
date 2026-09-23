@@ -1,4 +1,7 @@
-use std::time::Duration;
+use std::{
+    cell::Cell,
+    time::{Duration, Instant},
+};
 
 use anyhow::ensure;
 use eframe::NativeOptions;
@@ -64,6 +67,12 @@ pub mod storage;
 mod tabs;
 pub mod update;
 
+thread_local! {
+    /// Timestamp captured at the start of each UI pass in [`Host::logic`].
+    /// Stays `None` on threads that never run the UI loop.
+    static FRAME_NOW: Cell<Option<Instant>> = const { Cell::new(None) };
+}
+
 #[derive(Debug)]
 pub struct Host {
     receivers: UiReceivers,
@@ -79,6 +88,16 @@ pub struct Host {
 }
 
 impl Host {
+    /// Returns the timestamp captured at the start of the current UI pass, avoiding a clock
+    /// call per call site and keeping all timing within a pass consistent.
+    ///
+    /// # Note:
+    /// Meant for the UI loop. Callers outside it, like tests driving widgets directly, fall back
+    /// to the clock and therefore get a fresh timestamp on each call instead of a shared one.
+    pub fn frame_now() -> Instant {
+        FRAME_NOW.get().unwrap_or_else(Instant::now)
+    }
+
     pub fn run(cli_cmds: Vec<CliCommand>) -> eframe::Result<()> {
         let native_options = NativeOptions {
             viewport: egui::ViewportBuilder::default()
@@ -587,6 +606,8 @@ fn render_panel_toggle(ui: &mut Ui, visible: &mut bool, icon: &str, panel_name: 
 
 impl eframe::App for Host {
     fn logic(&mut self, ctx: &Context, _frame: &mut eframe::Frame) {
+        FRAME_NOW.set(Some(Instant::now()));
+
         while let Ok(msg) = self.receivers.message_rx.try_recv() {
             self.handle_message(msg, ctx);
         }
