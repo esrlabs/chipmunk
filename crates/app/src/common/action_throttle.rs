@@ -65,6 +65,11 @@ impl ActionThrottle {
         self.last_action = None;
     }
 
+    /// Updates the cool-down interval, keeping the current cool-down state.
+    pub fn set_interval(&mut self, interval: Duration) {
+        self.interval = interval;
+    }
+
     /// Returns the cool-down left before the next action is allowed.
     fn remaining(&self, now: Instant) -> Duration {
         let Some(last_action) = self.last_action else {
@@ -118,6 +123,20 @@ mod tests {
         throttle.delay_next(now);
         assert!(!throttle.ready(now, None));
         assert!(throttle.ready(now + INTERVAL, None));
+    }
+
+    #[test]
+    fn test_throttle_set_interval_keeps_cooldown() {
+        let mut throttle = ActionThrottle::new(INTERVAL);
+        let now = Instant::now();
+
+        assert!(throttle.ready(now, None));
+        assert!(!throttle.ready(now, None));
+
+        throttle.set_interval(INTERVAL * 2);
+        // The running cool-down must survive an interval change and follow the new interval.
+        assert!(!throttle.ready(now + INTERVAL, None));
+        assert!(throttle.ready(now + INTERVAL * 2, None));
     }
 
     #[test]

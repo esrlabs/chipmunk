@@ -221,7 +221,10 @@ impl ChartUI {
             });
 
         let plot_res = plot.show(ui, |plot_ui| {
-            if self.reset_full_range {
+            // Bounds set here apply to the next pass only, so the transform read via
+            // `plot_ui.plot_bounds()` stays stale for the rest of this one.
+            let bounds_reset = self.reset_full_range;
+            if bounds_reset {
                 self.reset_full_range = false;
 
                 // We need to reset X axis manually to show all logs span.
@@ -316,11 +319,20 @@ impl ChartUI {
                 return PlotResponse::JumpToLog(log);
             }
 
+            let plot_bounds = plot_ui.plot_bounds();
+
+            // A queued range only marks that a request is owed. Its range is authoritative just
+            // while the transform is stale, otherwise the live viewport wins: a range queued
+            // before a throttled cool-down can be bounds the user has already left.
             if let Some(range) = self.pending_request_range.take() {
+                let range = if bounds_reset {
+                    range
+                } else {
+                    Self::bounds_request_range(&plot_bounds, shared)
+                };
+
                 return PlotResponse::RequestForRange(range);
             }
-
-            let plot_bounds = plot_ui.plot_bounds();
 
             let Some(current_request_range) = self.current_request_range.clone() else {
                 self.set_full_range(shared);
@@ -349,14 +361,15 @@ impl ChartUI {
                 shared.logs.focus_main_row(log_nr, SearchTableSync::Sync);
             }
             PlotResponse::RequestForRange(bound_x) => {
-                self.update_throttle_config(shared.logs.logs_count());
+                self.update_throttle_interval(shared.logs.logs_count());
                 self.pending_request_range = None;
-                let retry_range = bound_x.clone();
 
                 if !self.throttle.ready(Host::frame_now(), Some(ui.ctx())) {
                     self.pending_request_range = Some(bound_x);
                     return;
                 }
+
+                let retry_range = bound_x.clone();
                 self.current_request_range = Some(bound_x.clone());
 
                 // Taken from current Chipmunk: Matches are divided by 2
@@ -482,7 +495,7 @@ impl ChartUI {
     }
 
     /// Adjusts the throttle interval based on the current dataset size.
-    pub fn update_throttle_config(&mut self, logs_count: u64) {
+    fn update_throttle_interval(&mut self, logs_count: u64) {
         let new_interval = match logs_count {
             0..=100_000 => Duration::from_millis(50),
             100_001..=500_000 => Duration::from_millis(100),
@@ -491,7 +504,7 @@ impl ChartUI {
             _ => Duration::from_millis(225),
         };
 
-        self.throttle = ActionThrottle::new(new_interval);
+        self.throttle.set_interval(new_interval);
     }
 
     fn place_holder(ui: &mut Ui) {
