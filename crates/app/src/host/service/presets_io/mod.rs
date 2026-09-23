@@ -213,9 +213,20 @@ impl fmt::Display for ImportWarning {
     }
 }
 
+/// Unit tests plus the shared preset fixtures used by both the GUI importer
+/// and the CLI preset loader tests.
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::{fs, path::PathBuf};
+
+    /// Reads a shared preset fixture from repo development resources directory
+    pub fn fixture_text(rel_path: &str) -> String {
+        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../development/resources/presets")
+            .join(rel_path);
+        fs::read_to_string(path).expect("preset fixture should be readable")
+    }
 
     #[test]
     fn rejects_unsupported_document_kind() {

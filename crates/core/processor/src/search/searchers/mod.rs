@@ -1,4 +1,7 @@
-use crate::{grabber::GrabError, search::error::SearchError};
+use crate::{
+    grabber::GrabError,
+    search::{error::SearchError, filter},
+};
 use grep_regex::RegexMatcher;
 use grep_searcher::{Searcher, sinks::UTF8};
 use std::{
@@ -75,7 +78,7 @@ impl<State: SearchState> BaseSearcher<State> {
                 "Cannot search without filters".to_owned(),
             ));
         }
-        let combined_regex: String = format!("({})", terms.join("|"));
+        let combined_regex = filter::combine_terms(terms);
         let matcher = match RegexMatcher::new(&combined_regex) {
             Ok(regex) => regex,
             Err(err) => {

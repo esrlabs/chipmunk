@@ -27,6 +27,11 @@ pub struct Cli {
     /// Specify the format of the output.
     #[arg(short = 'f', long, default_value_t = OutputFormat::Binary)]
     pub output_format: OutputFormat,
+    /// Path to a filter preset file exported from the Chipmunk GUI.
+    /// Only records matching the preset's active filters are written to the output.
+    /// Supported with text output only (`--output-format text`).
+    #[arg(short = 'p', long = "preset", verbatim_doc_comment)]
+    pub preset_path: Option<PathBuf>,
     /// Appends to the output file if it exists, rather than returning an error.
     #[arg(short, long, default_value_t = false)]
     pub append_output: bool,
@@ -124,6 +129,7 @@ impl Cli {
         let Self {
             output_path,
             output_format,
+            preset_path,
             append_output,
             text_columns_separator: _,
             text_args_separator: _,
@@ -131,6 +137,12 @@ impl Cli {
         } = self;
 
         Self::validate_output_format(output_format)?;
+
+        ensure!(
+            preset_path.is_none() || matches!(output_format, OutputFormat::Text),
+            "Filter presets are supported with text output only. \
+             Set `--output-format text` or remove the `--preset` option."
+        );
 
         ensure!(
             *append_output || !output_path.exists(),

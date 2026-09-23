@@ -1,7 +1,6 @@
 //! Provides methods for running a session with a server socket as the input source.
 
-use anyhow::Context;
-use std::{io::Write as _, ops::Deref, path::PathBuf, time::Duration};
+use std::{ops::Deref, path::PathBuf, time::Duration};
 use tokio::sync::watch;
 use tokio_util::sync::CancellationToken;
 
@@ -9,9 +8,7 @@ use parsers::{ParseYield, Parser};
 use processor::producer::{GeneralLogCollector, MessageProducer, ProduceSummary};
 use sources::{ByteSource, socket::tcp::reconnect::ReconnectStateMsg};
 
-use crate::session::create_append_file_writer;
-
-use super::format::MessageFormatter;
+use super::{format::MessageFormatter, writer::MessageWriter};
 
 /// Runs a parsing session considering that the parsing speed is dependent on the
 /// frequency of the incoming messages from the server.
@@ -27,7 +24,7 @@ pub async fn run_session<P, D, W>(
     parser: P,
     bytesource: D,
     output_path: PathBuf,
-    mut msg_formatter: W,
+    msg_formatter: W,
     mut state_rc: watch::Receiver<ReconnectStateMsg>,
     update_interval: Duration,
     cancel_token: CancellationToken,
@@ -41,7 +38,7 @@ where
 
     let mut update_interval = tokio::time::interval(update_interval);
 
-    let mut file_writer = create_append_file_writer(&output_path)?;
+    let mut msg_writer = MessageWriter::new(&output_path, msg_formatter)?;
 
     let mut collector = GeneralLogCollector::default();
 
@@ -52,22 +49,20 @@ where
     // Counters to keep track on the status of the session.
     let mut reconnecting = false;
 
-    // Keep track how many message has been received since the last flush.
-    let mut msg_since_last_flush = 0;
-
-    let write_sum = |p: &mut MessageProducer<_, _>| {
+    let write_sum = |producer: &MessageProducer<_, _>, writer: &MessageWriter<_>| {
         super::write_summary(
-            p.total_produced_items(),
-            p.total_loaded_bytes(),
-            p.total_skipped_bytes(),
+            writer.written(),
+            writer.filtered_out(),
+            producer.total_loaded_bytes(),
+            producer.total_skipped_bytes(),
         );
     };
 
     loop {
         tokio::select! {
             _ = cancel_token.cancelled() => {
-                file_writer.flush().context("Error writing data to file.")?;
-                write_sum(&mut producer);
+                msg_writer.flush()?;
+                write_sum(&producer, &msg_writer);
 
                 return Ok(());
             }
@@ -96,14 +91,11 @@ where
                 }
             },
             _ = flush_interval.tick() => {
-                if msg_since_last_flush > 0 {
-                    msg_since_last_flush = 0;
-                    file_writer.flush().context("Error while writing to output file")?;
-                }
+                msg_writer.flush()?;
             }
             _ = update_interval.tick() => {
                 if !reconnecting {
-                    let msg_count = producer.total_produced_items();
+                    let msg_count = msg_writer.written();
                     println!("Processing... {msg_count} messages have been written to file.");
                 }
             }
@@ -125,12 +117,12 @@ where
                         ParseYield::Attachment(..) => continue,
                         ParseYield::MessageAndAttachment((msg, _att)) => msg,
                     };
-                    msg_formatter.write_msg(&mut file_writer, &msg)?;
-                    msg_since_last_flush += 1;
+                    msg_writer.write(&msg)?;
                 }
 
                 if last_round {
-                    write_sum(&mut producer);
+                    msg_writer.flush()?;
+                    write_sum(&producer, &msg_writer);
                     return Ok(());
                 }
             }

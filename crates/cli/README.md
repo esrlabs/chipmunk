@@ -8,6 +8,7 @@ Chipmunk CLI is a command-line tool designed to connect to multiple data sources
 * Connecting to TCP, UDP sockets, and files as input sources.
 * Parsing data using various formats.
 * Writing processed data to binary and text output formats.
+* Filtering text output with presets exported from the Chipmunk GUI.
 * Reconnecting to TCP servers when configured.
 * Providing status updates while running.
 

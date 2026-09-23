@@ -1,6 +1,6 @@
 [package]
 name = "cli"
-version = "0.2.3"
+version = "0.3.0"
 authors = ["Ammar Abou Zor <ammar.abou.zor@accenture.com>"]
 edition = "2024"
 description = "CLI Tool for parsing bytes form different source supporting multiple data formats"
@@ -20,6 +20,12 @@ processor.workspace = true
 # External crates
 anyhow.workspace = true
 clap.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+thiserror.workspace = true
 tokio.workspace = true
 futures.workspace = true
 tokio-util.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

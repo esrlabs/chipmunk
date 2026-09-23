@@ -430,15 +430,13 @@ fn hex_value(byte: u8) -> Option<u8> {
 
 #[cfg(test)]
 mod tests {
-    use std::{fs, path::PathBuf};
-
     use egui::Color32;
     use processor::search::filter::SearchFilter;
 
     use crate::host::{
         common::colors::{self, ColorPair},
         message::ImportFormat,
-        service::presets_io::{ImportWarning, LegacyEntryKind, import_named_presets},
+        service::presets_io::{ImportWarning, LegacyEntryKind, import_named_presets, tests},
         ui::registry::presets::Preset,
     };
 
@@ -452,16 +450,6 @@ mod tests {
             .iter()
             .map(|entry| entry.filter.clone())
             .collect()
-    }
-
-    fn fixture_text(name: &str) -> String {
-        let path = fixture_dir().join(name);
-        fs::read_to_string(path).expect("fixture should be readable")
-    }
-
-    fn fixture_dir() -> PathBuf {
-        let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        manifest_dir.join("testdata/presets_io")
     }
 
     fn legacy_document(collection_name: &str, entries: Vec<serde_json::Value>) -> String {
@@ -489,7 +477,8 @@ mod tests {
 
     #[test]
     fn imports_one_legacy_preset() {
-        let report = import_named_presets(&fixture_text("one_preset_1.json")).unwrap();
+        let report =
+            import_named_presets(&tests::fixture_text("legacy/one_preset_1.json")).unwrap();
 
         assert_eq!(report.format, ImportFormat::Legacy);
         assert_eq!(report.presets.len(), 1);
@@ -501,7 +490,8 @@ mod tests {
 
     #[test]
     fn imports_multiple_legacy_presets() {
-        let report = import_named_presets(&fixture_text("multiple_presets_1.json")).unwrap();
+        let report =
+            import_named_presets(&tests::fixture_text("legacy/multiple_presets_1.json")).unwrap();
 
         assert_eq!(report.format, ImportFormat::Legacy);
         assert_eq!(report.presets.len(), 2);
@@ -511,7 +501,8 @@ mod tests {
 
     #[test]
     fn legacy_chart_only_becomes_search_value() {
-        let report = import_named_presets(&fixture_text("preset_chart_only.json")).unwrap();
+        let report =
+            import_named_presets(&tests::fixture_text("legacy/preset_chart_only.json")).unwrap();
 
         let preset = &report.presets[0];
         assert!(preset.filters.is_empty());
@@ -520,7 +511,8 @@ mod tests {
 
     #[test]
     fn legacy_filter_only_stays_filter_only() {
-        let report = import_named_presets(&fixture_text("presets_filter_only.json")).unwrap();
+        let report =
+            import_named_presets(&tests::fixture_text("legacy/presets_filter_only.json")).unwrap();
 
         assert_eq!(report.presets.len(), 2);
         assert!(
@@ -533,7 +525,7 @@ mod tests {
 
     #[test]
     fn legacy_filters_export_is_imported_as_preset() {
-        let report = import_named_presets(&fixture_text("filters_1.json")).unwrap();
+        let report = import_named_presets(&tests::fixture_text("legacy/filters_1.json")).unwrap();
 
         assert_eq!(report.presets.len(), 1);
         let preset = &report.presets[0];
@@ -552,7 +544,8 @@ mod tests {
 
     #[test]
     fn legacy_duplicate_names_are_preserved() {
-        let report = import_named_presets(&fixture_text("presets_same_name.json")).unwrap();
+        let report =
+            import_named_presets(&tests::fixture_text("legacy/presets_same_name.json")).unwrap();
 
         assert_eq!(report.presets.len(), 3);
         assert_eq!(report.presets[0].name, "SameName");
@@ -562,7 +555,7 @@ mod tests {
 
     #[test]
     fn legacy_preserves_filter_flags() {
-        let report = import_named_presets(&fixture_text("filters_1.json")).unwrap();
+        let report = import_named_presets(&tests::fixture_text("legacy/filters_1.json")).unwrap();
 
         let preset = &report.presets[0];
         let filters = preset
@@ -577,7 +570,8 @@ mod tests {
 
     #[test]
     fn legacy_preserves_fixture_state_and_colors() {
-        let report = import_named_presets(&fixture_text("one_preset_1.json")).unwrap();
+        let report =
+            import_named_presets(&tests::fixture_text("legacy/one_preset_1.json")).unwrap();
         let preset = &report.presets[0];
 
         assert!(preset.filters.iter().all(|entry| entry.enabled));
@@ -590,7 +584,8 @@ mod tests {
             ColorPair::new(Color32::BLACK, Color32::from_rgb(0x55, 0xef, 0xc4))
         );
 
-        let report = import_named_presets(&fixture_text("preset_chart_only.json")).unwrap();
+        let report =
+            import_named_presets(&tests::fixture_text("legacy/preset_chart_only.json")).unwrap();
         let preset = &report.presets[0];
 
         assert!(preset.search_values[0].enabled);
@@ -684,9 +679,11 @@ mod tests {
 
     #[test]
     fn legacy_fixture_alias_imports_same_definitions() {
-        let first = import_named_presets(&fixture_text("filters_1.json")).unwrap();
-        let second =
-            import_named_presets(&fixture_text("same_as_filters_1_as_preset.json")).unwrap();
+        let first = import_named_presets(&tests::fixture_text("legacy/filters_1.json")).unwrap();
+        let second = import_named_presets(&tests::fixture_text(
+            "legacy/same_as_filters_1_as_preset.json",
+        ))
+        .unwrap();
 
         assert_eq!(
             preset_snapshot(&first.presets),

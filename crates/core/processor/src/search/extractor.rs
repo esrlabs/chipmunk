@@ -3,7 +3,6 @@
 use crate::search::{error::SearchError, filter, filter::SearchFilter};
 use grep_regex::RegexMatcher;
 use grep_searcher::{Searcher, sinks::UTF8};
-use itertools::Itertools;
 use regex::Regex;
 use std::{path::PathBuf, str::FromStr};
 
@@ -43,8 +42,7 @@ impl MatchesExtractor {
                 "Cannot search without filters".to_owned(),
             ));
         }
-        let combined_regex: String =
-            format!("({})", self.filters.iter().map(filter::as_regex).join("|"));
+        let combined_regex = filter::as_combined_regex(&self.filters);
         let mut values: Vec<stypes::ExtractedMatchValue> = vec![];
         let mut regexs: Vec<Regex> = vec![];
         for filter in self.filters.iter() {

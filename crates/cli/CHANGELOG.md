@@ -1,3 +1,13 @@
+# 0.3.0 (23.09.2026)
+
+## Features:
+
+- **Filter Presets**: New `--preset` argument to apply a filter preset exported from the Chipmunk GUI, writing the records matching its enabled filters only. Supported with text output.
+
+## Changes:
+
+- Include the count of the records dropped by the filter preset in the session summary.
+
 # 0.2.3 (18.09.2026)
 
 ## Fixes

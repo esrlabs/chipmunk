@@ -1,16 +1,13 @@
 //! Provides methods for running a session with a file as the input source.
 
-use anyhow::Context;
-use std::{io::Write as _, path::PathBuf};
+use std::path::PathBuf;
 use tokio_util::sync::CancellationToken;
 
 use parsers::{ParseYield, Parser};
 use processor::producer::{GeneralLogCollector, MessageProducer, ProduceSummary};
 use sources::ByteSource;
 
-use crate::session::create_append_file_writer;
-
-use super::format::MessageFormatter;
+use super::{format::MessageFormatter, writer::MessageWriter};
 
 /// Message interval to print output status to stdout while parsing.
 const UPDATE_MESSAGE_INTERVAL: usize = 5000;
@@ -27,7 +24,7 @@ pub async fn run_session<P, D, W>(
     parser: P,
     bytesource: D,
     output_path: PathBuf,
-    mut msg_formatter: W,
+    msg_formatter: W,
     cancel_token: CancellationToken,
 ) -> anyhow::Result<()>
 where
@@ -38,23 +35,22 @@ where
     let mut producer = MessageProducer::new(parser, bytesource);
     let mut collector = GeneralLogCollector::default();
 
-    let mut file_writer = create_append_file_writer(&output_path)?;
+    let mut msg_writer = MessageWriter::new(&output_path, msg_formatter)?;
 
-    let write_sum = |p: &mut MessageProducer<_, _>| {
+    let write_sum = |producer: &MessageProducer<_, _>, writer: &MessageWriter<_>| {
         super::write_summary(
-            p.total_produced_items(),
-            p.total_loaded_bytes(),
-            p.total_skipped_bytes(),
+            writer.written(),
+            writer.filtered_out(),
+            producer.total_loaded_bytes(),
+            producer.total_skipped_bytes(),
         );
     };
-
-    let mut msg_count = 0;
 
     loop {
         tokio::select! {
             _ = cancel_token.cancelled() => {
-                file_writer.flush().context("Error writing data to file.")?;
-                write_sum(&mut producer);
+                msg_writer.flush()?;
+                write_sum(&producer, &msg_writer);
 
                 return Ok(());
             },
@@ -77,16 +73,17 @@ where
                         ParseYield::Attachment(..) => continue,
                         ParseYield::MessageAndAttachment((msg, _att)) => msg,
                     };
-                    msg_formatter.write_msg(&mut file_writer, &msg)?;
-
-                    msg_count += 1;
-                    if msg_count % UPDATE_MESSAGE_INTERVAL == 0 {
-                        println!("Processing... {msg_count} messages have been written to file.");
+                    if msg_writer.write(&msg)? && msg_writer.written() % UPDATE_MESSAGE_INTERVAL == 0 {
+                        println!(
+                            "Processing... {} messages have been written to file.",
+                            msg_writer.written()
+                        );
                     }
                 }
 
                 if last_round {
-                    write_sum(&mut producer);
+                    msg_writer.flush()?;
+                    write_sum(&producer, &msg_writer);
                     return Ok(());
                 }
             }

@@ -207,7 +207,7 @@ mod tests {
     use crate::host::{
         common::colors::ColorPair,
         message::ImportFormat,
-        service::presets_io::{import_named_presets, serialize_named_presets},
+        service::presets_io::{import_named_presets, serialize_named_presets, tests},
         ui::registry::presets::{Preset, PresetFilterEntry, PresetSearchValueEntry},
     };
 
@@ -250,6 +250,82 @@ mod tests {
             .iter()
             .map(|entry| entry.filter.clone())
             .collect()
+    }
+
+    /// Rebuilds the presets that the shared `v2/basic.json` fixture stores.
+    fn shared_fixture_presets() -> Vec<Preset> {
+        vec![Preset {
+            id: Uuid::new_v4(),
+            name: "Errors".to_owned(),
+            pinned: false,
+            filters: vec![
+                PresetFilterEntry::new(
+                    plain("error"),
+                    true,
+                    ColorPair::new(
+                        Color32::from_rgba_unmultiplied(255, 255, 255, 255),
+                        Color32::from_rgba_unmultiplied(230, 103, 103, 255),
+                    ),
+                ),
+                PresetFilterEntry::new(
+                    regex("warn(ing)?"),
+                    true,
+                    ColorPair::new(
+                        Color32::from_rgba_unmultiplied(0, 0, 0, 255),
+                        Color32::from_rgba_unmultiplied(85, 239, 196, 255),
+                    ),
+                ),
+                PresetFilterEntry::new(
+                    SearchFilter::plain("debug").word(true),
+                    false,
+                    ColorPair::new(
+                        Color32::from_rgba_unmultiplied(0, 0, 0, 255),
+                        Color32::from_rgba_unmultiplied(178, 190, 195, 255),
+                    ),
+                ),
+            ],
+            search_values: vec![PresetSearchValueEntry::new(
+                regex("duration=(\\d+)"),
+                true,
+                Color32::from_rgba_unmultiplied(0, 128, 255, 255),
+            )],
+        }]
+    }
+
+    #[test]
+    fn imports_shared_fixture() {
+        let report = import_named_presets(&tests::fixture_text("v2/basic.json")).unwrap();
+        let preset = &report.presets[0];
+        let expected = &shared_fixture_presets()[0];
+
+        assert_eq!(report.format, ImportFormat::Version2);
+        assert_eq!(preset.name, expected.name);
+        assert_eq!(filter_definitions(preset), filter_definitions(expected));
+        assert_eq!(
+            preset
+                .filters
+                .iter()
+                .map(|entry| entry.enabled)
+                .collect::<Vec<_>>(),
+            vec![true, true, false]
+        );
+        assert_eq!(preset.filters[0].colors, expected.filters[0].colors);
+        assert_eq!(
+            search_value_definitions(preset),
+            search_value_definitions(expected)
+        );
+    }
+
+    /// Fails as soon as the exporter output drifts from the fixture the CLI
+    /// preset loader is tested against.
+    #[test]
+    fn exported_document_matches_shared_fixture() {
+        let json = serialize_named_presets(shared_fixture_presets()).unwrap();
+
+        let exported: serde_json::Value = serde_json::from_str(&json).unwrap();
+        let fixture: serde_json::Value =
+            serde_json::from_str(&tests::fixture_text("v2/basic.json")).unwrap();
+        assert_eq!(exported, fixture);
     }
 
     #[test]
