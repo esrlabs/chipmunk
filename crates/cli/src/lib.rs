@@ -1,5 +1,6 @@
 use clap::Parser as _;
 use cli_args::OutputFormat;
+use processor::search::searchers::linear::LineSearcher;
 use tokio_util::sync::CancellationToken;
 
 use session::{
@@ -8,6 +9,7 @@ use session::{
 };
 
 mod cli_args;
+mod preset;
 mod session;
 
 /// Runs the app parsing and validating the arguments, then starting the matching
@@ -15,6 +17,23 @@ mod session;
 pub async fn run_app(cancel_token: CancellationToken) -> anyhow::Result<()> {
     let cli = cli_args::Cli::parse();
     cli.validate()?;
+
+    let filter = match cli.preset_path.as_deref() {
+        Some(path) => {
+            let preset = preset::load(path)?;
+            println!(
+                "Applying {} filters from preset '{}'.",
+                preset.filters.len(),
+                preset.preset_name
+            );
+            for note in &preset.notes {
+                eprintln!("Warning: {note}");
+            }
+
+            Some(LineSearcher::from_filters(&preset.filters)?)
+        }
+        None => None,
+    };
 
     match cli.parser {
         cli_args::Parser::Dlt { fibex_files, input } => {
@@ -55,6 +74,7 @@ pub async fn run_app(cancel_token: CancellationToken) -> anyhow::Result<()> {
                         fmt::DLT_ARGUMENT_SENTINAL,
                         cli.text_columns_separator,
                         cli.text_args_separator,
+                        filter,
                     );
 
                     start_session(parser, input, text_formatter, cli.output_path, cancel_token)

@@ -29,12 +29,38 @@ impl LineSearcher {
     /// * `Ok(Self)` - If the regular expression is successfully created.
     /// * `Err(SearchError)` - If the regular expression cannot be compiled.
     pub fn new(filter: &SearchFilter) -> Result<Self, SearchError> {
-        let regex_as_str = filter::as_regex(filter);
-        Ok(Self {
-            re: Regex::from_str(&regex_as_str).map_err(|err| {
-                SearchError::Regex(format!("Failed to create regex for {regex_as_str}: {err}"))
-            })?,
-        })
+        Self::compile(filter::as_regex(filter))
+    }
+
+    /// Creates a new `LineSearcher` instance matching lines against any of the given filters.
+    ///
+    /// Filters are OR-combined exactly like the file search does, so both paths
+    /// select the same lines.
+    ///
+    /// # Arguments
+    ///
+    /// * `filters` - The search criteria; at least one filter must be provided.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Self)` - If the combined regular expression is successfully created.
+    /// * `Err(SearchError)` - If `filters` is empty or the regular expression cannot be compiled.
+    pub fn from_filters(filters: &[SearchFilter]) -> Result<Self, SearchError> {
+        if filters.is_empty() {
+            return Err(SearchError::Input(
+                "Cannot search without filters".to_owned(),
+            ));
+        }
+
+        Self::compile(filter::as_combined_regex(filters))
+    }
+
+    fn compile(regex_as_str: String) -> Result<Self, SearchError> {
+        let re = Regex::from_str(&regex_as_str).map_err(|err| {
+            SearchError::Regex(format!("Failed to create regex for {regex_as_str}: {err}"))
+        })?;
+
+        Ok(Self { re })
     }
 
     /// Checks if the given line matches the internal regular expression.

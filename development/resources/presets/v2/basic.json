@@ -1,0 +1,34 @@
+{
+  "kind": "chipmunk_named_presets",
+  "version": 2,
+  "presets": [
+    {
+      "name": "Errors",
+      "pinned": false,
+      "filters": [
+        {
+          "filter": { "value": "error", "is_regex": false, "ignore_case": true, "is_word": false },
+          "enabled": true,
+          "colors": { "fg": [255, 255, 255, 255], "bg": [230, 103, 103, 255] }
+        },
+        {
+          "filter": { "value": "warn(ing)?", "is_regex": true, "ignore_case": true, "is_word": false },
+          "enabled": true,
+          "colors": { "fg": [0, 0, 0, 255], "bg": [85, 239, 196, 255] }
+        },
+        {
+          "filter": { "value": "debug", "is_regex": false, "ignore_case": false, "is_word": true },
+          "enabled": false,
+          "colors": { "fg": [0, 0, 0, 255], "bg": [178, 190, 195, 255] }
+        }
+      ],
+      "search_values": [
+        {
+          "filter": { "value": "duration=(\\d+)", "is_regex": true, "ignore_case": true, "is_word": false },
+          "enabled": true,
+          "color": [0, 128, 255, 255]
+        }
+      ]
+    }
+  ]
+}

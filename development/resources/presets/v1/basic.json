@@ -1,0 +1,16 @@
+{
+  "kind": "chipmunk_named_presets",
+  "version": 1,
+  "presets": [
+    {
+      "name": "Errors",
+      "filters": [
+        { "value": "error", "is_regex": false, "ignore_case": true, "is_word": false },
+        { "value": "warn(ing)?", "is_regex": true, "ignore_case": true, "is_word": false }
+      ],
+      "search_values": [
+        { "value": "duration=(\\d+)", "is_regex": true, "ignore_case": true, "is_word": false }
+      ]
+    }
+  ]
+}

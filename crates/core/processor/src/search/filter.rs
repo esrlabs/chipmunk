@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
@@ -84,6 +85,16 @@ pub fn as_regex(filter: &SearchFilter) -> String {
     format!("{ignore_case_start}{word_marker}{subject}{word_marker}{ignore_case_end}",)
 }
 
+/// Builds the single alternation regex that matches any of the given filters.
+pub fn as_combined_regex(filters: &[SearchFilter]) -> String {
+    combine_terms(filters.iter().map(as_regex))
+}
+
+/// Joins already converted filter patterns into the single alternation regex used by search.
+pub fn combine_terms(terms: impl IntoIterator<Item = String>) -> String {
+    format!("({})", terms.into_iter().join("|"))
+}
+
 pub fn as_alias(filter: &SearchFilter) -> String {
     let word_marker = if filter.is_word { "1" } else { "0" };
     let ignore_case = if filter.ignore_case { "1" } else { "0" };
@@ -96,7 +107,7 @@ pub fn as_alias(filter: &SearchFilter) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{SearchFilter, as_alias, as_regex};
+    use super::{SearchFilter, as_alias, as_combined_regex, as_regex};
 
     #[test]
     fn as_regex_escapes_plain_text() {
@@ -113,6 +124,29 @@ mod tests {
             .word(true);
 
         assert_eq!(as_regex(&filter), "(?i)\\bcpu=(\\d+)\\b(?-i)");
+    }
+
+    #[test]
+    fn as_combined_regex_joins_filters() {
+        let filters = [
+            SearchFilter::plain("cpu=(1.0)"),
+            SearchFilter::plain("cpu=(\\d+)")
+                .regex(true)
+                .ignore_case(true)
+                .word(true),
+        ];
+
+        assert_eq!(
+            as_combined_regex(&filters),
+            "(cpu=\\(1\\.0\\)|(?i)\\bcpu=(\\d+)\\b(?-i))"
+        );
+    }
+
+    #[test]
+    fn as_combined_regex_wraps_single_filter() {
+        let filters = [SearchFilter::plain("cpu=(1.0)")];
+
+        assert_eq!(as_combined_regex(&filters), "(cpu=\\(1\\.0\\))");
     }
 
     #[test]

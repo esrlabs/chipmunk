@@ -1,0 +1,42 @@
+{
+  "kind": "chipmunk_named_presets",
+  "version": 2,
+  "presets": [
+    {
+      "name": "Errors",
+      "pinned": false,
+      "filters": [
+        {
+          "filter": { "value": "error", "is_regex": false, "ignore_case": true, "is_word": false },
+          "enabled": true,
+          "colors": { "fg": [255, 255, 255, 255], "bg": [230, 103, 103, 255] }
+        }
+      ],
+      "search_values": []
+    },
+    {
+      "name": "Traffic",
+      "pinned": false,
+      "filters": [
+        {
+          "filter": { "value": "tcp", "is_regex": false, "ignore_case": true, "is_word": false },
+          "enabled": true,
+          "colors": { "fg": [0, 0, 0, 255], "bg": [85, 239, 196, 255] }
+        }
+      ],
+      "search_values": []
+    },
+    {
+      "name": "Startup",
+      "pinned": false,
+      "filters": [
+        {
+          "filter": { "value": "boot", "is_regex": false, "ignore_case": true, "is_word": false },
+          "enabled": true,
+          "colors": { "fg": [0, 0, 0, 255], "bg": [178, 190, 195, 255] }
+        }
+      ],
+      "search_values": []
+    }
+  ]
+}

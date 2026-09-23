@@ -66,6 +66,29 @@ fn test_linear() -> Result<(), std::io::Error> {
 }
 
 #[test]
+fn from_filters_matches_any_filter() {
+    let filters = [
+        SearchFilter::plain("Warn").ignore_case(true),
+        SearchFilter::plain("Err").ignore_case(true),
+    ];
+    let searcher = LineSearcher::from_filters(&filters).unwrap();
+
+    let matched: Vec<usize> = SAMPLES
+        .iter()
+        .enumerate()
+        .filter(|(_, smpl)| searcher.is_match(smpl))
+        .map(|(n, _)| n)
+        .collect();
+
+    assert_eq!(matched, vec![1, 3, 4, 7]);
+}
+
+#[test]
+fn from_filters_rejects_empty_filters() {
+    assert!(LineSearcher::from_filters(&[]).is_err());
+}
+
+#[test]
 fn whole_word_matching_rejects_partial_words() {
     let searcher = LineSearcher::new(&SearchFilter::plain("warn").word(true)).unwrap();
 

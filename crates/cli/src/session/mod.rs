@@ -26,6 +26,7 @@ mod file;
 pub mod format;
 pub mod parser;
 mod socket;
+mod writer;
 
 /// Starts session with the given parser and the provided infos about input source
 /// and other session parameters.
@@ -121,13 +122,16 @@ where
 }
 
 /// Writes summary of the process session.
-fn write_summary(msg_count: usize, loaded_bytes: usize, skipped_bytes: usize) {
+fn write_summary(written: usize, filtered_out: usize, loaded_bytes: usize, skipped_bytes: usize) {
     const UNDERLINE_ANSI: &str = "\x1b[4m";
     const RESET_ANSI: &str = "\x1b[0m";
 
     println!("{UNDERLINE_ANSI}Process Summary{RESET_ANSI}:");
 
-    println!("* {msg_count} messages has been written to file.");
+    println!("* {written} messages has been written to file.");
+    if filtered_out > 0 {
+        println!("* {filtered_out} messages has been filtered out by the preset.");
+    }
     println!("* {loaded_bytes} bytes has been loaded from source.");
     println!("* {skipped_bytes} bytes has been skipped.");
 }

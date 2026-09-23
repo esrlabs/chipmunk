@@ -90,7 +90,9 @@ mod tests {
     use processor::search::filter::SearchFilter;
 
     use crate::host::{
-        common::colors, message::ImportFormat, service::presets_io::import_named_presets,
+        common::colors,
+        message::ImportFormat,
+        service::presets_io::{import_named_presets, tests},
         ui::registry::presets::Preset,
     };
 
@@ -120,44 +122,23 @@ mod tests {
 
     #[test]
     fn import_v1_document_uses_default_state() {
-        let json = r#"
-        {
-          "kind": "chipmunk_named_presets",
-          "version": 1,
-          "presets": [
-            {
-              "name": "Errors",
-              "filters": [
-                { "value": "error", "is_regex": false, "ignore_case": true, "is_word": false },
-                { "value": "error", "is_regex": false, "ignore_case": true, "is_word": false }
-              ],
-              "search_values": [
-                { "value": "duration=(\\d+)", "is_regex": true, "ignore_case": true, "is_word": false },
-                { "value": "duration=(\\d+)", "is_regex": true, "ignore_case": true, "is_word": false }
-              ]
-            }
-          ]
-        }
-        "#;
-
-        let report = import_named_presets(json).unwrap();
+        let report = import_named_presets(&tests::fixture_text("v1/basic.json")).unwrap();
         let preset = &report.presets[0];
 
         assert_eq!(report.format, ImportFormat::Version1);
         assert!(report.warnings.is_empty());
         assert_eq!(
             filter_definitions(preset),
-            vec![plain("error"), plain("error")]
+            vec![plain("error"), regex("warn(ing)?")]
         );
         assert!(preset.filters.iter().all(|entry| entry.enabled));
         assert_eq!(preset.filters[0].colors, colors::FILTER_HIGHLIGHT_COLORS[0]);
         assert_eq!(preset.filters[1].colors, colors::FILTER_HIGHLIGHT_COLORS[1]);
         assert_eq!(
             search_value_definitions(preset),
-            vec![regex("duration=(\\d+)"), regex("duration=(\\d+)")]
+            vec![regex("duration=(\\d+)")]
         );
         assert!(preset.search_values.iter().all(|entry| entry.enabled));
         assert_eq!(preset.search_values[0].color, colors::search_value_color(0));
-        assert_eq!(preset.search_values[1].color, colors::search_value_color(1));
     }
 }

@@ -1,0 +1,18 @@
+{
+  "kind": "chipmunk_named_presets",
+  "version": 2,
+  "presets": [
+    {
+      "name": "Charts",
+      "pinned": false,
+      "filters": [],
+      "search_values": [
+        {
+          "filter": { "value": "duration=(\\d+)", "is_regex": true, "ignore_case": true, "is_word": false },
+          "enabled": true,
+          "color": [0, 128, 255, 255]
+        }
+      ]
+    }
+  ]
+}

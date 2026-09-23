@@ -8,6 +8,7 @@ Chipmunk CLI is a command-line tool designed to connect to multiple data sources
 - Connecting to TCP, UDP sockets, and files as input sources.  
 - Parsing data using various formats.  
 - Writing processed data to binary and text output formats.  
+- Filtering text output with presets exported from the Chipmunk GUI.  
 - Reconnecting to TCP servers when configured.  
 - Providing status updates while running.  
 
@@ -62,6 +63,11 @@ Options:
           - binary: Output in binary format
           - text:   Parsed output as text
 
+  -p, --preset <PRESET_PATH>
+          Path to a filter preset file exported from the Chipmunk GUI.
+          Only records matching the preset's active filters are written to the output.
+          Supported with text output only (`--output-format text`).
+
   -a, --append-output
           Appends to the output file if it exists, rather than returning an error
 
@@ -88,6 +94,21 @@ Reading data from a TCP server with the address `127.0.0.1:7777` with reconnecti
 ```shell
 chipmunk-cli -o ~/Desktop/chip_output/logs.dlt -a -f binary dlt -f ~/Fibex/file1.xml -f ~/Fibex/file1.xml tcp 127.0.0.1:7777 -m 1000
 ```
+
+### Filtering with presets
+
+Filter sets maintained in the Chipmunk GUI can be exported as a preset file and applied to a CLI session with the `-p, --preset` option. Only the records matching the preset are written to the output, for files as well as for TCP and UDP sources.
+
+```shell
+chipmunk-cli -o ~/logs/filtered.txt -f text -p ~/presets/errors.json dlt file ~/logs/input.dlt
+```
+
+Details of applying a preset:
+
+- Only the enabled filters of the preset take part; disabled filters and chart values are ignored and reported on the standard error output.
+- The filters are combined with `OR`, exactly like the search in the GUI.
+- If the document holds several presets, the first one is used and the remaining names are reported.
+- Filtering is supported with text output only. Combining `--preset` with `--output-format binary` is rejected.
 
 ## Supported Parsers:
 

@@ -64,6 +64,7 @@ It owns the desktop application shell and integrates directly with the core runt
 
 - For filter/search/chart behavior, start from `SessionShared` and `crates/app/src/session/ui/shared/searching/`.
 - For global filter or preset definitions, start from `HostRegistry`; for preset persistence, `PresetRegistry::take_save_data` and `crates/app/src/host/service/storage/presets.rs`.
+- For preset document import/export, `crates/app/src/host/service/presets_io/`; its tests read the preset documents in `development/resources/presets/`, which are shared with the CLI preset loader.
 - For plugin behavior, keep runtime work in `crates/app/src/host/service/plugin/` and host UI state in `HostState.plugins`.
 - For export behavior, start from `crates/app/src/session/ui/shared/export/` and `crates/app/src/session/service/export.rs`.
 - For recent-session persistence, keep changes flowing through `SessionShared` revision tracking, `RecentSessionRuntime`, and `crates/app/src/host/ui/storage/recent/`.

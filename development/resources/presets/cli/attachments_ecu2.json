@@ -1,0 +1,16 @@
+{
+  "kind": "chipmunk_named_presets",
+  "version": 2,
+  "presets": [
+    {
+      "name": "Ecu2",
+      "filters": [
+        {
+          "filter": { "value": "ecu2", "is_regex": false, "ignore_case": true, "is_word": false },
+          "enabled": true
+        }
+      ],
+      "search_values": []
+    }
+  ]
+}
