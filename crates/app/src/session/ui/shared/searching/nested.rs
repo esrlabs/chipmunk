@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 use crate::{
     common::validation::{ValidationEligibility, validate_filter},
-    host::ui::UiActions,
+    host::ui::{Host, UiActions},
     session::command::{FindNestedMatchParams, SessionCommand},
 };
 
@@ -143,7 +143,7 @@ impl NestedSearchState {
         let command = SessionCommand::FindNestedMatch(Box::new(params));
         self.pending_request = Some(PendingRequest {
             id: request_id,
-            started_at: Instant::now(),
+            started_at: Host::frame_now(),
         });
 
         if actions.try_send_command(cmd_tx, command) {

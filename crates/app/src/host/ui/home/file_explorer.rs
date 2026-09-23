@@ -19,7 +19,7 @@ use crate::host::common::ui_utls::{sized_singleline_text_edit, truncate_path_to_
 use crate::host::{
     command::{HostCommand, ScanFavoriteFoldersParam},
     ui::{
-        UiActions,
+        Host, UiActions,
         actions::FileDialogOptions,
         storage::{
             file_explorer::{
@@ -179,7 +179,7 @@ impl FileExplorerUi {
                     if self.search_query.is_empty() {
                         self.clear_search_cache(file_explorer.revision);
                     } else {
-                        self.search_throttle.delay_next();
+                        self.search_throttle.delay_next(Host::frame_now());
                     }
                 }
             },
@@ -447,7 +447,7 @@ impl FileExplorerUi {
             return;
         }
 
-        if query_changed && !self.search_throttle.ready(ctx) {
+        if query_changed && !self.search_throttle.ready(Host::frame_now(), ctx) {
             return;
         }
 

@@ -12,7 +12,8 @@ use std::time::{Duration, Instant};
 ///   final state of a drag/scroll operation is processed even if the user stops input.
 #[derive(Debug)]
 pub struct ActionThrottle {
-    last_action: Instant,
+    /// `None` until the first allowed action, making the leading edge pass immediately.
+    last_action: Option<Instant>,
     interval: Duration,
 }
 
@@ -20,10 +21,7 @@ impl ActionThrottle {
     /// Creates a new throttler with the specified cool-down interval.
     pub fn new(interval: Duration) -> Self {
         Self {
-            // Initialize in the past so the first action always works immediately.
-            last_action: Instant::now()
-                .checked_sub(interval)
-                .unwrap_or_else(Instant::now),
+            last_action: None,
             interval,
         }
     }
@@ -32,6 +30,7 @@ impl ActionThrottle {
     ///
     /// # Arguments
     ///
+    /// * `now` - Current timestamp, provided by the caller to avoid a clock call per frame.
     /// * `ctx` - Optional `egui::Context`. If provided, and the action is throttled,
     ///   a repaint will be requested for the remaining duration. This is needed for
     ///   handling the "tail" of scroll/zoom events.
@@ -40,17 +39,16 @@ impl ActionThrottle {
     ///
     /// * `true` - The interval has passed. The timer is reset, and the action should proceed.
     /// * `false` - The interval has not passed. The action should be skipped.
-    pub fn ready(&mut self, ctx: Option<&egui::Context>) -> bool {
-        let elapsed = self.last_action.elapsed();
+    pub fn ready(&mut self, now: Instant, ctx: Option<&egui::Context>) -> bool {
+        let remaining = self.remaining(now);
 
-        if elapsed >= self.interval {
-            self.last_action = Instant::now();
+        if remaining.is_zero() {
+            self.last_action = Some(now);
             return true;
         }
 
         // Ensure we wake up exactly when the cool-down finishes to process final state.
         if let Some(ctx) = ctx {
-            let remaining = self.interval - elapsed;
             ctx.request_repaint_after(remaining);
         }
 
@@ -58,72 +56,80 @@ impl ActionThrottle {
     }
 
     /// Delays the next action until the full interval has elapsed.
-    pub fn delay_next(&mut self) {
-        self.last_action = Instant::now();
+    pub fn delay_next(&mut self, now: Instant) {
+        self.last_action = Some(now);
     }
 
     /// Resets the throttle, allowing the very next call to `ready()` to return true.
     pub fn reset(&mut self) {
-        // Set last_action to the past to ensure immediate trigger.
-        self.last_action = Instant::now()
-            .checked_sub(self.interval)
-            .unwrap_or_else(Instant::now);
+        self.last_action = None;
+    }
+
+    /// Returns the cool-down left before the next action is allowed.
+    fn remaining(&self, now: Instant) -> Duration {
+        let Some(last_action) = self.last_action else {
+            return Duration::ZERO;
+        };
+
+        self.interval
+            .saturating_sub(now.saturating_duration_since(last_action))
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::thread;
+
+    const INTERVAL: Duration = Duration::from_millis(100);
 
     #[test]
     fn test_throttle_leading_edge() {
-        let mut throttle = ActionThrottle::new(Duration::from_millis(100));
+        let mut throttle = ActionThrottle::new(INTERVAL);
         // First call should always be ready
-        assert!(throttle.ready(None));
+        assert!(throttle.ready(Instant::now(), None));
     }
 
     #[test]
     fn test_throttle_blocking() {
-        let mut throttle = ActionThrottle::new(Duration::from_millis(100));
-        assert!(throttle.ready(None));
+        let mut throttle = ActionThrottle::new(INTERVAL);
+        let now = Instant::now();
+
+        assert!(throttle.ready(now, None));
         // Immediate second call should be blocked
-        assert!(!throttle.ready(None));
+        assert!(!throttle.ready(now, None));
     }
 
     #[test]
     fn test_throttle_wait() {
-        let interval = Duration::from_millis(20);
-        let mut throttle = ActionThrottle::new(interval);
+        let mut throttle = ActionThrottle::new(INTERVAL);
+        let now = Instant::now();
 
-        assert!(throttle.ready(None));
-        assert!(!throttle.ready(None));
-
-        // Wait for interval to pass
-        thread::sleep(interval + Duration::from_millis(10));
-        assert!(throttle.ready(None));
+        assert!(throttle.ready(now, None));
+        assert!(!throttle.ready(now, None));
+        assert!(!throttle.ready(now + INTERVAL / 2, None));
+        assert!(throttle.ready(now + INTERVAL, None));
     }
 
     #[test]
     fn test_throttle_delay_next() {
-        let interval = Duration::from_millis(20);
-        let mut throttle = ActionThrottle::new(interval);
+        let mut throttle = ActionThrottle::new(INTERVAL);
+        let now = Instant::now();
 
-        throttle.delay_next();
-        assert!(!throttle.ready(None));
-
-        thread::sleep(interval + Duration::from_millis(10));
-        assert!(throttle.ready(None));
+        throttle.delay_next(now);
+        assert!(!throttle.ready(now, None));
+        assert!(throttle.ready(now + INTERVAL, None));
     }
 
     #[test]
     fn test_throttle_reset() {
-        let mut throttle = ActionThrottle::new(Duration::from_millis(100));
-        assert!(throttle.ready(None));
-        assert!(!throttle.ready(None));
+        let mut throttle = ActionThrottle::new(INTERVAL);
+        let now = Instant::now();
+
+        assert!(throttle.ready(now, None));
+        assert!(!throttle.ready(now, None));
 
         throttle.reset();
         // Should be ready immediately after reset
-        assert!(throttle.ready(None));
+        assert!(throttle.ready(now, None));
     }
 }

@@ -1,7 +1,5 @@
 //! Floating Find in Search Results UI.
 
-use std::time::Instant;
-
 use egui::{
     Align2, Area, Button, Context, Frame, Id, Key, Margin, Modifiers, Order, Rect, RichText,
     Stroke, TextEdit, Ui, Widget, pos2, vec2,
@@ -14,7 +12,11 @@ use session_core::state::IndexedNavigation;
 
 use crate::{
     common::{phosphor::icons, validation::ValidationEligibility},
-    host::{common::colors::main_accent_stroke, notification::AppNotification, ui::UiActions},
+    host::{
+        common::colors::main_accent_stroke,
+        notification::AppNotification,
+        ui::{Host, UiActions},
+    },
     session::{command::SessionCommand, ui::shared::searching::NestedSearchState},
 };
 
@@ -97,7 +99,7 @@ impl NestedSearch {
                     .inner_margin(Margin::same(4))
                     .show(ui, |ui| self.render_row(session_id, state, actions, ui));
 
-                if let Some(remaining) = state.progress_remaining(Instant::now()) {
+                if let Some(remaining) = state.progress_remaining(Host::frame_now()) {
                     if remaining.is_zero() {
                         paint_pending_border(ui, output.response.rect);
                     } else {
