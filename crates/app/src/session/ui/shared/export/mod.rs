@@ -232,6 +232,14 @@ pub fn selected_rows_export_label(schema: &dyn LogSchema, count: usize) -> Strin
     }
 }
 
+/// Returns the context-menu label for exporting `count` selected rows as raw bytes.
+pub fn selected_rows_raw_export_label(count: usize) -> String {
+    match count {
+        0 => String::from("Export Selected as Raw"),
+        count => format!("Export Selected Rows ({count}) as Raw"),
+    }
+}
+
 fn rendered_text_export_title(schema: &dyn LogSchema, target: &ExportTarget) -> &'static str {
     let has_headers = schema.has_headers();
     match (has_headers, target) {

@@ -21,8 +21,7 @@ use crate::{
             common::{
                 self,
                 log_table::{
-                    LogTableKind,
-                    copy::{self, CopyScope},
+                    LogTableKind, SelectionScope, copy,
                     table::{
                         TableScroll, activate_table_on_click, apply_columns_to_table_state,
                         grab_cmd_consts, render_active_table_indicator, render_row_header,
@@ -167,11 +166,13 @@ impl SearchTable {
         registry: &FilterRegistry,
         ui: &mut Ui,
     ) {
-        copy::render_copy_action(shared, CopyScope::SearchRows, actions, &self.cmd_tx, ui);
+        // Selection is global, so the search table acts only on rows it actually shows.
+        let scope = SelectionScope::SearchRows;
+        let selected_count = scope.count(shared);
+        copy::render_copy_action(shared, scope, selected_count, actions, &self.cmd_tx, ui);
         common::log_table::table::render_unselect_action(shared, ui);
 
         let can_start_export = shared.exports.can_start();
-        let selected_count = shared.logs.selected_count();
         let indexed_count = shared.search.indexed_result_count();
 
         let selected_label =
@@ -183,7 +184,7 @@ impl SearchTable {
             )
             .clicked()
         {
-            let selected_target = ExportTarget::Rows(shared.logs.selected_rows().collect());
+            let selected_target = ExportTarget::Rows(scope.rows(shared).collect());
             let file_name = export::default_text_file_name(shared);
             shared.exports.open_rendered_text_export(
                 actions,
@@ -196,11 +197,7 @@ impl SearchTable {
         }
 
         let can_start_raw = shared.get_info().raw_export_supported() && can_start_export;
-        let selected_export_label = if selected_count == 0 {
-            String::from("Export Selected as Raw")
-        } else {
-            format!("Export Selected Rows ({selected_count}) as Raw")
-        };
+        let selected_export_label = export::selected_rows_raw_export_label(selected_count);
 
         if ui
             .add_enabled(
@@ -209,7 +206,7 @@ impl SearchTable {
             )
             .clicked()
         {
-            let target = ExportTarget::Rows(shared.logs.selected_rows().collect());
+            let target = ExportTarget::Rows(scope.rows(shared).collect());
             let file_name = export::default_raw_file_name(shared);
             shared.exports.open_raw_dialog(
                 actions,

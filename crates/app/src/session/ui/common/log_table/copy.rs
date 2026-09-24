@@ -9,6 +9,7 @@ use crate::{
     session::{
         command::SessionCommand,
         ui::{
+            common::log_table::SelectionScope,
             definitions::{LogTableCell, schema::LogSchema},
             shared::SessionShared,
         },
@@ -21,24 +22,18 @@ const COPY_COLUMN_SEPARATOR: &str = " | ";
 pub const COPY_ROWS_SHORTCUT: KeyboardShortcut =
     KeyboardShortcut::new(Modifiers::COMMAND.plus(Modifiers::SHIFT), Key::C);
 
-/// Controls which globally selected rows a table copies.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CopyScope {
-    /// Copy every selected stream row.
-    AllSelected,
-    /// Copy selected rows that belong to the search table's logical contents.
-    SearchRows,
-}
-
 /// Renders the selected-row clipboard action shared by both log tables.
+///
+/// Takes the scoped count instead of recomputing it so a context menu that also
+/// labels export actions filters the selection only once per frame.
 pub fn render_copy_action(
     shared: &SessionShared,
-    scope: CopyScope,
+    scope: SelectionScope,
+    selected_count: usize,
     actions: &mut UiActions,
     cmd_tx: &Sender<SessionCommand>,
     ui: &mut Ui,
 ) {
-    let selected_count = selected_count(shared, scope);
     let label = match selected_count {
         0 => String::from("Copy Selected Rows"),
         1 => String::from("Copy 1 Row"),
@@ -58,35 +53,17 @@ pub fn render_copy_action(
 /// Requests a copy for selected rows in the supplied table scope.
 pub fn copy_selected_rows(
     shared: &SessionShared,
-    scope: CopyScope,
+    scope: SelectionScope,
     actions: &mut UiActions,
     cmd_tx: &Sender<SessionCommand>,
 ) -> bool {
-    let rows = selected_rows(shared, scope).collect::<Vec<_>>();
+    let rows = scope.rows(shared).collect::<Vec<_>>();
     if rows.is_empty() {
         return false;
     }
 
     actions.try_send_command(cmd_tx, SessionCommand::CopyRows(rows));
     true
-}
-
-/// Returns how many selected rows the scope would copy.
-///
-/// `SearchRows` costs a match/bookmark lookup per selected row, which context menus
-/// repeat on every frame they stay open.
-fn selected_count(shared: &SessionShared, scope: CopyScope) -> usize {
-    match scope {
-        CopyScope::AllSelected => shared.logs.selected_count(),
-        CopyScope::SearchRows => selected_rows(shared, scope).count(),
-    }
-}
-
-fn selected_rows(shared: &SessionShared, scope: CopyScope) -> impl Iterator<Item = u64> + '_ {
-    shared.logs.selected_rows().filter(move |&row| match scope {
-        CopyScope::AllSelected => true,
-        CopyScope::SearchRows => shared.search.has_match(row) || shared.logs.is_bookmarked(row),
-    })
 }
 
 /// Formats loaded stream rows as readable clipboard text.
@@ -131,26 +108,14 @@ fn append_field(output: &mut String, field: &str) {
 
 #[cfg(test)]
 mod tests {
-    use std::{ops::Range, path::PathBuf};
+    use std::ops::Range;
 
     use egui_table::Column;
-    use stypes::{FileFormat, FilterMatch, GrabbedElement, ObserveOrigin};
-    use uuid::Uuid;
+    use stypes::GrabbedElement;
 
-    use super::{CopyScope, format_rows, selected_rows};
-    use crate::{
-        host::common::parsers::ParserNames,
-        session::{
-            types::ObserveOperation,
-            ui::{
-                SessionInfo,
-                definitions::schema::{
-                    ColumnInfo, LogSchema, LogSchemaSpec, map_columns_with_separator,
-                    text::TextLogSchema,
-                },
-                shared::SessionShared,
-            },
-        },
+    use super::format_rows;
+    use crate::session::ui::definitions::schema::{
+        ColumnInfo, LogSchema, map_columns_with_separator, text::TextLogSchema,
     };
 
     #[derive(Debug)]
@@ -193,48 +158,6 @@ mod tests {
             pos,
             nature: 0,
         }
-    }
-
-    fn shared() -> SessionShared {
-        let session_id = Uuid::new_v4();
-        let origin = ObserveOrigin::File(
-            "source".to_owned(),
-            FileFormat::Text,
-            PathBuf::from("source.log"),
-        );
-        let observe_op = ObserveOperation::new(Uuid::new_v4(), origin);
-        let session_info = SessionInfo {
-            id: session_id,
-            title: "test".to_owned(),
-            parser: ParserNames::Text,
-            raw_export_supported: false,
-        };
-
-        SessionShared::new(session_info, observe_op, LogSchemaSpec::Text)
-    }
-
-    #[test]
-    fn search_scope_includes_matches_and_bookmarks_only() {
-        let mut shared = shared();
-        shared.logs.replace_selection_with_rows(&[10, 20, 30, 40]);
-        shared.insert_bookmark(20);
-        shared.insert_bookmark(30);
-        shared.search.set_search_operation(Uuid::new_v4());
-        shared.search.append_matches(vec![
-            FilterMatch {
-                index: 10,
-                filters: vec![0],
-            },
-            FilterMatch {
-                index: 30,
-                filters: vec![0],
-            },
-        ]);
-
-        let mut rows = selected_rows(&shared, CopyScope::SearchRows).collect::<Vec<_>>();
-        rows.sort_unstable();
-
-        assert_eq!(rows, vec![10, 20, 30]);
     }
 
     #[test]
