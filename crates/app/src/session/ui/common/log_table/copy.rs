@@ -38,7 +38,7 @@ pub fn render_copy_action(
     cmd_tx: &Sender<SessionCommand>,
     ui: &mut Ui,
 ) {
-    let selected_count = selected_rows(shared, scope).count();
+    let selected_count = selected_count(shared, scope);
     let label = match selected_count {
         0 => String::from("Copy Selected Rows"),
         1 => String::from("Copy 1 Row"),
@@ -69,6 +69,17 @@ pub fn copy_selected_rows(
 
     actions.try_send_command(cmd_tx, SessionCommand::CopyRows(rows));
     true
+}
+
+/// Returns how many selected rows the scope would copy.
+///
+/// `SearchRows` costs a match/bookmark lookup per selected row, which context menus
+/// repeat on every frame they stay open.
+fn selected_count(shared: &SessionShared, scope: CopyScope) -> usize {
+    match scope {
+        CopyScope::AllSelected => shared.logs.selected_count(),
+        CopyScope::SearchRows => selected_rows(shared, scope).count(),
+    }
 }
 
 fn selected_rows(shared: &SessionShared, scope: CopyScope) -> impl Iterator<Item = u64> + '_ {
