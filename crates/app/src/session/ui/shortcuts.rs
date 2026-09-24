@@ -19,8 +19,8 @@ use super::{
     Session,
     bottom_panel::BottomTabType,
     common::log_table::{
-        LogTableKind,
-        copy::{self, COPY_ROWS_SHORTCUT, CopyScope},
+        LogTableKind, SelectionScope,
+        copy::{self, COPY_ROWS_SHORTCUT},
         table::TableScroll,
     },
     shared::BookmarkNavigation,
@@ -285,8 +285,8 @@ pub fn handle_copy_event(
     let search_table_visible =
         preferences.panels_visibility.bottom && session.shared.bottom_tab == BottomTabType::Search;
     let scope = match session.shared.view.active_log_table {
-        LogTableKind::Search if search_table_visible => CopyScope::SearchRows,
-        LogTableKind::Main | LogTableKind::Search => CopyScope::AllSelected,
+        LogTableKind::Search if search_table_visible => SelectionScope::SearchRows,
+        LogTableKind::Main | LogTableKind::Search => SelectionScope::AllSelected,
     };
 
     if !copy::copy_selected_rows(&session.shared, scope, actions, &session.cmd_tx) {

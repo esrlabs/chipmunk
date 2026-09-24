@@ -11,10 +11,7 @@ use crate::{
         ui::{
             common::{
                 ansi_text::{AnsiText, parse_ansi_text},
-                log_table::{
-                    copy::{CopyScope, copy_selected_rows},
-                    text::ansi_layout_job,
-                },
+                log_table::{SelectionScope, copy::copy_selected_rows, text::ansi_layout_job},
             },
             shared::SessionShared,
         },
@@ -90,7 +87,12 @@ impl DetailsUI {
                         .on_hover_text("Copy selected row")
                         .clicked()
                     {
-                        copy_selected_rows(shared, CopyScope::AllSelected, actions, &self.cmd_tx);
+                        copy_selected_rows(
+                            shared,
+                            SelectionScope::AllSelected,
+                            actions,
+                            &self.cmd_tx,
+                        );
                     }
                 });
             });
