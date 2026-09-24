@@ -37,6 +37,12 @@ const ACTIVE_PAGE_DOWN_BINDINGS: &[KeyboardShortcut] = &[
     KeyboardShortcut::new(Modifiers::COMMAND, Key::PageDown),
 ];
 
+/// Platform select-all command reserved for the rows of the active log table.
+pub const SELECT_ALL_ROWS_SHORTCUT: KeyboardShortcut =
+    KeyboardShortcut::new(Modifiers::COMMAND, Key::A);
+
+const SELECT_ALL_ROWS_BINDINGS: &[KeyboardShortcut] = &[SELECT_ALL_ROWS_SHORTCUT];
+
 const ACTIVE_TOP_DIRECT_BINDINGS: &[KeyboardShortcut] =
     &[KeyboardShortcut::new(Modifiers::COMMAND, Key::Home)];
 
@@ -70,6 +76,10 @@ static SHORTCUTS: SessionShortcuts = SessionShortcuts {
     activate_search_output: Shortcut::new(
         &[KeyboardShortcut::new(Modifiers::COMMAND, Key::Num2)],
         "Focus search results table",
+    ),
+    select_all_rows: Shortcut::new(
+        SELECT_ALL_ROWS_BINDINGS,
+        "Select all rows of the active table",
     ),
     active_page_up: Shortcut::new(ACTIVE_PAGE_UP_BINDINGS, "Scroll active table one page up"),
     active_page_down: Shortcut::new(
@@ -187,6 +197,7 @@ struct SessionShortcuts {
     jump_to_row: Shortcut,
     activate_main_output: Shortcut,
     activate_search_output: Shortcut,
+    select_all_rows: Shortcut,
     active_page_up: Shortcut,
     active_page_down: Shortcut,
     active_top: Shortcut,
@@ -210,11 +221,12 @@ struct SessionShortcuts {
     previous_bookmark: Shortcut,
 }
 
-pub fn shortcut_defs() -> [&'static Shortcut; 23] {
+pub fn shortcut_defs() -> [&'static Shortcut; 24] {
     let SessionShortcuts {
         jump_to_row,
         activate_main_output,
         activate_search_output,
+        select_all_rows,
         active_page_up,
         active_page_down,
         active_top: _,
@@ -245,6 +257,7 @@ pub fn shortcut_defs() -> [&'static Shortcut; 23] {
         toggle_nested_search,
         activate_main_output,
         activate_search_output,
+        select_all_rows,
         active_page_up,
         active_page_down,
         active_top_direct,
@@ -281,13 +294,7 @@ pub fn handle_copy_event(
         return false;
     }
 
-    // Copy the active table's selected rows, treating a hidden search table as inactive.
-    let search_table_visible =
-        preferences.panels_visibility.bottom && session.shared.bottom_tab == BottomTabType::Search;
-    let scope = match session.shared.view.active_log_table {
-        LogTableKind::Search if search_table_visible => SelectionScope::SearchRows,
-        LogTableKind::Main | LogTableKind::Search => SelectionScope::AllSelected,
-    };
+    let scope = active_selection_scope(session, preferences);
 
     if !copy::copy_selected_rows(&session.shared, scope, actions, &session.cmd_tx) {
         return false;
@@ -297,6 +304,17 @@ pub fn handle_copy_event(
         input.events.retain(|event| !matches!(event, Event::Copy));
     });
     true
+}
+
+/// Returns the scope of the active log table, treating a hidden search table as inactive.
+fn active_selection_scope(session: &Session, preferences: &HostPreferences) -> SelectionScope {
+    let search_table_visible =
+        preferences.panels_visibility.bottom && session.shared.bottom_tab == BottomTabType::Search;
+
+    match session.shared.view.active_log_table {
+        LogTableKind::Search if search_table_visible => SelectionScope::SearchResults,
+        LogTableKind::Main | LogTableKind::Search => SelectionScope::MainTable,
+    }
 }
 
 /// Handles session shortcuts, returning `true` when a shortcut is consumed.
@@ -317,6 +335,7 @@ pub fn handle(
         jump_to_row,
         activate_main_output,
         activate_search_output,
+        select_all_rows,
         active_page_up,
         active_page_down,
         active_top,
@@ -352,6 +371,14 @@ pub fn handle(
 
     if consume_shortcut(ctx, activate_search_output) {
         session.activate_search_results_table(preferences, ctx);
+        return true;
+    }
+
+    // Selecting every row neither loads details nor realigns the peer table, so it needs no
+    // deferred action dispatch.
+    if consume_outside_text(ctx, select_all_rows) {
+        let scope = active_selection_scope(session, preferences);
+        scope.select_all(&mut session.shared);
         return true;
     }
 

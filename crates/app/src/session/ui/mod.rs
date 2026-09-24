@@ -44,7 +44,7 @@ use crate::{
     },
 };
 use bottom_panel::{BottomPanelUI, BottomTabType};
-use common::log_table::{LogTableKind, table::TableScroll};
+use common::log_table::{LogTableKind, SelectionScope, table::TableScroll};
 use jump_to_row::JumpToRow;
 use logs_table::LogsTable;
 use side_panel::{SidePanelUi, SideTabType};
@@ -725,6 +725,18 @@ impl Session {
         shortcuts::handle(self, actions, host_state, ctx, last_key)
     }
 
+    /// Activates the main logs table and selects every row it contains.
+    pub fn select_all_logs(&mut self, ctx: &Context) {
+        self.activate_main_logs_table(ctx);
+        SelectionScope::MainTable.select_all(&mut self.shared);
+    }
+
+    /// Activates the search results table and selects every row it contains.
+    pub fn select_all_search_results(&mut self, preferences: &mut HostPreferences, ctx: &Context) {
+        self.activate_search_results_table(preferences, ctx);
+        SelectionScope::SearchResults.select_all(&mut self.shared);
+    }
+
     fn activate_search_tab(&mut self, preferences: &mut HostPreferences) {
         self.bottom_panel.search.focus_primary();
         self.activate_bottom_tab(BottomTabType::Search, preferences);
@@ -828,11 +840,11 @@ mod tests {
     use processor::search::filter::SearchFilter;
     use regex::Regex;
     use session_core::state::{IndexedNavigation, NestedMatch};
-    use stypes::{ComputationError, FileFormat, ObserveOrigin};
+    use stypes::{ComputationError, FileFormat, FilterMatch, ObserveOrigin};
     use tokio::{runtime::Runtime, sync::mpsc};
     use uuid::Uuid;
 
-    use super::{BottomTabType, SearchTableSync, Session};
+    use super::{BottomTabType, LogTableKind, SearchTableSync, Session};
     use crate::{
         host::{
             common::parsers::ParserNames,
@@ -1135,5 +1147,90 @@ mod tests {
             .expect("successful response should remain cached");
         assert!(matcher.is_match("warn"));
         assert!(!matcher.is_match("wrong"));
+    }
+
+    fn press_select_all(
+        session: &mut Session,
+        host_state: &mut HostState,
+        actions: &mut UiActions,
+    ) {
+        let input = RawInput {
+            events: vec![Event::Key {
+                key: Key::A,
+                physical_key: Some(Key::A),
+                pressed: true,
+                repeat: false,
+                modifiers: Modifiers::COMMAND,
+            }],
+            ..Default::default()
+        };
+        let ctx = Context::default();
+        let mut consumed = false;
+        let _ = ctx.run_ui(input, |ui| {
+            consumed = session.handle_shortcuts(actions, host_state, ui.ctx(), None);
+        });
+
+        assert!(consumed, "select-all shortcut should be consumed");
+    }
+
+    fn sorted_selection(session: &Session) -> Vec<u64> {
+        let mut rows: Vec<_> = session.shared.logs.selected_rows().collect();
+        rows.sort_unstable();
+
+        rows
+    }
+
+    #[test]
+    fn select_all_shortcut_takes_every_main_table_row() {
+        let (mut session, _service, _runtime, mut actions) = new_session();
+        session.shared.logs.set_logs_count(3);
+        // A hidden search table keeps the main table active even when it was the last target.
+        session.shared.view.active_log_table = LogTableKind::Search;
+
+        let mut host_state = HostState::default();
+        host_state.preferences.panels_visibility.bottom = false;
+        press_select_all(&mut session, &mut host_state, &mut actions);
+
+        assert_eq!(sorted_selection(&session), vec![0, 1, 2]);
+    }
+
+    #[test]
+    fn select_all_search_results_command_reveals_the_search_table() {
+        let (mut session, _service, _runtime, _actions) = new_session();
+        session.shared.logs.set_logs_count(10);
+        session.shared.search.set_search_operation(Uuid::new_v4());
+        session.shared.search.append_matches(vec![FilterMatch {
+            index: 4,
+            filters: vec![0],
+        }]);
+
+        let mut host_state = HostState::default();
+        host_state.preferences.panels_visibility.bottom = false;
+        session.select_all_search_results(&mut host_state.preferences, &Context::default());
+
+        assert!(host_state.preferences.panels_visibility.bottom);
+        assert_eq!(session.shared.bottom_tab, BottomTabType::Search);
+        assert_eq!(session.shared.view.active_log_table, LogTableKind::Search);
+        assert_eq!(sorted_selection(&session), vec![4]);
+    }
+
+    #[test]
+    fn select_all_shortcut_takes_search_rows_for_the_visible_search_table() {
+        let (mut session, _service, _runtime, mut actions) = new_session();
+        session.shared.logs.set_logs_count(10);
+        session.shared.bottom_tab = BottomTabType::Search;
+        session.shared.view.active_log_table = LogTableKind::Search;
+        session.shared.search.set_search_operation(Uuid::new_v4());
+        session.shared.search.append_matches(vec![FilterMatch {
+            index: 4,
+            filters: vec![0],
+        }]);
+        session.shared.insert_bookmark(7);
+
+        let mut host_state = HostState::default();
+        host_state.preferences.panels_visibility.bottom = true;
+        press_select_all(&mut session, &mut host_state, &mut actions);
+
+        assert_eq!(sorted_selection(&session), vec![4, 7]);
     }
 }

@@ -132,6 +132,14 @@ const COMMANDS: &[CommandDefinition] = &[
         action: CommandAction::NestedSearch,
     },
     CommandDefinition {
+        title: "Select All Logs",
+        action: CommandAction::SelectAllLogs,
+    },
+    CommandDefinition {
+        title: "Select All Search Results",
+        action: CommandAction::SelectAllSearchResults,
+    },
+    CommandDefinition {
         title: "Terminal with Plain Text",
         action: CommandAction::ConnectionSetup {
             stream: StreamNames::Process,
@@ -241,6 +249,8 @@ pub enum CommandAction {
     ToggleSdeBar,
     JumpToRow,
     NestedSearch,
+    SelectAllLogs,
+    SelectAllSearchResults,
     ConnectionSetup {
         stream: StreamNames,
         parser: ParserNames,
@@ -257,7 +267,10 @@ pub enum CommandScope {
 impl CommandAction {
     fn scope(self) -> CommandScope {
         match self {
-            Self::JumpToRow | Self::NestedSearch => CommandScope::Session,
+            Self::JumpToRow
+            | Self::NestedSearch
+            | Self::SelectAllLogs
+            | Self::SelectAllSearchResults => CommandScope::Session,
             Self::GoHome
             | Self::OpenFiles
             | Self::OpenFilesWithPlugin
@@ -437,6 +450,18 @@ pub fn execute_action(
             }
             true
         }
+        CommandAction::SelectAllLogs => {
+            if let HostTab::Session(session) = tabs.active_mut() {
+                session.select_all_logs(ui.ctx());
+            }
+            true
+        }
+        CommandAction::SelectAllSearchResults => {
+            if let HostTab::Session(session) = tabs.active_mut() {
+                session.select_all_search_results(&mut state.preferences, ui.ctx());
+            }
+            true
+        }
         CommandAction::ConnectionSetup { stream, parser } => actions.try_send_command(
             cmd_tx,
             HostCommand::ConnectionSessionSetup { stream, parser },
@@ -494,10 +519,14 @@ mod tests {
         let global_actions = result_actions(&global_results);
         assert!(!global_actions.contains(&CommandAction::JumpToRow));
         assert!(!global_actions.contains(&CommandAction::NestedSearch));
+        assert!(!global_actions.contains(&CommandAction::SelectAllLogs));
+        assert!(!global_actions.contains(&CommandAction::SelectAllSearchResults));
 
         let session_results = recompute_results(&mut matcher, CommandScope::Session);
         let session_actions = result_actions(&session_results);
         assert!(session_actions.contains(&CommandAction::JumpToRow));
         assert!(session_actions.contains(&CommandAction::NestedSearch));
+        assert!(session_actions.contains(&CommandAction::SelectAllLogs));
+        assert!(session_actions.contains(&CommandAction::SelectAllSearchResults));
     }
 }

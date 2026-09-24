@@ -152,9 +152,10 @@ impl LogsTable {
         actions: &mut UiActions,
         ui: &mut Ui,
     ) {
-        let scope = SelectionScope::AllSelected;
+        let scope = SelectionScope::MainTable;
         let selected_count = scope.count(shared);
         copy::render_copy_action(shared, scope, selected_count, actions, &self.cmd_tx, ui);
+        table::render_select_all_action(shared, scope, ui);
         table::render_unselect_action(shared, ui);
 
         let can_start_export = shared.exports.can_start();

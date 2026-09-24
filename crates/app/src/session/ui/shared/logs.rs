@@ -150,10 +150,16 @@ impl LogsState {
         self.selection_change(SelectionIntent::Exclusive)
     }
 
-    /// Replaces the current selection with `rows`.
-    pub fn replace_selection_with_rows(&mut self, rows: &[u64]) -> SelectionChange {
+    /// Replaces the selection with `rows` and leaves no range anchor.
+    pub fn select_rows(&mut self, rows: impl Iterator<Item = u64>) {
         self.selected_rows.clear();
-        self.selected_rows.extend(rows.iter().copied());
+        self.selected_rows.extend(rows);
+        self.last_selected_row = None;
+    }
+
+    /// Replaces the current selection with `rows` and anchors ranges at the last one.
+    pub fn replace_selection_with_rows(&mut self, rows: &[u64]) -> SelectionChange {
+        self.select_rows(rows.iter().copied());
         self.last_selected_row = rows.last().copied();
         self.selection_change(SelectionIntent::Exclusive)
     }
@@ -551,6 +557,17 @@ mod tests {
         assert_eq!(change.jump_to_row, None);
         assert_eq!(state.selected_rows, [8, 13, 21].into_iter().collect());
         assert_eq!(state.last_selected_row, Some(21));
+    }
+
+    #[test]
+    fn select_rows_replaces_selection_without_anchor() {
+        let mut state = LogsState::default();
+
+        state.replace_selection_with(3);
+        state.select_rows([8, 13, 8, 21].into_iter());
+
+        assert_eq!(state.selected_rows, [8, 13, 21].into_iter().collect());
+        assert_eq!(state.last_selected_row, None);
     }
 
     #[test]

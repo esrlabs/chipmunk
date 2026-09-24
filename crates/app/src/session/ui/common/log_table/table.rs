@@ -7,8 +7,8 @@
 use std::ops::{Range, RangeInclusive};
 
 use egui::{
-    Align, Color32, CursorIcon, Frame, Label, Layout, Margin, Rect, Response, RichText, Sense,
-    Shape, Stroke, TextStyle, Ui, Widget as _,
+    Align, Button, Color32, CursorIcon, Frame, Label, Layout, Margin, Rect, Response, RichText,
+    Sense, Shape, Stroke, TextStyle, Ui, Widget as _,
     text::{LayoutJob, TextFormat},
     vec2,
 };
@@ -31,11 +31,12 @@ use crate::{
             definitions::schema::LogSchema,
             logs_table::LogAttachmentInfo,
             shared::{ObserveState, SelectionChange, SelectionIntent, SessionShared, UiViewState},
+            shortcuts::SELECT_ALL_ROWS_SHORTCUT,
         },
     },
 };
 
-use super::LogTableKind;
+use super::{LogTableKind, SelectionScope};
 
 /// Constants needed when sending grab logs commands.
 pub mod grab_cmd_consts {
@@ -63,6 +64,23 @@ pub enum TableScroll {
     Top,
     /// Scroll to the last row.
     Bottom,
+}
+
+/// Renders the shared context-menu command for selecting every row of one log table.
+pub fn render_select_all_action(shared: &mut SessionShared, scope: SelectionScope, ui: &mut Ui) {
+    let total_count = scope.total_count(shared);
+    let label = if total_count == 0 {
+        String::from("Select All")
+    } else {
+        format!("Select All {total_count} row(s)")
+    };
+
+    let shortcut_text = ui.ctx().format_shortcut(&SELECT_ALL_ROWS_SHORTCUT);
+    let button = Button::new(label).shortcut_text(shortcut_text);
+    if ui.add_enabled(total_count > 0, button).clicked() {
+        scope.select_all(shared);
+        ui.close();
+    }
 }
 
 /// Renders the shared context-menu command for clearing log selection.

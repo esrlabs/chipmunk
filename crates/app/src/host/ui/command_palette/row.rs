@@ -134,6 +134,9 @@ fn action_icon(action: CommandAction) -> &'static str {
         CommandAction::ToggleSdeBar => icons::regular::TERMINAL_WINDOW,
         CommandAction::JumpToRow => icons::regular::LIST_NUMBERS,
         CommandAction::NestedSearch => icons::regular::MAGNIFYING_GLASS,
+        CommandAction::SelectAllLogs | CommandAction::SelectAllSearchResults => {
+            icons::regular::SELECTION_ALL
+        }
         CommandAction::ConnectionSetup { .. } => icons::regular::TERMINAL,
     }
 }

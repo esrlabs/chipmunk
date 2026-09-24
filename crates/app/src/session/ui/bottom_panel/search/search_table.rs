@@ -167,9 +167,10 @@ impl SearchTable {
         ui: &mut Ui,
     ) {
         // Selection is global, so the search table acts only on rows it actually shows.
-        let scope = SelectionScope::SearchRows;
+        let scope = SelectionScope::SearchResults;
         let selected_count = scope.count(shared);
         copy::render_copy_action(shared, scope, selected_count, actions, &self.cmd_tx, ui);
+        common::log_table::table::render_select_all_action(shared, scope, ui);
         common::log_table::table::render_unselect_action(shared, ui);
 
         let can_start_export = shared.exports.can_start();
