@@ -263,6 +263,18 @@ impl SearchState {
             .is_some_and(|matches| matches.contains_key(&LogMainIndex(session_position)))
     }
 
+    /// Iterates over session positions of the current primary search results.
+    pub fn match_positions(&self) -> impl Iterator<Item = u64> + '_ {
+        self.matches_map
+            .iter()
+            .flat_map(|matches| matches.keys().map(|index| index.0))
+    }
+
+    /// Returns how many primary search results are currently tracked.
+    pub fn matches_count(&self) -> usize {
+        self.matches_map.as_ref().map_or(0, |matches| matches.len())
+    }
+
     /// Returns the primary filter indices reported for one session position.
     pub fn filter_indices(&self, session_position: u64) -> Option<&[FilterIndex]> {
         self.matches_map

@@ -89,7 +89,7 @@ impl DetailsUI {
                     {
                         copy_selected_rows(
                             shared,
-                            SelectionScope::AllSelected,
+                            SelectionScope::MainTable,
                             actions,
                             &self.cmd_tx,
                         );
