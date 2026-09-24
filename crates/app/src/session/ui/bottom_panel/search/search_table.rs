@@ -174,9 +174,8 @@ impl SearchTable {
         let selected_count = shared.logs.selected_count();
         let indexed_count = shared.search.indexed_result_count();
 
-        let selected_target = ExportTarget::Rows(shared.logs.selected_rows().collect());
         let selected_label =
-            export::rendered_text_export_label(shared.schema.as_ref(), &selected_target);
+            export::selected_rows_export_label(shared.schema.as_ref(), selected_count);
         if ui
             .add_enabled(
                 can_start_export && selected_count > 0,
@@ -184,6 +183,7 @@ impl SearchTable {
             )
             .clicked()
         {
+            let selected_target = ExportTarget::Rows(shared.logs.selected_rows().collect());
             let file_name = export::default_text_file_name(shared);
             shared.exports.open_rendered_text_export(
                 actions,

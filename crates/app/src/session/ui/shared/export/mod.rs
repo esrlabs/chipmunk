@@ -211,24 +211,24 @@ enum PendingExportKind {
 pub fn rendered_text_export_label(schema: &dyn LogSchema, target: &ExportTarget) -> String {
     let has_headers = schema.has_headers();
     match (has_headers, target) {
-        (true, ExportTarget::Rows(rows)) => {
-            if rows.is_empty() {
-                String::from("Export Selected as Table")
-            } else {
-                format!("Export {} row(s) as Table", rows.len())
-            }
-        }
-        (false, ExportTarget::Rows(rows)) => {
-            if rows.is_empty() {
-                String::from("Export Selected")
-            } else {
-                format!("Export {} row(s)", rows.len())
-            }
-        }
+        (_, ExportTarget::Rows(rows)) => selected_rows_export_label(schema, rows.len()),
         (true, ExportTarget::All) => String::from("Export All as Table"),
         (false, ExportTarget::All) => String::from("Export All Logs"),
         (true, ExportTarget::Indexed) => String::from("Export Search Results as Table"),
         (false, ExportTarget::Indexed) => String::from("Export Search Results"),
+    }
+}
+
+/// Returns the context-menu label for exporting `count` selected rows as rendered text.
+///
+/// Takes the count instead of the rows so callers can label the action without
+/// materializing the selection on every context-menu frame.
+pub fn selected_rows_export_label(schema: &dyn LogSchema, count: usize) -> String {
+    match (schema.has_headers(), count) {
+        (true, 0) => String::from("Export Selected as Table"),
+        (true, count) => format!("Export {count} row(s) as Table"),
+        (false, 0) => String::from("Export Selected"),
+        (false, count) => format!("Export {count} row(s)"),
     }
 }
 
