@@ -3,8 +3,8 @@
 ## Overview
 
 This is the canonical entrypoint for repository AI context.
-Read this file first at the start of each session, then use the knowledge index to choose the relevant context files.
-Repository AI context lives under `.ai/knowledge/`.
+Read this file first at the start of each session, then use the indexes below to choose the relevant files.
+Repository AI context lives under `.ai/knowledge/`, and recurring maintenance processes under `.ai/workflows/`.
 
 ## Start Here
 
@@ -14,3 +14,4 @@ Repository AI context lives under `.ai/knowledge/`.
 ## Navigation
 
 - Module and target context: `.ai/knowledge/INDEX.md`
+- Recurring maintenance processes: `.ai/workflows/INDEX.md`
