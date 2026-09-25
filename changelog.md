@@ -1,3 +1,19 @@
+# 4.4.0 (25.09.2026)
+
+## Features
+
+- Added a "Select all" action for the active table's logs or search results, available from the context menu, the command palette, and the `Ctrl/Cmd+A` shortcut.
+- Added a `--preset` option to the CLI (now at version 0.3.0), filtering output with a filter preset exported from the GUI so only matching records are written, for files, TCP, and UDP sources alike.
+
+## Changes
+
+- Export in the search table now follows the same selection scope as copy, exporting only from the search results.
+- Improved logs context menu and rendering performance.
+
+## Fixes
+
+- Fixed chart range requests not respecting the cooldown after panning or zooming, causing extra requests to be sent.
+
 # 4.3.0 (18.09.2026)
 
 ## Features
