@@ -7,13 +7,14 @@ It owns the desktop application shell and integrates directly with the core runt
 
 ## Start Here
 
-1. `crates/app/src/host/ui/`
-2. `crates/app/src/session/ui/`
-3. `crates/app/src/host/service/`
-4. `crates/app/src/session/service/`
-5. `crates/app/src/host/ui/state/`
-6. `.ai/knowledge/crates/core/AGENTS.md`
-7. `.ai/knowledge/crates/stypes/AGENTS.md`
+1. `.ai/knowledge/crates/app/architecture.md` — read before any change that crosses the UI/service boundary, adds an extension point, or is a design review.
+2. `crates/app/src/host/ui/`
+3. `crates/app/src/session/ui/`
+4. `crates/app/src/host/service/`
+5. `crates/app/src/session/service/`
+6. `crates/app/src/host/ui/state/`
+7. `.ai/knowledge/crates/core/AGENTS.md`
+8. `.ai/knowledge/crates/stypes/AGENTS.md`
 
 ## If You Need X, Start Here
 
@@ -36,20 +37,19 @@ It owns the desktop application shell and integrates directly with the core runt
 - Command palette and shortcuts: `crates/app/src/host/ui/command_palette/`, `crates/app/src/host/ui/shortcuts/`
 - Built-in app updater/release checks: `crates/app/src/host/service/update/`, `crates/app/src/host/ui/update.rs`, `crates/app/src/host/ui/state/info.rs`, `crates/app/src/host/ui/banners/update.rs`, `crates/app/src/host/ui/menu.rs`, `crates/app/src/host/service/mod.rs`, `crates/app/src/host/command.rs`, and `crates/app/src/host/message.rs`
 
-## Ownership Model
+## State Owners
 
-- UI state structs are the source of truth for native application/UI state.
-- Services do not own canonical app/UI state; they only run backend work and copied request data.
+For the ownership model and the channels between UI and services, see `.ai/knowledge/crates/app/architecture.md`.
+
 - `Host` is the `eframe::App` and owns top-level rendering, message polling, tabs, storage, notifications, and global UI actions.
 - `HostState` owns active tabs, open sessions, setup tabs, preferences, shortcuts, app info, top-level modals, plugin UI state, and `HostRegistry`.
 - `HostRegistry` owns global filter/search-value definitions and presets.
 - `HostStorage` owns UI-facing service-backed storage domains: recent sessions, file explorer/favorite folders, and app settings. Presets stay in `HostRegistry`, which hands out their save snapshot while `HostStorage` collects one.
 - `persist` owns only lightweight host UI preferences saved through `eframe` storage.
-- `PluginService` owns `PluginsManager`; UI code consumes published `PluginsState` and must not load or mutate plugin runtime state directly.
+- `PluginService` owns `PluginsManager`; the UI consumes published `PluginsState`.
 - `Session` owns one live session UI shell and its component UIs.
 - `SessionShared` owns canonical per-session state: applied filters, temp search, search/chart operation state, log selection, bookmarks, observe state, attachments, exports, signals, and view state.
 - Component UIs should keep only local render/edit/cache state unless they already own a specific domain.
-- Backend/UI integration crosses `HostCommand`/`HostMessage` and `SessionCommand`/`SessionMessage`.
 
 ## Coding Guidelines
 

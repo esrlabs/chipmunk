@@ -46,6 +46,7 @@ Native file dialogs go through `actions.file_dialog` in `crates/app/src/host/ui/
 
 - Keep state placement explicit. In immediate mode nothing survives a frame unless it is stored deliberately.
 - Persist state that must outlive the frame instead of rebuilding it inside transient UI branches, unless resetting it is the intent.
+- UI state is the source of truth. A service owns backend runtime resources and publishes snapshots; it does not own state the UI renders from. Where the core keeps that state instead, mirror it read-only and let the resulting message be the only writer.
 
 ## Tooltips
 
