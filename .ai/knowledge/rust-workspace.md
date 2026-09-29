@@ -16,3 +16,12 @@ serde.workspace = true
 ```
 
 Keep the root workspace dependency list grouped by internal crates, external dependencies, and development dependencies.
+
+## Utility Crates
+
+Small, self-contained crates under `crates/`. Read the crate source directly; they need no separate context file.
+
+- `bufread`: buffered reader that refills while unread data is still buffered.
+- `dir_checksum`: recursive directory checksums honoring `gitignore` rules.
+- `file_tools`: file content classification, such as the UTF-8 text check.
+- `shell_tools`: discovery of installed shell profiles on the current platform.
