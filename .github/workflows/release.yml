@@ -101,7 +101,8 @@ jobs:
           $wixBin = Join-Path $wixRoot.FullName "bin"
           Add-Content $env:GITHUB_PATH $wixBin
       - name: Setup keychain for signing and notarizing
-        if: runner.os == 'macOS'
+        # TODO: Apple code signing temporarily disabled; restore the condition.
+        if: false # runner.os == 'macOS'
         run: |
           # The CI keychain is temporary and contains only the certificates
           # needed by this job: Developer ID Application for .app signing and
@@ -144,11 +145,14 @@ jobs:
         run: |
           # release_app.py owns the artifact layout. macOS needs signing and
           # notarization; Linux and Windows produce unsigned portable/installer.
-          if [ "${{ runner.os }}" = "macOS" ]; then
-            just release-signed
-          else
-            just release
-          fi
+          # TODO: Apple code signing temporarily disabled. Restore this branch
+          # together with the keychain step above.
+          # if [ "${{ runner.os }}" = "macOS" ]; then
+          #   just release-signed
+          # else
+          #   just release
+          # fi
+          just release
       - name: List release files
         working-directory: ./target/dist
         run: ls
