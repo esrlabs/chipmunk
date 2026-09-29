@@ -10,3 +10,5 @@ The main Rust workspace lives under `crates/`. These are the most important area
 * `crates/bufread`, `crates/dir_checksum`, `crates/file_tools`, `crates/shell_tools`: utility crates used by the workspace.
 
 Plugin templates and examples live under `plugins/`. They are useful when creating or testing plugin integrations, but they are separate from the normal application development flow.
+
+Repository context for developers and agents lives in `.ai/`, introduced in [Getting Started](./getting-started.md#repository-context).

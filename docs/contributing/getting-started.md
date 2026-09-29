@@ -26,6 +26,12 @@ just --list
 
 If the command prints the available recipes, your basic setup is ready.
 
+## Repository Context
+
+`.ai/` holds the shared context of this repository, written for developers and agents alike: orientation on the modules in `knowledge/`, the code rules every change and review follows in `rules/`, and recurring maintenance processes in `workflows/`.
+
+Start at [`.ai/INDEX.md`](https://github.com/esrlabs/chipmunk/blob/master/.ai/INDEX.md), which links to the rest. Agents reach the same content through `AGENTS.md` in the repository root.
+
 ## Next Steps
 
 Continue with [Repository Structure](./repository-structure.md) to understand the main project areas, then read the [Development Guide](./development-guide.md) for the common workflow.

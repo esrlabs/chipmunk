@@ -22,20 +22,11 @@ just run -r -- path/to/file
 
 ## Dependency Management
 
-For crates in the main workspace under `crates/`, declare dependency versions and internal crate paths only in the root `Cargo.toml` under `[workspace.dependencies]`.
+Dependency versions and workspace configuration follow the rules in [`.ai/knowledge/rust-workspace.md`](https://github.com/esrlabs/chipmunk/blob/master/.ai/knowledge/rust-workspace.md), which is the single source of truth for them.
 
-In crate-local `Cargo.toml` files, reference dependencies with `workspace = true` and keep them in the matching group:
+## Code Rules
 
-```toml
-[dependencies]
-# Internal crates
-stypes.workspace = true
-
-# External crates
-serde.workspace = true
-```
-
-Keep the root workspace dependency list grouped by internal crates, external dependencies, and development dependencies.
+Changes and reviews follow the rules in [`.ai/rules/INDEX.md`](https://github.com/esrlabs/chipmunk/blob/master/.ai/rules/INDEX.md): `rust.md` for all Rust code, plus `app-ui.md` for the GUI crate.
 
 ## Formatting and Checks
 
