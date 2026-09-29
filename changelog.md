@@ -1,4 +1,4 @@
-# 4.4.0 (25.09.2026)
+# 4.4.0 (29.09.2026)
 
 ## Features
 
@@ -9,6 +9,7 @@
 
 - Export in the search table now follows the same selection scope as copy, exporting only from the search results.
 - Improved logs context menu and rendering performance.
+- macOS builds are temporarily not signed or notarized.
 
 ## Fixes
 
