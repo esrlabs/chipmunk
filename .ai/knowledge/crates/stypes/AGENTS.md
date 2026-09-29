@@ -39,7 +39,6 @@ Treat changes here as cross-crate API changes.
 
 ## Validation
 
-Run validation only when requested or needed to verify a change.
 Use targeted Cargo commands from the repository root, for example:
 
 - Check: `cargo check -p stypes`

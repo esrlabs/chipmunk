@@ -9,8 +9,8 @@ Use this file to choose the next context file to read. Do not load every context
 
 - Main code lives in the root Rust workspace under `crates/`.
 - `plugins/` is intentionally outside the main workspace validation path.
-- The root `justfile` is the developer entrypoint, but do not run `just` recipes unless the user explicitly asks for them.
-- Run build, test, lint, or validation commands only when the user requests validation or when needed to verify a change.
+- The root `justfile` is the developer entrypoint for build, validation, and run commands.
+- `just validate`, aliased as `just pr`, runs formatting, check, clippy, and tests. It is the full gate CI runs on every pull request, so run it before proposing one. Use targeted `cargo -p <crate>` commands while iterating.
 
 ## Primary Context
 

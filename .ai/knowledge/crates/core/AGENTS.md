@@ -67,7 +67,6 @@ The native app and CLI depend on these crates directly through Rust APIs.
 
 ## Validation
 
-Run validation only when requested or needed to verify a change.
 Use targeted Cargo commands from the repository root, for example:
 
 - Check one crate: `cargo check -p <crate>`
