@@ -41,7 +41,6 @@ It orchestrates core runtime crates and owns CLI argument parsing and output for
 
 ## Validation
 
-Run validation only when requested or needed to verify a change.
 Use targeted Cargo commands from the repository root, for example:
 
 - Check: `cargo check -p cli`

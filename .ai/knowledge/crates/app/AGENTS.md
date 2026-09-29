@@ -73,7 +73,6 @@ For the ownership model and the channels between UI and services, see `.ai/knowl
 
 ## Validation
 
-Run validation only when requested or needed to verify a change.
 Use targeted Cargo commands from the repository root, for example:
 
 - Check: `cargo check -p app`

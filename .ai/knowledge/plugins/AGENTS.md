@@ -57,7 +57,6 @@ The plugin API crate is part of the main Rust workspace, while plugin examples a
 
 ## Validation
 
-Run validation only when requested or needed to verify a change.
 Use targeted commands for the area changed:
 
 - Main workspace plugin API: `cargo test -p plugins_api`
