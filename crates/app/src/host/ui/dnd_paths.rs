@@ -26,7 +26,7 @@ fn handle_dropping_files(ui: &mut Ui, actions: &mut UiActions, cmd_tx: &Sender<H
     for path in ui
         .input_mut(|input| std::mem::take(&mut input.raw.dropped_files))
         .into_iter()
-        .filter_map(|file| file.path)
+        .map(|file| file.path().to_path_buf())
     {
         if path.is_dir() {
             dirs.push(path);

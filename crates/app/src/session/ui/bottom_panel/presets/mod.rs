@@ -180,7 +180,6 @@ impl PresetsUI {
                 ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
                     let focus_query = self.query_visibility.is_newly_visible(ui);
                     let query_response = sized_singleline_text_edit(
-                        ui,
                         &mut self.query_state.query,
                         ui.available_size(),
                         7,

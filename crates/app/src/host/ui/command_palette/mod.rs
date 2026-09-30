@@ -162,7 +162,6 @@ impl CommandPalette {
 
                     let search_id = ui.make_persistent_id("command_palette_search");
                     let query_response = sized_singleline_text_edit(
-                        ui,
                         &mut self.query,
                         vec2(ui.available_width(), 25.0),
                         7,

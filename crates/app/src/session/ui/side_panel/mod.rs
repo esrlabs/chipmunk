@@ -71,14 +71,14 @@ impl SidePanelUi {
             .resizable(false)
             .exact_size(SIDE_TAB_RAIL_WIDTH)
             .show_separator_line(false)
-            .show_inside(ui, |ui| {
+            .show(ui, |ui| {
                 for tab in all::<SideTabType>() {
                     render_tab_button(tab, &mut shared.side_tab, ui);
                     ui.add_space(SIDE_TAB_SPACING);
                 }
             });
 
-        CentralPanel::default().show_inside(ui, |ui| match shared.side_tab {
+        CentralPanel::default().show(ui, |ui| match shared.side_tab {
             SideTabType::Observing => self.observing.render_content(shared, actions, ui),
             SideTabType::Attachments => self.attachments.render_content(shared, actions, ui),
             SideTabType::Filters => {

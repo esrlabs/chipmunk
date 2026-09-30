@@ -297,7 +297,7 @@ impl Host {
 
         Panel::top("menu_bar")
             .frame(Frame::side_top_panel(ui.style()))
-            .show_inside(ui, |ui| {
+            .show(ui, |ui| {
                 self.render_menu(ui);
             });
 
@@ -308,7 +308,7 @@ impl Host {
                     .fill(colors::main_accent_background(ui.visuals().dark_mode)),
             )
             .show_separator_line(false)
-            .show_inside(ui, |ui| {
+            .show(ui, |ui| {
                 self.render_tabs(ui);
             });
 
@@ -326,7 +326,7 @@ impl Host {
 
         CentralPanel::default()
             .frame(Frame::central_panel(ui.style()).inner_margin(0))
-            .show_inside(ui, |ui| {
+            .show(ui, |ui| {
                 self.render_main(ui);
 
                 if self.state.app_info.show_update_banner {

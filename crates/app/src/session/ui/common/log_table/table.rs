@@ -7,8 +7,8 @@
 use std::ops::{Range, RangeInclusive};
 
 use egui::{
-    Align, Button, Color32, CursorIcon, Frame, Label, Layout, Margin, Rect, Response, RichText,
-    Sense, Shape, Stroke, TextStyle, Ui, Widget as _,
+    Align, Button, Color32, CursorIcon, Frame, IdSalt, Label, Layout, Margin, Rect, Response,
+    RichText, Sense, Shape, Stroke, TextStyle, Ui, Widget as _,
     text::{LayoutJob, TextFormat},
     vec2,
 };
@@ -159,7 +159,7 @@ pub fn create_table_columns(schema: &dyn LogSchema) -> Vec<Column> {
 ///
 /// If the table has not rendered yet, the passed columns are enough for the first frame.
 pub fn apply_columns_to_table_state(ui: &Ui, table_id_salt: &str, columns: &[Column]) {
-    let table_id = TableState::id(ui, egui::Id::new(table_id_salt));
+    let table_id = TableState::id(ui, IdSalt::new(table_id_salt));
     let Some(mut state) = TableState::load(ui.ctx(), table_id) else {
         return;
     };
@@ -186,7 +186,7 @@ pub fn apply_columns_to_table_state(ui: &Ui, table_id_salt: &str, columns: &[Col
 
 /// Copies persisted egui table widths back into the shared application columns.
 pub fn sync_column_widths(ui: &Ui, table_id_salt: &str, columns: &mut [Column]) {
-    let table_id = TableState::id(ui, egui::Id::new(table_id_salt));
+    let table_id = TableState::id(ui, IdSalt::new(table_id_salt));
     let Some(state) = TableState::load(ui.ctx(), table_id) else {
         return;
     };
@@ -209,7 +209,7 @@ pub fn columns_filling_last(ui: &Ui, table_id_salt: &str, columns: &[Column]) ->
     // Put the final resize handle beyond the table container edge so its
     // expanded interaction rect does not steal surrounding splitter drags.
     let fill_width = available_width + 2.0 * ui.style().interaction.resize_grab_radius_side;
-    let table_id = TableState::id(ui, egui::Id::new(table_id_salt));
+    let table_id = TableState::id(ui, IdSalt::new(table_id_salt));
     // egui_table updates TableState::parent_width on every show, even before this
     // adjustment is applied. Track the widths we already filled separately.
     let filled_width_id = table_id.with("last_column_filled_width");

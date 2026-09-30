@@ -181,9 +181,10 @@ mod tests {
         registry: &mut FilterRegistry,
         ctx: &Context,
     ) {
-        let _ = ctx.run_ui(RawInput::default(), |ui| {
+        ctx.run_ui(RawInput::default(), |ui| {
             search.render_content(shared, actions, registry, ui);
-        });
+        })
+        .drop_without_applying_deltas();
     }
 
     #[test]
@@ -199,7 +200,8 @@ mod tests {
         let ctx = Context::default();
 
         render(&mut search, &mut shared, &mut actions, &mut registry, &ctx);
-        let _ = ctx.run_ui(RawInput::default(), |_| {});
+        ctx.run_ui(RawInput::default(), |_| {})
+            .drop_without_applying_deltas();
         shared.search.nested_mut().open();
         shared.view.active_log_table = super::LogTableKind::Search;
 
@@ -222,7 +224,8 @@ mod tests {
         let ctx = Context::default();
 
         render(&mut search, &mut shared, &mut actions, &mut registry, &ctx);
-        let _ = ctx.run_ui(RawInput::default(), |_| {});
+        ctx.run_ui(RawInput::default(), |_| {})
+            .drop_without_applying_deltas();
         shared.search.nested_mut().open();
         search.focus_nested();
         search.focus_primary();
@@ -258,18 +261,20 @@ mod tests {
         let ctx = Context::default();
 
         render(&mut search, &mut shared, &mut actions, &mut registry, &ctx);
-        let _ = ctx.run_ui(RawInput::default(), |_| {});
+        ctx.run_ui(RawInput::default(), |_| {})
+            .drop_without_applying_deltas();
         shared.view.active_log_table = super::LogTableKind::Search;
         let table_focus = Id::new("active_search_table");
         let mut table_editor = String::new();
-        let _ = ctx.run_ui(RawInput::default(), |ui| {
+        ctx.run_ui(RawInput::default(), |ui| {
             TextEdit::singleline(&mut table_editor)
                 .id(table_focus)
                 .show(ui)
                 .response
                 .request_focus();
             search.render_content(&mut shared, &mut actions, &mut registry, ui);
-        });
+        })
+        .drop_without_applying_deltas();
 
         assert_eq!(ctx.memory(|memory| memory.focused()), Some(table_focus));
     }

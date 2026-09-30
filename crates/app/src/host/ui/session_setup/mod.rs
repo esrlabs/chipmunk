@@ -78,7 +78,7 @@ impl SessionSetup {
     ) {
         Panel::top("selection_panel")
             .exact_size(40.)
-            .show_inside(ui, |ui| {
+            .show(ui, |ui| {
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                     self.top_bar(actions, ui);
                 });
@@ -88,12 +88,12 @@ impl SessionSetup {
             .size_range(RESIZABLE_PANEL_MIN_SIZE..=RESIZABLE_PANEL_MAX_SIZE)
             .default_size(RESIZABLE_PANEL_DEFAULT_SIZE)
             .resizable(true)
-            .show_inside(ui, |ui| {
+            .show(ui, |ui| {
                 ui.take_available_width();
                 side_config::render_content(&mut self.state, actions, plugins, ui);
             });
 
-        CentralPanel::default().show_inside(ui, |ui| {
+        CentralPanel::default().show(ui, |ui| {
             ui.centered_and_justified(|ui| {
                 let outcome = self.render_main_config(recent_sessions, plugins, actions, ui);
                 match outcome {

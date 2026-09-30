@@ -190,7 +190,7 @@ impl Session {
         Panel::bottom("status_bar")
             .resizable(false)
             .exact_size(23.0)
-            .show_inside(ui, |ui| {
+            .show(ui, |ui| {
                 status_bar::render_content(shared, ui);
             });
 
@@ -199,7 +199,7 @@ impl Session {
             .size_range(RESIZABLE_PANEL_MIN_SIZE..=RESIZABLE_PANEL_MAX_SIZE)
             .default_size(RESIZABLE_PANEL_DEFAULT_SIZE)
             .resizable(true)
-            .show_animated_inside(ui, preferences.panels_visibility.right, |ui| {
+            .show_collapsible(ui, &mut preferences.panels_visibility.right, |ui| {
                 ui.take_available_width();
                 side_panel.render_content(ui, shared, actions, registry);
             });
@@ -209,7 +209,7 @@ impl Session {
             .size_range(RESIZABLE_PANEL_MIN_SIZE..=RESIZABLE_PANEL_MAX_SIZE)
             .default_size(RESIZABLE_PANEL_DEFAULT_SIZE)
             .resizable(true)
-            .show_animated_inside(ui, preferences.panels_visibility.bottom, |ui| {
+            .show_collapsible(ui, &mut preferences.panels_visibility.bottom, |ui| {
                 ui.take_available_height();
                 bottom_panel.render_content(shared, actions, registry, ui);
             });
@@ -220,7 +220,7 @@ impl Session {
                 .show_separator_line(false)
                 .exact_size(30.0)
                 .frame(Frame::NONE.outer_margin(Margin::same(2)))
-                .show_inside(ui, |ui| {
+                .show(ui, |ui| {
                     ui.push_id(shared.get_id(), |ui| {
                         sde_bar.render_content(actions, ui);
                     });
@@ -229,7 +229,7 @@ impl Session {
 
         CentralPanel::default()
             .frame(Frame::central_panel(ui.style()).inner_margin(Margin::ZERO))
-            .show_inside(ui, |ui| {
+            .show(ui, |ui| {
                 // We need to give a unique id for the direct parent of each table because
                 // they will be used as identifiers for table state to avoid ID clashes between
                 // tables from different tabs (different sessions).
@@ -953,9 +953,10 @@ mod tests {
         };
         let ctx = Context::default();
         let mut consumed = false;
-        let _ = ctx.run_ui(input, |ui| {
+        ctx.run_ui(input, |ui| {
             consumed = session.handle_shortcuts(&mut actions, &mut host_state, ui.ctx(), None);
-        });
+        })
+        .drop_without_applying_deltas();
 
         assert!(consumed);
         assert!(!session.shared.search.nested().is_pending());
@@ -996,9 +997,10 @@ mod tests {
         };
         let ctx = Context::default();
         let mut consumed = false;
-        let _ = ctx.run_ui(input, |ui| {
+        ctx.run_ui(input, |ui| {
             consumed = session.handle_shortcuts(&mut actions, &mut host_state, ui.ctx(), None);
-        });
+        })
+        .drop_without_applying_deltas();
 
         assert!(consumed);
         assert!(session.shared.search.nested().is_open());
@@ -1166,9 +1168,10 @@ mod tests {
         };
         let ctx = Context::default();
         let mut consumed = false;
-        let _ = ctx.run_ui(input, |ui| {
+        ctx.run_ui(input, |ui| {
             consumed = session.handle_shortcuts(actions, host_state, ui.ctx(), None);
-        });
+        })
+        .drop_without_applying_deltas();
 
         assert!(consumed, "select-all shortcut should be consumed");
     }

@@ -146,7 +146,7 @@ impl PluginManagerView {
 
         Panel::top("plugin_manager_header")
             .exact_size(40.0)
-            .show_inside(ui, |ui| {
+            .show(ui, |ui| {
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                     if ui.add(buttons::session_setup("Reload", None)).clicked() {
                         actions.try_send_command(&self.cmd_tx, HostCommand::ReloadPlugins);
@@ -170,11 +170,11 @@ impl PluginManagerView {
             .size_range(RESIZABLE_PANEL_MIN_SIZE..=RESIZABLE_PANEL_MAX_SIZE)
             .default_size(RESIZABLE_PANEL_DEFAULT_SIZE)
             .resizable(true)
-            .show_animated_inside(ui, preferences.panels_visibility.right, |ui| {
+            .show_collapsible(ui, &mut preferences.panels_visibility.right, |ui| {
                 list::render_sidebar(self, data, modals, ui);
             });
 
-        CentralPanel::default().show_inside(ui, |ui| {
+        CentralPanel::default().show(ui, |ui| {
             self.render_selected_details(data, actions, ui);
         });
     }

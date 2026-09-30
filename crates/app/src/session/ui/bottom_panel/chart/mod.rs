@@ -1,7 +1,7 @@
 use std::{ops::RangeInclusive, time::Duration};
 
 use egui::{Direction, Frame, Label, Layout, Margin, Spinner, Ui, Vec2, Widget};
-use egui_plot::{Bar, BarChart, Legend, Line, Plot, PlotBounds};
+use egui_plot::{Bar, BarChart, HoverPosition, Legend, Line, Plot, PlotBounds};
 use tokio::sync::mpsc::Sender;
 
 use crate::{
@@ -192,15 +192,24 @@ impl ChartUI {
             .allow_double_click_reset(false) // We are handling reset manually.
             .show_y(false)
             .set_margin_fraction(Vec2::splat(CHART_OFFSET as f32))
-            .label_formatter(|name, point| {
+            .label_formatter(|hover| {
                 // Show log number on hover only unless user hovers over
                 // a line chart then show the name of it too.
-                let log_nr = convert_bounded(point.x.round());
-                if name.is_empty() {
+                let (name, position) = match hover {
+                    HoverPosition::NearDataPoint {
+                        plot_name,
+                        position,
+                        index: _,
+                    } => (*plot_name, position),
+                    HoverPosition::Elsewhere { position } => ("", position),
+                };
+                let log_nr = convert_bounded(position.x.round());
+                let label = if name.is_empty() {
                     log_nr.to_string()
                 } else {
                     format!("{name}\n{log_nr}")
-                }
+                };
+                Some(label)
             })
             .y_axis_formatter(|mark, _rng| {
                 // Show positive numbers only and don't break alignment when when

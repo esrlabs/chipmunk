@@ -95,7 +95,7 @@ impl RecentSessionsUi {
 
         let focus_filter = self.visibility_tracker.is_newly_visible(ui);
         let query_response =
-            sized_singleline_text_edit(ui, &mut self.query, vec2(ui.available_width(), 27.0), 7)
+            sized_singleline_text_edit(&mut self.query, vec2(ui.available_width(), 27.0), 7)
                 .hint_text("Filter recent sessions")
                 .ui(ui);
         if focus_filter {

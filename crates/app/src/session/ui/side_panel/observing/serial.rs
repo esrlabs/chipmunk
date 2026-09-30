@@ -1,4 +1,6 @@
-use egui::{Align, ComboBox, DragValue, Id, Layout, RichText, TextEdit, Ui, Widget, vec2};
+use egui::{
+    Align, AsIdSalt, ComboBox, DragValue, Id, Layout, RichText, TextEdit, Ui, Widget, vec2,
+};
 use stypes::Transport;
 use tokio::sync::mpsc;
 use uuid::Uuid;
@@ -335,7 +337,7 @@ const FIELD_WIDTH: f32 = 180.0;
 /// Renders a combo box for selecting one of the predefined named values.
 fn render_named_value_combo<T: Copy + PartialEq>(
     ui: &mut Ui,
-    id: impl std::hash::Hash,
+    id: impl AsIdSalt,
     current: &mut NamedValue<T>,
     values: &[NamedValue<T>],
 ) {

@@ -117,7 +117,7 @@ impl AttachmentsUi {
 
         egui::CentralPanel::default()
             .frame(Frame::NONE)
-            .show_inside(ui, |ui| {
+            .show(ui, |ui| {
                 show_side_panel_group(ui, |ui| self.render_list(shared, ui_actions, ui));
             });
     }
@@ -155,7 +155,7 @@ impl AttachmentsUi {
             .resizable(false)
             .show_separator_line(false)
             .exact_size(self.preview_panel_height(ui.available_height()))
-            .show_inside(ui, |ui| {
+            .show(ui, |ui| {
                 show_side_panel_group(ui, |ui| {
                     self.render_preview(&attachment, attachments, ui_actions, ui)
                 });

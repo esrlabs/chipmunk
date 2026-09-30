@@ -343,17 +343,20 @@ mod tests {
         let session_id = Uuid::new_v4();
         let table_rect = Rect::from_min_size(pos2(0.0, 0.0), vec2(600.0, 300.0));
         let ctx = Context::default();
-        let _ = ctx.run_ui(RawInput::default(), |ui| {
+        ctx.run_ui(RawInput::default(), |ui| {
             widget.render(session_id, table_rect, &mut state, &mut actions, ui);
-        });
-        let _ = ctx.run_ui(RawInput::default(), |ui| {
+        })
+        .drop_without_applying_deltas();
+        ctx.run_ui(RawInput::default(), |ui| {
             widget.render(session_id, table_rect, &mut state, &mut actions, ui);
-        });
+        })
+        .drop_without_applying_deltas();
         assert!(widget.has_focus(session_id, &ctx));
 
-        let _ = ctx.run_ui(escape_input(), |ui| {
+        ctx.run_ui(escape_input(), |ui| {
             widget.render(session_id, table_rect, &mut state, &mut actions, ui);
-        });
+        })
+        .drop_without_applying_deltas();
         assert!(!state.is_open());
     }
 
@@ -370,19 +373,21 @@ mod tests {
         let table_rect = Rect::from_min_size(pos2(0.0, 0.0), vec2(600.0, 300.0));
         let ctx = Context::default();
         let mut other_query = String::new();
-        let _ = ctx.run_ui(RawInput::default(), |ui| {
+        ctx.run_ui(RawInput::default(), |ui| {
             let response = TextEdit::singleline(&mut other_query)
                 .id(Id::new("other_search_input"))
                 .show(ui)
                 .response;
             response.request_focus();
             widget.render(session_id, table_rect, &mut state, &mut actions, ui);
-        });
+        })
+        .drop_without_applying_deltas();
         assert!(!widget.has_focus(session_id, &ctx));
 
-        let _ = ctx.run_ui(escape_input(), |ui| {
+        ctx.run_ui(escape_input(), |ui| {
             widget.render(session_id, table_rect, &mut state, &mut actions, ui);
-        });
+        })
+        .drop_without_applying_deltas();
         assert!(state.is_open());
     }
 
@@ -408,15 +413,17 @@ mod tests {
         let session_id = Uuid::new_v4();
         let table_rect = Rect::from_min_size(pos2(0.0, 0.0), vec2(600.0, 300.0));
         let ctx = Context::default();
-        let _ = ctx.run_ui(RawInput::default(), |ui| {
+        ctx.run_ui(RawInput::default(), |ui| {
             widget.render(session_id, table_rect, &mut state, &mut actions, ui);
-        });
+        })
+        .drop_without_applying_deltas();
         assert!(!widget.has_focus(session_id, &ctx));
 
         assert!(state.accept_response(request_id));
-        let _ = ctx.run_ui(RawInput::default(), |ui| {
+        ctx.run_ui(RawInput::default(), |ui| {
             widget.render(session_id, table_rect, &mut state, &mut actions, ui);
-        });
+        })
+        .drop_without_applying_deltas();
         assert!(widget.has_focus(session_id, &ctx));
     }
 

@@ -101,7 +101,6 @@ impl JumpToRow {
 
                 let input_id = ui.make_persistent_id("jump_to_row_input");
                 let input_response = sized_singleline_text_edit(
-                    ui,
                     &mut self.input,
                     vec2(ui.available_width(), 25.0),
                     7,
@@ -241,7 +240,8 @@ mod tests {
 
     fn render(jump: &mut JumpToRow, shared: &mut SessionShared, input: RawInput) {
         let ctx = Context::default();
-        let _ = ctx.run_ui(input, |ui| jump.render(shared, ui));
+        ctx.run_ui(input, |ui| jump.render(shared, ui))
+            .drop_without_applying_deltas();
     }
 
     fn pointer_input(pressed: bool) -> RawInput {
@@ -311,20 +311,23 @@ mod tests {
         let ctx = Context::default();
         jump.open();
 
-        let _ = ctx.run_ui(RawInput::default(), |ui| jump.render(&mut shared, ui));
+        ctx.run_ui(RawInput::default(), |ui| jump.render(&mut shared, ui))
+            .drop_without_applying_deltas();
         assert!(jump.validation_message(10).is_none());
 
         let text_input = RawInput {
             events: vec![Event::Text("x".to_owned())],
             ..Default::default()
         };
-        let _ = ctx.run_ui(text_input, |ui| jump.render(&mut shared, ui));
+        ctx.run_ui(text_input, |ui| jump.render(&mut shared, ui))
+            .drop_without_applying_deltas();
         assert_eq!(jump.input, "x");
         assert!(jump.validation_message(10).is_some());
 
-        let _ = ctx.run_ui(key_input(Key::Backspace, Modifiers::NONE), |ui| {
+        ctx.run_ui(key_input(Key::Backspace, Modifiers::NONE), |ui| {
             jump.render(&mut shared, ui)
-        });
+        })
+        .drop_without_applying_deltas();
         assert!(jump.input.is_empty());
         assert!(jump.validation_message(10).is_some());
 
@@ -332,7 +335,8 @@ mod tests {
             events: vec![Event::Text("4".to_owned())],
             ..Default::default()
         };
-        let _ = ctx.run_ui(text_input, |ui| jump.render(&mut shared, ui));
+        ctx.run_ui(text_input, |ui| jump.render(&mut shared, ui))
+            .drop_without_applying_deltas();
         assert_eq!(jump.input, "4");
         assert!(jump.validation_message(10).is_none());
     }
@@ -452,13 +456,17 @@ mod tests {
         let mut shared = new_shared(10);
         let ctx = Context::default();
 
-        let _ = ctx.run_ui(pointer_input(true), |_| {});
+        ctx.run_ui(pointer_input(true), |_| {})
+            .drop_without_applying_deltas();
         jump.open();
-        let _ = ctx.run_ui(pointer_input(false), |ui| jump.render(&mut shared, ui));
+        ctx.run_ui(pointer_input(false), |ui| jump.render(&mut shared, ui))
+            .drop_without_applying_deltas();
         assert!(jump.is_open());
 
-        let _ = ctx.run_ui(pointer_input(true), |ui| jump.render(&mut shared, ui));
-        let _ = ctx.run_ui(pointer_input(false), |ui| jump.render(&mut shared, ui));
+        ctx.run_ui(pointer_input(true), |ui| jump.render(&mut shared, ui))
+            .drop_without_applying_deltas();
+        ctx.run_ui(pointer_input(false), |ui| jump.render(&mut shared, ui))
+            .drop_without_applying_deltas();
         assert!(!jump.is_open());
     }
 

@@ -3,9 +3,9 @@
 //! This module renders the home-screen file explorer, manages its transient UI
 //! state, and bridges user actions to the host/storage layers.
 
-use std::{hash::Hash, ops::Not, path::PathBuf, time::Duration};
+use std::{ops::Not, path::PathBuf, time::Duration};
 
-use egui::{Align, Layout, TextStyle};
+use egui::{Align, AsIdSalt, Layout, TextStyle};
 use egui::{
     Button, Label, Response, RichText, Sense, Ui, UiBuilder, Widget,
     collapsing_header::CollapsingState, vec2,
@@ -167,7 +167,6 @@ impl FileExplorerUi {
                 }
 
                 let search_response = sized_singleline_text_edit(
-                    ui,
                     &mut self.search_query,
                     vec2(ui.available_width(), CONTROL_ROW_HEIGHT),
                     7,
@@ -500,7 +499,7 @@ impl FileExplorerUi {
 /// * `render_label` - Renders the caller-specific label after the caret icon, using the provided text color.
 fn render_folder_header(
     ui: &mut Ui,
-    id_salt: impl Hash,
+    id_salt: impl AsIdSalt,
     force_expanded: bool,
     render_label: impl FnOnce(&mut Ui, egui::Color32),
 ) -> (Response, Option<CollapsingState>) {

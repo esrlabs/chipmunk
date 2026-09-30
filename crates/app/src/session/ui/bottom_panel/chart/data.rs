@@ -1,4 +1,4 @@
-use egui::{Color32, ahash::HashMapExt as _};
+use egui::Color32;
 use rustc_hash::FxHashMap;
 
 use crate::{
@@ -64,7 +64,7 @@ impl ChartsData {
         self.bars.clear();
 
         for bucket in raw_bars {
-            let mut counts = FxHashMap::with_capacity(bucket.len());
+            let mut counts = FxHashMap::with_capacity_and_hasher(bucket.len(), Default::default());
 
             for bar in bucket {
                 counts.insert(bar.filter_idx, bar.matches_count);

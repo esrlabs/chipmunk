@@ -50,9 +50,10 @@ mod tests {
         let mut tracker = VisibilityTracker::default();
         let ctx = egui::Context::default();
 
-        let _ = ctx.run_ui(Default::default(), |ui| {
+        ctx.run_ui(Default::default(), |ui| {
             assert!(tracker.is_newly_visible(ui));
-        });
+        })
+        .drop_without_applying_deltas();
     }
 
     #[test]
@@ -60,12 +61,14 @@ mod tests {
         let mut tracker = VisibilityTracker::default();
         let ctx = egui::Context::default();
 
-        let _ = ctx.run_ui(Default::default(), |ui| {
+        ctx.run_ui(Default::default(), |ui| {
             assert!(tracker.is_newly_visible(ui));
-        });
-        let _ = ctx.run_ui(Default::default(), |ui| {
+        })
+        .drop_without_applying_deltas();
+        ctx.run_ui(Default::default(), |ui| {
             assert!(!tracker.is_newly_visible(ui));
-        });
+        })
+        .drop_without_applying_deltas();
     }
 
     #[test]
@@ -73,12 +76,15 @@ mod tests {
         let mut tracker = VisibilityTracker::default();
         let ctx = egui::Context::default();
 
-        let _ = ctx.run_ui(Default::default(), |ui| {
+        ctx.run_ui(Default::default(), |ui| {
             assert!(tracker.is_newly_visible(ui));
-        });
-        let _ = ctx.run_ui(Default::default(), |_| {});
-        let _ = ctx.run_ui(Default::default(), |ui| {
+        })
+        .drop_without_applying_deltas();
+        ctx.run_ui(Default::default(), |_| {})
+            .drop_without_applying_deltas();
+        ctx.run_ui(Default::default(), |ui| {
             assert!(tracker.is_newly_visible(ui));
-        });
+        })
+        .drop_without_applying_deltas();
     }
 }

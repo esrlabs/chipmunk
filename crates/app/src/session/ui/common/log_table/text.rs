@@ -8,7 +8,7 @@ use std::ops::Range;
 
 use egui::{
     Color32, Response, TextStyle, Ui,
-    text::{LayoutJob, LayoutSection},
+    text::{ByteIndex, LayoutJob, LayoutSection},
 };
 use regex::Regex;
 
@@ -358,22 +358,24 @@ fn apply_nested_highlight(job: &mut LayoutJob, nested_spans: &[Range<usize>]) {
     let mut first_nested = 0;
 
     for source in source_sections {
+        let source_start = usize::from(source.byte_range.start);
+        let source_end = usize::from(source.byte_range.end);
         while nested_spans
             .get(first_nested)
-            .is_some_and(|span| span.end <= source.byte_range.start)
+            .is_some_and(|span| span.end <= source_start)
         {
             first_nested += 1;
         }
 
-        let mut cursor = source.byte_range.start;
+        let mut cursor = source_start;
         let mut nested_idx = first_nested;
         while let Some(span) = nested_spans.get(nested_idx) {
-            if span.start >= source.byte_range.end {
+            if span.start >= source_end {
                 break;
             }
 
             let highlight_start = span.start.max(cursor);
-            let highlight_end = span.end.min(source.byte_range.end);
+            let highlight_end = span.end.min(source_end);
             if cursor < highlight_start {
                 push_layout_section(&mut sections, &source, cursor..highlight_start, false);
             }
@@ -384,8 +386,8 @@ fn apply_nested_highlight(job: &mut LayoutJob, nested_spans: &[Range<usize>]) {
             nested_idx += 1;
         }
 
-        if cursor < source.byte_range.end {
-            push_layout_section(&mut sections, &source, cursor..source.byte_range.end, false);
+        if cursor < source_end {
+            push_layout_section(&mut sections, &source, cursor..source_end, false);
         }
     }
 
@@ -398,6 +400,7 @@ fn push_layout_section(
     byte_range: Range<usize>,
     nested: bool,
 ) {
+    let byte_range = ByteIndex::from(byte_range.start)..ByteIndex::from(byte_range.end);
     let leading_space = if byte_range.start == source.byte_range.start {
         source.leading_space
     } else {
@@ -488,7 +491,10 @@ fn linear_channel(value: u8) -> f32 {
 mod tests {
     use std::{ops::Range, path::PathBuf, slice};
 
-    use egui::{Color32, TextFormat, text::LayoutJob};
+    use egui::{
+        Color32, TextFormat,
+        text::{ByteIndex, LayoutJob},
+    };
     use processor::search::filter::{self, SearchFilter};
     use regex::Regex;
     use stypes::{FileFormat, FilterMatch, ObserveOrigin};
@@ -608,7 +614,7 @@ mod tests {
     fn format_at(job: &LayoutJob, offset: usize) -> &TextFormat {
         &job.sections
             .iter()
-            .find(|section| section.byte_range.contains(&offset))
+            .find(|section| section.byte_range.contains(&ByteIndex::from(offset)))
             .expect("offset should be covered")
             .format
     }
@@ -901,8 +907,11 @@ mod tests {
         );
 
         assert_eq!(job.text, content);
-        assert_eq!(job.sections.first().unwrap().byte_range.start, 0);
-        assert_eq!(job.sections.last().unwrap().byte_range.end, content.len());
+        assert_eq!(job.sections.first().unwrap().byte_range.start, ByteIndex(0));
+        assert_eq!(
+            job.sections.last().unwrap().byte_range.end,
+            ByteIndex(content.len())
+        );
         assert!(
             job.sections
                 .windows(2)
@@ -911,7 +920,11 @@ mod tests {
         let reconstructed: String = job
             .sections
             .iter()
-            .map(|section| &job.text[section.byte_range.clone()])
+            .map(|section| {
+                let start = usize::from(section.byte_range.start);
+                let end = usize::from(section.byte_range.end);
+                &job.text[start..end]
+            })
             .collect();
         assert_eq!(reconstructed, content);
     }
