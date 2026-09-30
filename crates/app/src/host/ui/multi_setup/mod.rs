@@ -7,6 +7,7 @@ use uuid::Uuid;
 use crate::{
     common::ui::{
         RESIZABLE_PANEL_DEFAULT_SIZE, RESIZABLE_PANEL_MAX_SIZE, RESIZABLE_PANEL_MIN_SIZE, buttons,
+        panel::show_toggled_panel,
     },
     host::{
         command::HostCommand,
@@ -59,16 +60,16 @@ impl MultiFileSetup {
             });
         });
 
-        Panel::right("side info")
+        let panel = Panel::right("side info")
             .frame(Frame::central_panel(ui.style()))
             .size_range(RESIZABLE_PANEL_MIN_SIZE..=RESIZABLE_PANEL_MAX_SIZE)
             .default_size(RESIZABLE_PANEL_DEFAULT_SIZE)
-            .resizable(true)
-            .show_collapsible(ui, &mut preferences.panels_visibility.right, |ui| {
-                ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {
-                    self.side_panel.render_content(ui, &mut self.state);
-                });
+            .resizable(true);
+        show_toggled_panel(panel, ui, preferences.panels_visibility.right, |ui| {
+            ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {
+                self.side_panel.render_content(ui, &mut self.state);
             });
+        });
 
         CentralPanel::default().show(ui, |ui| {
             self.main_table.render_content(ui, &mut self.state);

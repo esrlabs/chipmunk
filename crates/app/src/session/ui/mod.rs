@@ -14,7 +14,7 @@ use uuid::Uuid;
 use crate::{
     common::ui::{
         RESIZABLE_PANEL_DEFAULT_SIZE, RESIZABLE_PANEL_MAX_SIZE, RESIZABLE_PANEL_MIN_SIZE,
-        modal::show_busy_indicator,
+        modal::show_busy_indicator, panel::show_toggled_panel,
     },
     host::{
         command::HostCommand,
@@ -194,25 +194,25 @@ impl Session {
                 status_bar::render_content(shared, ui);
             });
 
-        Panel::right("side_panel")
+        let panel = Panel::right("side_panel")
             .frame(Frame::side_top_panel(ui.style()).inner_margin(Margin::same(0)))
             .size_range(RESIZABLE_PANEL_MIN_SIZE..=RESIZABLE_PANEL_MAX_SIZE)
             .default_size(RESIZABLE_PANEL_DEFAULT_SIZE)
-            .resizable(true)
-            .show_collapsible(ui, &mut preferences.panels_visibility.right, |ui| {
-                ui.take_available_width();
-                side_panel.render_content(ui, shared, actions, registry);
-            });
+            .resizable(true);
+        show_toggled_panel(panel, ui, preferences.panels_visibility.right, |ui| {
+            ui.take_available_width();
+            side_panel.render_content(ui, shared, actions, registry);
+        });
 
-        Panel::bottom("bottom_panel")
+        let panel = Panel::bottom("bottom_panel")
             .frame(Frame::side_top_panel(ui.style()).inner_margin(Margin::ZERO))
             .size_range(RESIZABLE_PANEL_MIN_SIZE..=RESIZABLE_PANEL_MAX_SIZE)
             .default_size(RESIZABLE_PANEL_DEFAULT_SIZE)
-            .resizable(true)
-            .show_collapsible(ui, &mut preferences.panels_visibility.bottom, |ui| {
-                ui.take_available_height();
-                bottom_panel.render_content(shared, actions, registry, ui);
-            });
+            .resizable(true);
+        show_toggled_panel(panel, ui, preferences.panels_visibility.bottom, |ui| {
+            ui.take_available_height();
+            bottom_panel.render_content(shared, actions, registry, ui);
+        });
 
         if preferences.sde_bar_visible && sde_bar.is_available() {
             Panel::bottom("sde_bar")

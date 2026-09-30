@@ -44,16 +44,14 @@ pub fn render_log_cell_text(
         None => ui.monospace(""),
     };
 
-    // Improve logs manual selection by expanding text respond, which:
-    // - Make dragging from everywhere selects texts.
-    // - Avoid egui_table drag on select annoying behavior.
+    // Expand the text response so dragging from anywhere in the cell starts text selection.
     expand_cell_response(ui, response)
 }
 
 fn expand_cell_response(ui: &Ui, mut response: Response) -> Response {
-    // Selectable labels normally claim only their text galley. In the remaining cell whitespace,
-    // egui_table's backing ScrollArea receives the drag and pans instead of starting selection.
-    // Change only the hit-test area so text layout and painting remain tied to the label itself.
+    // Selectable labels normally claim only their text galley, so drags in the remaining cell
+    // whitespace would not start selection. Change only the hit-test area so text layout and
+    // painting remain tied to the label itself.
     response.interact_rect = ui.clip_rect();
 
     // Re-register the same widget so egui hit testing sees the expanded rectangle this pass.

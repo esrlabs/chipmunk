@@ -4,7 +4,8 @@ use std::path::Path;
 
 use egui::{
     Align, Align2, Color32, Context, CursorIcon, Label, LayerId, Layout, Order, Rect, Response,
-    RichText, ScrollArea, Sense, Stroke, TextStyle, Ui, Widget, pos2, scroll_area, vec2,
+    RichText, ScrollArea, Sense, Stroke, TextStyle, Ui, Widget, pos2, scroll_area::DragScroll,
+    vec2,
 };
 use egui_extras::{Column, TableBuilder};
 use enum_iterator::all;
@@ -79,7 +80,7 @@ impl MainTable {
         let table = TableBuilder::new(ui)
             .id_salt(state.id())
             .auto_shrink(true)
-            .drag_to_scroll(scroll_area::DragScroll::Never)
+            .drag_to_scroll(DragScroll::Never)
             .striped(false)
             .resizable(false)
             .cell_layout(Layout::left_to_right(Align::Center))

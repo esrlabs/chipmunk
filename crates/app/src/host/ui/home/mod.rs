@@ -7,7 +7,10 @@ use self::{file_explorer::FileExplorerUi, recent::RecentSessionsUi};
 use super::menu::render_connections_menu;
 use crate::common::{
     phosphor::icons,
-    ui::{RESIZABLE_PANEL_DEFAULT_SIZE, RESIZABLE_PANEL_MAX_SIZE, RESIZABLE_PANEL_MIN_SIZE},
+    ui::{
+        RESIZABLE_PANEL_DEFAULT_SIZE, RESIZABLE_PANEL_MAX_SIZE, RESIZABLE_PANEL_MIN_SIZE,
+        panel::show_toggled_panel,
+    },
 };
 use crate::host::{
     command::HostCommand,
@@ -63,14 +66,14 @@ impl HomeView {
     ) {
         self.handle_pending_file_dialog(actions);
 
-        Panel::right("favorite folders")
+        let panel = Panel::right("favorite folders")
             .size_range(RESIZABLE_PANEL_MIN_SIZE..=RESIZABLE_PANEL_MAX_SIZE)
             .default_size(RESIZABLE_PANEL_DEFAULT_SIZE)
-            .resizable(true)
-            .show_collapsible(ui, &mut preferences.panels_visibility.right, |ui| {
-                self.file_explorer
-                    .render_content(actions, &mut storage.file_explorer, ui);
-            });
+            .resizable(true);
+        show_toggled_panel(panel, ui, preferences.panels_visibility.right, |ui| {
+            self.file_explorer
+                .render_content(actions, &mut storage.file_explorer, ui);
+        });
 
         CentralPanel::default().show(ui, |ui| {
             // Layout rules:
