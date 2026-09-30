@@ -51,13 +51,13 @@ impl AppSettingsView {
 
         Panel::top("app_settings_header")
             .exact_size(40.0)
-            .show_inside(ui, |ui| {
+            .show(ui, |ui| {
                 ui.with_layout(Layout::left_to_right(Align::Center), |ui| {
                     ui.heading("App Settings");
                 });
             });
 
-        CentralPanel::default().show_inside(ui, |ui| {
+        CentralPanel::default().show(ui, |ui| {
             const ACTIONS_HEIGHT: f32 = 40.0;
 
             let content_width = ui.available_width().min(CONTENT_MAX_WIDTH);

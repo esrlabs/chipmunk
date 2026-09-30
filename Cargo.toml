@@ -122,19 +122,19 @@ wit-bindgen = "0.42"
 clap = { version = "4.5", features = ["derive"] }
 walkdir = "2.5"
 
-egui = "0.34"
-eframe = { version = "0.34", default-features = false }
+egui = "0.36"
+eframe = { version = "0.36", default-features = false }
 rfd = "0.17"
-egui_extras = { version = "0.34", default-features = false }
+egui_extras = { version = "0.36", default-features = false }
 image = { version = "0.25", default-features = false }
-egui_table = "0.8"
-egui_plot = "0.35"
+egui_table = "0.10"
+egui_plot = "0.37"
 # We don't have direct dependency to winit but we need to specify it here to activate
 # its default features which won't be activated otherwise without activating egui default
 # features.
 winit = { version = "0.30" }
-egui-phosphor = "0.12"
-egui_commonmark = "0.23"
+egui-phosphor = "0.14"
+egui_commonmark = "0.25"
 
 ## Development Dependencies ##
 # Support for `html_reports` needs running the benchmarks via `cargo-criterion` tool.
@@ -146,11 +146,6 @@ trybuild = "1.0"
 
 [patch.crates-io]
 # Dependencies patches before they are released can be defined here.
-# These batches are used until PR is included in egui main stream `https://github.com/emilk/egui/pull/8033`
-eframe = { git = "https://github.com/AmmarAbouZor/egui", rev = "a9f3a3e4ce95e014d46bae8ab49021b3e77213c8" }
-egui = { git = "https://github.com/AmmarAbouZor/egui", rev = "a9f3a3e4ce95e014d46bae8ab49021b3e77213c8" }
-egui_extras = { git = "https://github.com/AmmarAbouZor/egui", rev = "a9f3a3e4ce95e014d46bae8ab49021b3e77213c8" }
-emath = { git = "https://github.com/AmmarAbouZor/egui", rev = "a9f3a3e4ce95e014d46bae8ab49021b3e77213c8" }
 
 [workspace.lints.clippy]
 undocumented_unsafe_blocks = "deny"

@@ -189,7 +189,7 @@ fn render_port_path(
         });
 
     let path_res =
-        sized_singleline_text_edit(ui, &mut config.path, vec2(ui.available_width(), height), 4)
+        sized_singleline_text_edit(&mut config.path, vec2(ui.available_width(), height), 4)
             .hint_text("Port path")
             .show(ui)
             .response;

@@ -7,6 +7,7 @@ use uuid::Uuid;
 use crate::{
     common::ui::{
         RESIZABLE_PANEL_DEFAULT_SIZE, RESIZABLE_PANEL_MAX_SIZE, RESIZABLE_PANEL_MIN_SIZE, buttons,
+        panel::show_toggled_panel,
     },
     host::{
         command::HostCommand,
@@ -53,26 +54,24 @@ impl MultiFileSetup {
         preferences: &mut HostPreferences,
         ui: &mut Ui,
     ) {
-        Panel::top("actions panel")
-            .exact_size(40.)
-            .show_inside(ui, |ui| {
-                ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                    self.top_panel(actions, ui);
-                });
+        Panel::top("actions panel").exact_size(40.).show(ui, |ui| {
+            ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                self.top_panel(actions, ui);
             });
+        });
 
-        Panel::right("side info")
+        let panel = Panel::right("side info")
             .frame(Frame::central_panel(ui.style()))
             .size_range(RESIZABLE_PANEL_MIN_SIZE..=RESIZABLE_PANEL_MAX_SIZE)
             .default_size(RESIZABLE_PANEL_DEFAULT_SIZE)
-            .resizable(true)
-            .show_animated_inside(ui, preferences.panels_visibility.right, |ui| {
-                ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {
-                    self.side_panel.render_content(ui, &mut self.state);
-                });
+            .resizable(true);
+        show_toggled_panel(panel, ui, preferences.panels_visibility.right, |ui| {
+            ui.with_layout(Layout::top_down_justified(Align::LEFT), |ui| {
+                self.side_panel.render_content(ui, &mut self.state);
             });
+        });
 
-        CentralPanel::default().show_inside(ui, |ui| {
+        CentralPanel::default().show(ui, |ui| {
             self.main_table.render_content(ui, &mut self.state);
         });
     }

@@ -23,13 +23,6 @@ pub fn global_styles(style: &mut Style) {
     }
 
     apply_global_color_styles(&mut style.visuals);
-
-    //NOTE: Workaround until issue with egui_table is fixed.
-    // Issue Link: https://github.com/rerun-io/egui_table/issues/56
-    #[cfg(debug_assertions)]
-    {
-        style.debug.warn_if_rect_changes_id = false;
-    }
 }
 
 fn apply_global_color_styles(visuals: &mut Visuals) {

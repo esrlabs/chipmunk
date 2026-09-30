@@ -266,10 +266,8 @@ impl TabStrip {
 
         if max_scroll_offset > 0.0 {
             let current_scroll_offset = output.state.offset.x.clamp(0.0, max_scroll_offset);
-            let clip_rect_margin = ui.visuals().clip_rect_margin;
-            let left_rect = self.scroll_button_rect(control_rect, output.inner_rect, true, 0.0);
-            let right_rect =
-                self.scroll_button_rect(control_rect, output.inner_rect, false, clip_rect_margin);
+            let left_rect = self.scroll_button_rect(control_rect, output.inner_rect, true);
+            let right_rect = self.scroll_button_rect(control_rect, output.inner_rect, false);
 
             let mut requested_scroll_delta = 0.0;
             if self.can_scroll_left(current_scroll_offset)
@@ -339,14 +337,11 @@ impl TabStrip {
         control_rect: Rect,
         viewport_rect: Rect,
         fade_from_left: bool,
-        clip_rect_margin: f32,
     ) -> Rect {
         let button_min_x = if fade_from_left {
             viewport_rect.min.x
         } else {
-            // ScrollArea clips content with `clip_rect_margin`, so the rightmost tab can
-            // still paint slightly past the logical viewport edge.
-            control_rect.max.x - SCROLL_BUTTON_WIDTH + clip_rect_margin
+            control_rect.max.x - SCROLL_BUTTON_WIDTH
         };
 
         Rect::from_min_size(
@@ -657,17 +652,6 @@ mod tests {
         assert_eq!(
             test_strip().strip_rect(control_rect),
             Rect::from_min_max(pos2(10.0, 9.0), pos2(110.0, 35.0))
-        );
-    }
-
-    #[test]
-    fn right_button_rect_uses_clip_margin() {
-        let control_rect = Rect::from_min_max(pos2(0.0, 0.0), pos2(120.0, 30.0));
-        let viewport_rect = Rect::from_min_max(pos2(0.0, 4.0), pos2(90.0, 30.0));
-
-        assert_eq!(
-            test_strip().scroll_button_rect(control_rect, viewport_rect, false, 3.0),
-            Rect::from_min_max(pos2(103.0, 0.0), pos2(123.0, 30.0))
         );
     }
 

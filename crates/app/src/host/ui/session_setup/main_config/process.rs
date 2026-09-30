@@ -95,15 +95,11 @@ pub fn command_and_shell(
             }
         });
 
-    let text_res = sized_singleline_text_edit(
-        ui,
-        &mut config.command,
-        vec2(ui.available_width(), height),
-        4,
-    )
-    .hint_text("Terminal command")
-    .show(ui)
-    .response;
+    let text_res =
+        sized_singleline_text_edit(&mut config.command, vec2(ui.available_width(), height), 4)
+            .hint_text("Terminal command")
+            .show(ui)
+            .response;
 
     if input_visibility.is_newly_visible(ui) {
         text_res.request_focus();
