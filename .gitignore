@@ -50,3 +50,4 @@ vim-markdown-preview.html
 local/
 **/.env
 TODO.md
+.direnv/
